@@ -1,0 +1,34 @@
+class Animal is
+  method speak() : String is
+    return "Animal sound"
+  end
+end
+
+class Dog extends Animal is
+  method speak() : String is
+    return "Woof"
+  end
+end
+
+class Cat extends Animal is
+  method speak() : String is
+    return "Meow"
+  end
+end
+
+class Main is
+  this(argc: Integer, argv: List[String]) is
+    var a : Animal()
+    var d : Dog()
+    var c : Cat()
+
+    // Expected output: "Animal sound"
+    a.speak()
+
+    // Expected output: "Woof"
+    d.speak()
+
+    // Expected output: "Meow"
+    c.speak()
+  end
+end

@@ -1,0 +1,7 @@
+import Console
+
+class Main is 
+  this(argc: Integer, argv: List[String]) is 
+    Console.print("Hello, world!")
+  end  
+end

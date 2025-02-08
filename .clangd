@@ -1,0 +1,11 @@
+CompileFlags:
+  Add:
+    - "-I/home/artjom/Uni/comp_constr/obewrong/include"
+
+    # Compiler flags
+    - "-std=c++20"            # slang uses C++20
+    - "-Wall"                 # Enable all warnings
+    - "-Wextra"               # Enable extra warnings
+    #- "-Werror"               # Treat warnings as errors (optional)
+    - "-fdiagnostics-color"   # Enable color diagnostics (optional)
+

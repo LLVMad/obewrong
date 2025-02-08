@@ -1,0 +1,26 @@
+class Counter is
+  var count : Integer
+
+  this() is
+    count := 0
+  end
+
+  method increment() is
+    count := count.Plus(1)
+  end
+
+  method getCount() : Integer is
+    return count
+  end
+end
+
+class Main is
+  this() is
+    var c : Counter()
+    c.increment()
+    c.increment()
+    var result : Integer := c.getCount() 
+    // Expected result: 2
+    // Console.print(result)
+  end
+end
