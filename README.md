@@ -486,6 +486,9 @@ Just like in Java we suggest adding the rule that `class Main` and its `method m
 (or rather its constructor `this()`) - is the starting point
 of execution of any program, this however conflicts with first two paragraphs.
 
+Obviously this means an implementation of runtime library, but as of today i dont have a clue
+how to implement (directly in obewrong? in llvm ir?)
+
 ### 4. `module` and `import` to make it possible to import classes from one file to another
 
 With the syntax being as follows:
@@ -506,3 +509,24 @@ modules (possible naming conflicts or multiple inclusion, for example, should be
 Also, this points raises the question regarding which classes are open/closed for other modules upon import.
 Perhaps an addition of `public`, `private` (maybe `static`) is needed, but maybe itll be too much
 if the above additions are approved.
+
+## 5. Project architecture
+
+```
+compiler/
+├── src/
+│   ├── frontend/
+│   │   ├── lexer.cc         
+│   │   ├── parser.cc        
+│   │   └── ...
+│   ├── middle/
+│   │   └── optimizer.cc     
+│   ├── backend/
+│   │   └── codegen.cc       
+│   ├── runtime/
+│   │   └── io.cc            
+│   └── main.cc              
+├── lib/                     
+├── test/                   
+└── CmakeLists
+```

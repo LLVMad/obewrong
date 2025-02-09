@@ -1,0 +1,21 @@
+class Math is
+  method factorial(n: Integer) : Integer
+
+  method factorial(n: Integer) : Integer is
+    if n.LessEqual(1) then
+        return 1
+    else
+        return n.Mult(factorial(n.Minus(1)))
+    end
+  end
+end
+
+class Main is
+  this(argc: Integer, argv: List[String]) is  is
+    var m : Math()
+    var result : Integer := m.factorial(argv[1])
+
+    // Expected result: 120
+    Console.print(result)
+  end
+end

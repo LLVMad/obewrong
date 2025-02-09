@@ -1,0 +1,22 @@
+class Box[T] is
+  var value : T
+
+  this(v : T) is
+    value := v
+  end
+
+  method getValue() : T => return value
+end
+
+class Main is
+  this() is
+    var intBox : Box[Integer](42)
+    var strBox : Box[String]("Hello")
+
+    // Expected output 42
+    Console.print(intBox.getValue())
+
+    // Expected output "Hello"
+    Console.print(strBox.getValue())
+  end
+end

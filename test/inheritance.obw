@@ -23,12 +23,12 @@ class Main is
     var c : Cat()
 
     // Expected output: "Animal sound"
-    a.speak()
+    Console.print(a.speak())
 
     // Expected output: "Woof"
-    d.speak()
+    Console.print(d.speak())
 
     // Expected output: "Meow"
-    c.speak()
+    Console.print(c.speak())
   end
 end

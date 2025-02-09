@@ -21,6 +21,6 @@ class Main is
     c.increment()
     var result : Integer := c.getCount() 
     // Expected result: 2
-    // Console.print(result)
+    Console.print(result)
   end
 end
