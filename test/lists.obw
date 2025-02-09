@@ -1,0 +1,26 @@
+class Main is
+  this() is
+    var list : List[Integer]
+    list.append(10)
+    list.append(20)
+    list.append(30)
+
+    Console.print("List head: ")
+    Console.print(list.head())
+
+    Console.print("List tail: ")
+    var tail : List[Integer](list.tail())
+    var i : Integer(0)
+    while i.Less(tail.Length) loop
+      Console.print(tail.get(i))
+      i := i.Plus(1)
+    end
+
+    while tail.Empty().Not() loop
+      tail.pop()
+    end
+
+    Console.print("Size of a list: ")
+    Console.print(tail.Size())
+  end
+end

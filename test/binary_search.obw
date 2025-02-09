@@ -1,0 +1,43 @@
+class BinarySearch is
+  method search(arr: Array[Integer], target: Integer) : Integer is
+    var low : Integer(0)
+    var high : Integer(arr.Length.Minus(1))
+
+    while low.LessEqual(high) loop
+      var mid : Integer(low.Plus(high).Div(2))
+      var midVal : Integer(arr.get(mid))
+
+      if midVal.Equal(target) then
+          return mid
+      else if midVal.Less(target) then
+          low := mid.Plus(1)
+      else
+          high := mid.Minus(1)
+      end
+    end
+
+    return Integer(-1)
+  end
+end
+
+class Main is
+  this() is
+    var arr : Array[Integer](5)
+    arr.set(0, 10)
+    arr.set(1, 20)
+    arr.set(2, 30)
+    arr.set(3, 40)
+    arr.set(4, 50)
+
+    var bs : BinarySearch()
+    var target : Integer(30)
+    var result : Integer(bs.search(arr, target))
+
+    if result.Equal(-1) then
+        Console.print("Target not found")
+    else
+        Console.print("Target found at index: ")
+        Console.print(result)
+    end
+  end
+end
