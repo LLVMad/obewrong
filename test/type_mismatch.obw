@@ -1,0 +1,8 @@
+class Main is
+  this() is
+    var i : Integer
+
+    i := true
+    // Expected error: rvalue type differs from variable type
+  end
+end
