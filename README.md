@@ -447,49 +447,7 @@ And thus the standard implementation for `String` class, for string manipulation
 Obviously for passing arguments to program, printing results to console, etc. Note that it seems very important
 due to first two paragraphs (more in p. 3)
 
-### 3. `Main` class as an entry point
-
-First of all from the first two paragraphs we can draw a conclusion that
-the entry point of a program is the constructor of any class, thus in this program:
-
-```
-class HelloWorld is 
-    this(name) is
-        // There is no strings, print, etc. mentioned in the avove manual 
-        // but just to illustrate
-        print("Hello, " + name + "!")
-    end
-end
-```
-
-The `main` function, as in the entry point, would be the constructor of HelloWorld class.
-However, if we want to support inheritance for example, then the conflicts derives when using
-two classes with two constructors, i.e.:
-
-```
-class A is
-this() is
-Console.print("A's constructor called")
-end
-end
-
-class B is
-this() is
-Console.print("B's constructor called")
-end
-end
-```
-
-Then the question is *which constructor is the entry point for program execution?*
-
-Just like in Java we suggest adding the rule that `class Main` and its `method main`
-(or rather its constructor `this()`) - is the starting point
-of execution of any program, this however conflicts with first two paragraphs.
-
-Obviously this means an implementation of runtime library, but as of today i dont have a clue
-how to implement (directly in obewrong? in llvm ir?)
-
-### 4. `module` and `import` to make it possible to import classes from one file to another
+### 3. `module` and `import` to make it possible to import classes from one file to another
 
 With the syntax being as follows:
 ```
@@ -530,3 +488,80 @@ compiler/
 ├── test/                   
 └── CmakeLists
 ```
+
+## 6. Notes 
+
+### 6.1. Entry point
+
+Remember that the entry point to a programm is passed directly. i.e. `./obewrong HelloWorld`, where HelloWorld is the so called `main` class, thus it's constructor is the `main` function.
+
+If constructor of an init class has some parameters than again we pass them directly: `./obewrong Multiply 2 2`.
+
+### 6.2. Design references 
+
+I think we can draw some inspiration from Ada and Oberon. 
+
+#### 6.2.1. Ada
+
+It's no coincidence that in Ada there is no explicit `main` function. The enty point in Ada is some parameterless procedure. Moreover, the syntax seems to resemble the `O` language. 
+
+A couple of Ada examples:
+
+HelloWorld:
+```Ada
+with Ada.Text_IO; use Ada.Text_IO;
+procedure Hello is
+begin
+   Put_Line ("Hello World. Welcome to GNAT");
+end;
+```
+
+Math:
+```Ada
+package body Math_Functions is
+
+   Epsilon : constant := 1.0e-6;
+
+   function Sqrt (X : Float) return Float is
+      Result : Float := X / 2.0;
+   begin
+      while abs (Result * Result - X) > Epsilon loop
+         Result := 0.5 * (X / Result + Result);
+      end loop;
+      return Result;
+   end Sqrt;
+
+   function Exp (Base : Float; Exponent : Float) return Float is
+   begin
+      --  need implementation code here
+      return 1.0;
+   end Exp;
+
+end Math_Functions;
+```
+
+Fibonacci:
+```
+with Ada.Text_IO, Ada.Integer_Text_IO;
+use Ada;
+
+procedure fibonacci is
+    a,b,tmp : integer;
+begin
+    a := 0;
+    b := 1;
+    while b < 100 loop
+        Integer_Text_IO.put(b, width=>0);
+        Text_IO.New_Line;
+        tmp := a + b;
+        a := b;
+        b := tmp;
+    end loop;
+end fibonacci;
+```
+
+Links:
+- https://learn.adacore.com/index.html
+- https://www.cs.fsu.edu/~baker/ada/examples/
+
+#### 6.2.2. Oberon
