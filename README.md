@@ -541,7 +541,7 @@ end Math_Functions;
 ```
 
 Fibonacci:
-```
+```Ada
 with Ada.Text_IO, Ada.Integer_Text_IO;
 use Ada;
 
@@ -558,6 +558,143 @@ begin
         b := tmp;
     end loop;
 end fibonacci;
+```
+
+Date:
+```Ada
+with Ada.Text_IO; use Ada.Text_IO;
+
+procedure Record_Selection is
+
+   type Months is
+     (January, February, March, April,
+      May, June, July, August, September,
+      October, November, December);
+
+   type Date is record
+      Day   : Integer range 1 .. 31;
+      Month : Months;
+      Year  : Integer range 1 .. 3000 := 2032;
+   end record;
+
+   procedure Display_Date (D : Date) is
+   begin
+      Put_Line ("Day:" & Integer'Image (D.Day)
+                & ", Month: "
+                & Months'Image (D.Month)
+                & ", Year:"
+                & Integer'Image (D.Year));
+   end Display_Date;
+
+   Some_Day : Date := (1, January, 2000);
+
+begin
+   Display_Date (Some_Day);
+
+   Put_Line ("Changing year...");
+   Some_Day.Year := 2001;
+
+   Display_Date (Some_Day);
+end Record_Selection;
+```
+
+Example of package declaration (akin to headers in C/C++ but insted of meaning `insert text from X program to Y program` it means `X program depends on Y program`, more in the link 1):
+```Ada
+package Dates is
+
+   type Months is
+     (January, February, March, April,
+      May, June, July, August, September,
+      October, November, December);
+
+   type Date is record
+      Day   : Integer range 1 .. 31;
+      Month : Months;
+      Year  : Integer range 1 .. 3000 := 2032;
+   end record;
+
+   procedure Increase_Month
+    (Some_Day : in out Date);
+
+   procedure Display_Month
+     (Some_Day : Date);
+
+end Dates;
+```
+
+Non-composite types:
+```Ada
+with Ada.Text_IO; use Ada.Text_IO;
+
+procedure Integer_Type_Example is
+   --  Declare a signed integer type,
+   --  and give the bounds
+   type My_Int is range -1 .. 20;
+   --                         ^ High bound
+   --                   ^ Low bound
+
+   --  Like variables, type declarations can
+   --  only appear in declarative regions.
+begin
+   for I in My_Int loop
+      Put_Line (My_Int'Image (I));
+      --              ^ 'Image attribute
+      --                converts a value
+      --                to a String.
+   end loop;
+end Integer_Type_Example;
+```
+
+Arrays:
+```Ada
+with Ada.Text_IO; use Ada.Text_IO;
+
+procedure Greet is
+   type My_Int is range 0 .. 1000;
+   type Index is range 1 .. 5;
+
+   type My_Int_Array is
+     array (Index) of My_Int;
+   --                 ^ Type of elements
+   --       ^ Bounds of the array
+   Arr : My_Int_Array := (2, 3, 5, 7, 11);
+   --                    ^ Array literal
+   --                      (aggregate)
+
+   V : My_Int;
+begin
+   for I in Index loop
+      V := Arr (I);
+      --        ^ Take the Ith element
+      Put (My_Int'Image (V));
+   end loop;
+   New_Line;
+end Greet;
+```
+
+Strings:
+```Ada
+with Ada.Text_IO; use Ada.Text_IO;
+
+procedure Greet is
+   Message : constant String := "dlroW olleH";
+   --                 ^ Bounds are automatically
+   --                   computed from
+   --                   initialization value
+begin
+   for I in reverse Message'Range loop
+      Put (Message (I));
+   end loop;
+   New_Line;
+end Greet;
+```
+
+Parameter modes (to avoid pointers):
+```Ada
+procedure Calculate_Sum(A, B : in Integer; Sum : out Integer) is
+begin
+   Sum := A + B;  -- Calculate and assign the sum to 'Sum'
+end Calculate_Sum;
 ```
 
 Links:
