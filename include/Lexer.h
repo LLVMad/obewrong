@@ -11,7 +11,7 @@ enum TokenType {
   TOKEN_CLASS,        // class
   TOKEN_EXTENDS,      // extends
   TOKEN_VAR_DECL,     // var
-  TOKEN_SELFREF,      // this
+  TOKEN_SELFREF,      // this (do not confuse with constructor `this(...)`)
   TOKEN_RETURN,       // return
   TOKEN_MODULE_DECL,  // module
   TOKEN_MODULE_IMP,   // import
@@ -23,7 +23,9 @@ enum TokenType {
   TOKEN_METHOD,       // method
   TOKEN_BBEGIN,       // is
   TOKEN_BEND,         // end
-  TOKEN_NUMBER,
+  TOKEN_INT_NUMBER,
+  TOKEN_REAL_NUMBER,
+  TOKEN_COMMENT,
   TOKEN_STRING,
   TOKEN_BOOL_TRUE,    // true
   TOKEN_BOOL_FALSE,   // false
@@ -52,8 +54,9 @@ public:
   std::unique_ptr<Token> next();
 private:
   std::unique_ptr<Token> current;
+  size_t curr_pos;
   std::string file_path;
-  std::ifstream source_file;
+  std::string buffer;
 };
 
 #endif

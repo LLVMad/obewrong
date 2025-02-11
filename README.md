@@ -447,26 +447,69 @@ And thus the standard implementation for `String` class, for string manipulation
 Obviously for passing arguments to program, printing results to console, etc. Note that it seems very important
 due to first two paragraphs (more in p. 3)
 
-### 3. `module` and `import` to make it possible to import classes from one file to another
+### 3. Modular system
 
-With the syntax being as follows:
+As far as i see there is no mention of modular system in the original reference. It would be neet and useful
+to add this.
+
+I think there is no need to introduce header-like specific files with declarations for a module/package.
+So we arrive at Java-like package system where both the declarations and implementations of a package is in a single file.
+
+Moreover, as far as i know in Java - single package = single class. Maybe we should adopt the same system?
+But then we need to expand member declaration syntax:
 ```
-ModuleDeclaration
-    : module DirectoryName[.SubDirectoryName].ModuleName
+MemberDeclaration
+: VariableDeclaration
+| MethodDeclaration
+| ConstructorDeclaration
+```
+To make it possible to introduce nested classes.
+
+There is some available options:
+
+1. Single line module declaration
+```
+module <Module_Name>
+
+class ...
 ```
 
+2. Top-level class is a module declaration
 ```
-ModuleImport
-: import DirectoryName[.SubDirectoryName].ModuleName.ClassName
+class TopLevelClass is 
+  class ClassToUse is 
+  ...
+  end
+  
+  var c : ClassToUse
+  
+  ...
+end
+```
+So then to export it we'll use (like in *Simula67*):
+```
+External class TopLevelClass
+
+class NewClass is 
+  var d : TopLevelClass.ClassToUse
+end
 ```
 
-Where module names should mirror the name of directory/subdirectory.
-Important to note that with this addition comes the need for some kind of preprocessing to include the imported
-modules (possible naming conflicts or multiple inclusion, for example, should be resolved)
+3. Package with the body (like in *Ada*)
+```
+package MyPackage is 
+  class ClassToUse
+  ...
+  end
+end
+```
 
-Also, this points raises the question regarding which classes are open/closed for other modules upon import.
-Perhaps an addition of `public`, `private` (maybe `static`) is needed, but maybe itll be too much
-if the above additions are approved.
+To export:
+```
+with MyPackage
+...
+```
+
 
 ## 5. Project architecture
 
@@ -702,3 +745,8 @@ Links:
 - https://www.cs.fsu.edu/~baker/ada/examples/
 
 #### 6.2.2. Oberon
+
+#### 6.2.3. Simula67
+
+Links:
+- https://portablesimula.github.io/github.io/doc/SimulaStandard86/chap_6.htm 
