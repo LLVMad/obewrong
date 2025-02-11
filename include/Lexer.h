@@ -1,9 +1,11 @@
 #ifndef OBW_LEXER_H
 #define OBW_LEXER_H
 
-#include <string>
-#include <memory>
+#include "SourceLocation.h"
+
 #include <fstream>
+#include <memory>
+#include <string>
 
 enum TokenType {
   TOKEN_EOF,
@@ -42,21 +44,19 @@ class Token {
 public:
   TokenType type;
   std::string lexeme;
-  int line;
-  int column;
-  Token(TokenType type, const std::string &lexeme, int line, int column);
+  Token(TokenType type, const std::string &lexeme);
 };
 
 class Lexer {
 public:
-  Lexer(const std::string& file_path);
+  Lexer(SourceBuffer buffer);
   ~Lexer();
   std::unique_ptr<Token> next();
 private:
   std::unique_ptr<Token> current;
-  size_t curr_pos;
-  std::string file_path;
-  std::string buffer;
+  const char* buffer;
+
+  void advance();
 };
 
 #endif
