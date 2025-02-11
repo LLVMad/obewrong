@@ -1,3 +1,5 @@
+import IO
+
 class Animal is
   method speak() : String is
     return "Animal sound"
@@ -23,12 +25,12 @@ class Main is
     var c : Cat()
 
     // Expected output: "Animal sound"
-    Console.print(a.speak())
+    IO.Console.print(a.speak())
 
     // Expected output: "Woof"
-    Console.print(d.speak())
+    IO.Console.print(d.speak())
 
     // Expected output: "Meow"
-    Console.print(c.speak())
+    IO.Console.print(c.speak())
   end
 end

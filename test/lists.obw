@@ -1,3 +1,5 @@
+import IO
+
 class Main is
   this() is
     var list : List[Integer]
@@ -20,7 +22,7 @@ class Main is
       tail.pop()
     end
 
-    Console.print("Size of a list: ")
-    Console.print(tail.Size())
+    IO.Console.print("Size of a list: ")
+    IO.Console.print(tail.Size())
   end
 end

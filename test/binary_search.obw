@@ -1,3 +1,5 @@
+import IO
+
 class BinarySearch is
   method search(arr: Array[Integer], target: Integer) : Integer is
     var low : Integer(0)
@@ -34,10 +36,10 @@ class Main is
     var result : Integer(bs.search(arr, target))
 
     if result.Equal(-1) then
-        Console.print("Target not found")
+        IO.Console.print("Target not found")
     else
-        Console.print("Target found at index: ")
-        Console.print(result)
+        IO.Console.print("Target found at index: ")
+        IO.Console.print(result)
     end
   end
 end

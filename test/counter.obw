@@ -1,3 +1,5 @@
+import IO
+
 class Counter is
   var count : Integer
 
@@ -21,6 +23,6 @@ class Main is
     c.increment()
     var result : Integer := c.getCount() 
     // Expected result: 2
-    Console.print(result)
+    IO.Console.print(result)
   end
 end

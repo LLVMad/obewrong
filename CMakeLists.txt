@@ -19,6 +19,7 @@ include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
 # Set up source files
+include_directories("include")
 file(GLOB_RECURSE SOURCES "src/*.cc")
 file(GLOB_RECURSE HEADERS "include/*.h")
 
