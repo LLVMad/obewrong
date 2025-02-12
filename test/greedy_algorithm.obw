@@ -1,0 +1,36 @@
+class CoinChange is
+    this() end
+
+    method minCoins(amount: Integer) : Array[Integer] is
+        var coins : Array := Array(Integer(5))
+        coins.set(Integer(0), Integer(50))
+        coins.set(Integer(1), Integer(25))
+        coins.set(Integer(2), Integer(10))
+        coins.set(Integer(3), Integer(5))
+        coins.set(Integer(4), Integer(1))
+
+        var result : Array := Array(Integer(0))
+        var i : Integer := Integer(0)
+
+        while amount.Greater(Integer(0)) do
+            if amount.GreaterEqual(coins.get(i)) then
+                result := result.Append(coins.get(i))
+                amount := amount.Minus(coins.get(i))
+            else
+                i := i.Plus(Integer(1))
+            end
+        end
+
+        return result
+    end
+end
+
+class TestCoinChange is
+    this() is
+        var changer : CoinChange := CoinChange()
+        var testAmount : Integer := Integer(87)
+        var result : Array[Integer] := changer.minCoins(testAmount)
+
+        Console.print("Coins for ".Concat(testAmount.ToString()).Concat(": ").Concat(result.ToString()))
+    end
+end

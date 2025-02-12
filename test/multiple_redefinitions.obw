@@ -1,0 +1,37 @@
+class Drawable is
+    method draw() is
+    end
+end
+
+class Movable is
+    method move() is
+    end
+end
+
+class Rectangle extends Drawable, Movable is
+    var width : Integer
+    var height : Integer
+
+    this(w: Integer, h: Integer) is
+        width := w
+        height := h
+    end
+
+    method draw() is
+        return "Drawing Rectangle"
+    end
+
+    method move() is
+        return "Moving Rectangle"
+    end
+end
+
+method TestRectangle() is
+    var rect : Rectangle(10, 20)
+
+    var drawResult : String
+    var moveResult : String
+
+    drawResult := rect.draw()  
+    moveResult := rect.move() 
+end

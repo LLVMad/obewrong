@@ -1,0 +1,10 @@
+method AddNumbers(a: Integer, b: Real) : Real is
+    return a.toReal().Plus(b)
+end
+
+method TestAddNumbers() is
+    var intVal : Integer(10)
+    var realVal : Real(20.5)
+    var result : Real
+    result := AddNumbers(intVal, realVal) 
+end

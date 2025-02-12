@@ -1,0 +1,9 @@
+method Square(x: Integer) : Integer is
+    return x.Mult(x)
+end
+
+method TestSquareMethod() is
+    var num : Integer(4)
+    var result : Integer
+    result := Square(num)
+end
