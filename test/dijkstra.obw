@@ -49,8 +49,10 @@ class Main is
         var dijkstra : Dijkstra := Dijkstra()
         var result : Array[Integer] := dijkstra.shortestPath(graph, Integer(0))
 
+        // Bro у нас нету for loop вообще 
         for i in Integer(0)..result.Length.Minus(Integer(1)) do
             Console.print("Shortest distance to node ".Concat(i.ToString()).Concat(": ").Concat(result.get(i).ToString()))
         end
+        // Bro у нас нету for loop вообще 
     end
 end
