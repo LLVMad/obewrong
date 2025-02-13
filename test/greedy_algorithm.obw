@@ -12,12 +12,12 @@ class CoinChange is
         var result : Array := Array(Integer(0))
         var i : Integer := Integer(0)
 
-        while amount.Greater(Integer(0)) do
+        while amount.Greater(Integer(0)) loop
             if amount.GreaterEqual(coins.get(i)) then
                 result := result.Append(coins.get(i))
                 amount := amount.Minus(coins.get(i))
             else
-                i := i.Plus(Integer(1))
+                i := i.Plus(1)
             end
         end
 
