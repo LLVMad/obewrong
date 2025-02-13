@@ -1,5 +1,5 @@
 class Dijkstra is
-    this() end
+    this() is end
 
     method shortestPath(graph: Array[Array[Integer]], src: Integer) : Array[Integer] is
         var n : Integer := graph.Length
@@ -36,9 +36,7 @@ class Dijkstra is
 end
 
 class Main is
-    this() end
-
-    method main() is
+    this() is 
         var graph : Array[Array[Integer]] := Array(
             Array(Integer(0), Integer(4), Integer(0), Integer(0), Integer(0), Integer(10)),
             Array(Integer(4), Integer(0), Integer(2), Integer(0), Integer(0), Integer(0)),
