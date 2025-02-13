@@ -1,0 +1,53 @@
+class TestArray is
+  this() is
+    this.TestConstructor()
+    this.Test()
+  end
+
+  method TestConstructor() is
+    var a : Array[Integer](5)
+
+    if a.Length().Equal(5) then
+      // Return succes
+    else
+      // Return error
+    end
+
+    var b : Array[Integer](0) // Fine
+
+    var size : Integer(5)
+
+    var d : Array[Integer](size) // Fine
+
+    var c : Array[Integer](size.UnaryMinus()) // Should return error
+  end
+
+  method Tests() is
+    var a : Array[Integer](5)
+    a.set(0, 1)
+    a.set(1, 2)
+    a.set(2, 3)
+    a.set(3, 4)
+    a.set(4, 5)
+
+    var b : List[Integer]
+    b.append(1)
+    b.append(2)
+    b.append(3)
+    b.append(4)
+    b.append(5)
+
+    var c : List[Integer]
+    c := a.toList()
+
+    var size : Integer(0)
+    while size.Equal(c.Length()).Not() loop
+      if a.get(size).Equal(b.head()).Not() then
+        // Return error
+      end
+
+      b.pop()
+      size := size.Plus(1)
+    end
+  end
+end
