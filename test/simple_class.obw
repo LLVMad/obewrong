@@ -10,8 +10,10 @@ class MyClass is
     end
 end
 
-method TestClassConstructor() is
-    var obj : MyClass(42)
-    var result : Integer
-    result := obj.getValue()
+class TestClassConstructor() is
+    this() is
+        var obj : MyClass(42)
+        var result : Integer
+        result := obj.getValue()
+    end
 end
