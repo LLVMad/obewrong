@@ -1,0 +1,14 @@
+class Fibonacci is
+    this(n: Integer) is
+        var a: Integer(0)
+        var b: Integer(1)
+        var i: Integer(1)
+        while i.LessEqual(n) loop
+            Console.Print(a.Plus(b))
+            var temp: Integer(a.Plus(b))
+            a := b
+            b := temp
+            i := i.Plus(1)
+        end
+    end
+end

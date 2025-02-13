@@ -1,17 +1,37 @@
 class Stack[T] is
-    var data : List[T]()
-    
-    method push(value: T) is
-        data := data.append(value)
+    var elements: List[T]()  // Initialize an empty list
+
+    this() is
+        // ...
     end
-    
-    method pop() : T is
-        var top : data.head()
-        data := data.tail()
-        return top
+
+    method push(item: T) is
+        this.elements.append(item)
+        // а вот тут вопрос
+        // elements.append(item)   или    elemenents := elements.append(item)
     end
-    
-    method isEmpty() : Boolean is
-        return data.Equal(List[T]())
+
+    method pop(): T is
+        if elements.Length().Equal(0) then
+            // Print error
+            return T()
+        else
+            var item: T(elements.head())
+            elements := elements.tail()
+            return item
+        end
+    end
+
+    method isEmpty(): Boolean is
+        return elements.Length().Equal(0)
+    end
+
+    method peek(): T is
+        if elements.Length().Equal(0) then
+            // Print stack is empty
+            return T()
+        else
+            return elements.head()
+        end
     end
 end
