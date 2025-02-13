@@ -1,0 +1,211 @@
+class TestIntegerMethods is
+  this() is
+    this.Epsilon()
+    this.TestConstructorInt()
+    this.TestConstructorReal()
+    this.TestMax()
+    this.TestMin()
+    this.Plus()
+    this.Minus()
+    this.Mult()
+    this.Div()
+    this.Rem()
+    this.Less()
+    this.Greater()
+    this.Equal()
+  end
+
+  method TestConstructorInt() is
+    var a : Integer(1)
+
+    if a.Equal(1) then
+      // Prunt success
+    else
+      // Print error
+    end
+  end
+
+  method TestConstructorReal() is
+    var a : Integer(1.6)
+
+    if a.Equal(1) then
+      // Prunt success
+    else
+      // Print error
+    end
+  end
+
+  method TestMin() is
+    var a : Integer
+
+    // should return error
+    a.Min().Minus(1)
+  end
+
+  method TestMax() is
+    var a : Integer
+
+    // should return error
+    a.Max().Plus(1)
+  end
+
+  method Plus() is
+    var a : Integer(20)
+    var b : Integer(a.Plus(5))
+
+    if b.Equal(25) then
+      // Print success
+    else
+      // Print error
+    end
+
+    var c : Integer(a.Plus(5).UnaryMinus())
+
+    if b.Equal(15) then
+      // Print success
+    else
+      // Print error
+    end
+
+    var d : Real(5.5)
+    if a.Plus(d).Equal(25.5) then
+      // Print success
+    else
+      // Print error
+    end
+  end
+
+  method Minus() is
+    var a : Integer(20)
+    var b : Integer(a.Minus(5))
+
+    if b.Equal(15) then
+     // Print success
+    else
+     // Print error
+    end
+
+    var c : Integer(a.Minus(5).UnaryMinus())
+
+    if b.Equal(25) then
+     // Print success
+    else
+     // Print error
+    end
+
+    var d : Real(5.5)
+    if a.Minus(d).Equal(14.5) then
+      // Print success
+    else
+      // Print error
+    end
+  end
+
+  method Mult() is
+    var a : Integer(2)
+    var b : Integer(5)
+    var c : Real(2.2)
+
+    if a.Mult(b).Equal(10) then
+      // Print success
+    else
+      // Print error
+    end
+
+    if a.Mult(c).Equal(4.4) then
+      // Print success
+    else
+      // Print error
+    end
+
+    if a.Mult(0).Equal(0) then
+      // Print success
+    else
+      // Print error
+    end
+  end
+
+  method Div() is
+    var a : Integer(10)
+    var b : Integer(5)
+    var c : Real(2.2)
+
+    if a.Div(b).Equal(2) then
+      // Print success
+    else
+      // Print error
+    end
+
+    if a.Div(c).Equal(4.54545454) then
+      // Print success
+    else
+      // Print error
+    end
+
+    var e : Real(a.Div(0))
+    // should return error
+  end
+
+  method Rem() is
+    var a : Integer(3)
+    var b : Integer(2)
+    var c : Integer(6)
+
+    if a.Rem(b).Equal(1) then
+      // Print success
+    else
+      // Print error
+    end
+
+    if c.Rem(a).Equal(0) then
+      // Print success
+    else
+      // Print error
+    end
+  end
+
+  method Less is
+    var a : Integer(10)
+    var b : Integer(5)
+    var c : Real(2.2)
+    var d : Real(20.25)
+
+    if b.Less(a) then
+      // Print success
+    else
+      // Print error
+    end
+
+    if b.Less(d) then
+      // Print success
+    else
+      // Print error
+    end
+
+    if a.Greater(b) then
+      // Print success
+    else
+      // Print error
+    end
+
+    if a.Greater(c) then
+      // Print success
+    else
+      // Print error
+    end
+
+    var e : Integer(10)
+    var f : Real(10.0)
+
+    if a.Equal(e) then
+      // Print success
+    else
+      // Print error
+    end
+
+    if a.Equal(f) then
+      // Print success
+    else
+      // Print error
+    end
+end

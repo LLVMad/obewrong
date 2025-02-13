@@ -1,0 +1,141 @@
+class TestBoolean is
+  this() is
+
+  end
+
+  method TestConstructor() is
+    var a : Boolean(true)
+
+    if a then
+      // Print success
+    else
+      // Print error
+    end
+
+    var b : Boolean(false)
+
+    if b then
+      // Print error
+    else
+      // Print error
+    end
+  end
+
+  method ToInteger() is
+    var a : true
+
+    if a.ToInteger.Equal(1) then
+      // Print success
+    else
+      // Print error
+    end
+  end
+
+  method Or() is
+    var a : true
+    var b : true
+    var c : false
+
+    if a.Or(b) then
+      // Print success
+    else
+      // Print error
+    end
+
+    if a.Or(c) then
+      // Print success
+    else
+      // Print error
+    end
+
+    if c.Or(a) then
+      // Print success
+    else
+      // Print error
+    end
+
+    if c.Or(c) then
+      // Print error
+    else
+      // Print success
+    end
+  end
+
+  method And() is
+    var a : true
+    var b : true
+    var c : false
+
+    if a.And(b) then
+      // Print success
+    else
+      // Print error
+    end
+
+    if a.And(c) then
+      // Print error
+    else
+      // Print false
+    end
+
+    if c.And(a) then
+      // Print error
+    else
+      // Print success
+    end
+
+    if c.And(c) then
+      // Print error
+    else
+      // Print success
+    end
+  end
+
+  method Xor() is
+    var a : true
+    var b : true
+    var c : false
+
+    if a.Xor(b) then
+      // Print error
+    else
+      // Print success
+    end
+
+    if a.Xor(c) then
+      // Print success
+    else
+      // Print error
+    end
+
+    if c.And(a) then
+      // Print success
+    else
+      // Print error
+    end
+
+    if c.And(c) then
+      // Print error
+    else
+      // Print success
+    end
+  end
+
+    method And() is
+      var a : true
+      var b : true
+      var c : false
+
+      if a.Not() then
+        // Print error
+      else
+        // Print success
+      end
+
+      if b.Not() then
+        // Print success
+      else
+        // Print error
+      end
+    end
+end
