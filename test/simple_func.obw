@@ -1,9 +1,20 @@
-method Square(x: Integer) : Integer is
-    return x.Mult(x)
+class MyInteger is
+    var x: Integer
+
+    this(_x: Integer) is
+        x := _x
+    end
+
+    method Square() : Integer is
+        return x.Mult(x)
+    end
 end
 
-method TestSquareMethod() is
-    var num : Integer(4)
-    var result : Integer
-    result := Square(num)
+
+class TestSquareMethod() is
+    this() is
+        var num : MyInteger(4)
+        var result : Integer
+        result := num.Square()
+    end
 end
