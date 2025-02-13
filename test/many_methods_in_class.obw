@@ -21,10 +21,12 @@ class Account is
     end
 end
 
-method TestAccount() is
-    var acc : Account(100.0)
-    acc.deposit(50.0)
-    acc.withdraw(30.0)
-    var balance : Real
-    balance := acc.getBalance()
+class TestAccount() is    
+    this() is
+        var acc : Account(100.0)
+        acc.deposit(50.0)
+        acc.withdraw(30.0)
+        var balance : Real
+        balance := acc.getBalance()
+    end
 end
