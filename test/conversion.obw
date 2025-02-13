@@ -1,0 +1,46 @@
+class ConversionExample is
+    method IntToReal(a: Integer) : Real is
+        return a.toReal()
+    end
+
+    method IntToBool() : Boolean is
+        var a : Integer(1)
+        return a.toBool()
+    end
+
+    method RealToInt(a: Real) : Integer is
+        return a.ToInteger()
+    end
+
+    method 
+end
+
+class TestConversions() is
+    var intVal : Integer(10)
+    var realVal : Real(20.5)
+    var realVal2 : Real(10.0)
+    var result : Real
+    var conv : ConversionExample
+
+    result := conv.IntToReal(intVal) 
+    if result.Equal(realVal2) then
+        // Print result
+    else
+        // Print error
+    end
+
+    if conv.IntToBool() then
+        // Print success
+    else 
+        // Print Error
+    end
+
+    var result2 : Integer
+    result2 := conv.RealToInt(realVal2)
+
+    if result2.Equal(intVal) then
+        // Print result
+    else
+        // Print error
+    end
+end
