@@ -26,12 +26,14 @@ class Rectangle extends Drawable, Movable is
     end
 end
 
-method TestRectangle() is
-    var rect : Rectangle(10, 20)
-
-    var drawResult : String
-    var moveResult : String
-
-    drawResult := rect.draw()  
-    moveResult := rect.move() 
+class TestRectangle() is
+    this() is
+        var rect : Rectangle(10, 20)
+    
+        var drawResult : String
+        var moveResult : String
+    
+        drawResult := rect.draw()  
+        moveResult := rect.move() 
+    end
 end
