@@ -1,0 +1,56 @@
+class Dijkstra is
+    this() is end
+
+    method shortestPath(graph: Array[Array[Integer]], src: Integer) : Array[Integer] is
+        var n : Integer := graph.Length
+        var dist : Array := Array(n, Integer(1000000))
+        var visited : Array := Array(n, Integer(0))
+
+        dist.set(src, Integer(0))
+
+        for count in Integer(0)..n.Minus(Integer(1)) do
+            var u : Integer := Integer(0)
+            var minDist : Integer := Integer(1000000)
+
+            for v in Integer(0)..n.Minus(Integer(1)) do
+                if visited.get(v).Equal(Integer(0)) and dist.get(v).Less(minDist) then
+                    minDist := dist.get(v)
+                    u := v
+                end
+            end
+
+            visited.set(u, Integer(1))
+
+            for v in Integer(0)..n.Minus(Integer(1)) do
+                if graph.get(u).get(v).Greater(Integer(0)) and visited.get(v).Equal(Integer(0)) then
+                    var newDist : Integer := dist.get(u).Plus(graph.get(u).get(v))
+                    if newDist.Less(dist.get(v)) then
+                        dist.set(v, newDist)
+                    end
+                end
+            end
+        end
+
+        return dist
+    end
+end
+
+class Main is
+    this() is 
+        var graph : Array[Array[Integer]] := Array(
+            Array(Integer(0), Integer(4), Integer(0), Integer(0), Integer(0), Integer(10)),
+            Array(Integer(4), Integer(0), Integer(2), Integer(0), Integer(0), Integer(0)),
+            Array(Integer(0), Integer(2), Integer(0), Integer(3), Integer(0), Integer(0)),
+            Array(Integer(0), Integer(0), Integer(3), Integer(0), Integer(5), Integer(1)),
+            Array(Integer(0), Integer(0), Integer(0), Integer(5), Integer(0), Integer(6)),
+            Array(Integer(10), Integer(0), Integer(0), Integer(1), Integer(6), Integer(0))
+        )
+
+        var dijkstra : Dijkstra := Dijkstra()
+        var result : Array[Integer] := dijkstra.shortestPath(graph, Integer(0))
+
+        for i in Integer(0)..result.Length.Minus(Integer(1)) do
+            Console.print("Shortest distance to node ".Concat(i.ToString()).Concat(": ").Concat(result.get(i).ToString()))
+        end
+    end
+end

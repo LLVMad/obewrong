@@ -1,0 +1,32 @@
+class Account is
+    var balance : Real
+
+    this(initialBalance: Real) is
+        balance := initialBalance
+    end
+
+    method deposit(amount: Real) is
+        balance := balance.Plus(amount)
+    end
+
+    method withdraw(amount: Real) is
+        if amount.LessEqual(balance) then
+            balance := balance.Minus(amount)
+        else
+        end
+    end
+
+    method getBalance() : Real is
+        return balance
+    end
+end
+
+class TestAccount() is    
+    this() is
+        var acc : Account(100.0)
+        acc.deposit(50.0)
+        acc.withdraw(30.0)
+        var balance : Real
+        balance := acc.getBalance()
+    end
+end

@@ -1,0 +1,17 @@
+class Stack[T] is
+    var data : List[T]()
+    
+    method push(value: T) is
+        data := data.append(value)
+    end
+    
+    method pop() : T is
+        var top : data.head()
+        data := data.tail()
+        return top
+    end
+    
+    method isEmpty() : Boolean is
+        return data.Equal(List[T]())
+    end
+end

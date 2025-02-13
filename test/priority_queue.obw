@@ -1,0 +1,19 @@
+class PriorityQueue[T] is
+    var elements : List[T]()
+    
+    method insert(value: T) is
+        elements := elements.append(value)
+    end
+    
+    method extractMax() : T is
+        var max : elements.head()
+        var rest : elements.tail()
+        while not rest.Equal(List[T]()) loop
+            if rest.head().Greater(max) then
+                max := rest.head()
+            end
+            rest := rest.tail()
+        end
+        return max
+    end
+end

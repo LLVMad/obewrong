@@ -1,0 +1,19 @@
+class MyClass is
+    var value : Integer
+
+    this(p: Integer) is
+        value := p
+    end
+
+    method getValue : Integer is
+        return value
+    end
+end
+
+class TestClassConstructor() is
+    this() is
+        var obj : MyClass(42)
+        var result : Integer
+        result := obj.getValue()
+    end
+end
