@@ -1,5 +1,5 @@
 class CoinChange is
-    this() end
+    this() is end
 
     method minCoins(amount: Integer) : Array[Integer] is
         var coins : Array := Array(Integer(5))
