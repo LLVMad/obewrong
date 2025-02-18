@@ -5,15 +5,15 @@
 #include "SourceManager.h"
 
 int main() {
-  /*
-  Lexer lexer("/home/artjom/Uni/comp_constr/obewrong/test/counter.obw");
-
-  lexer.next();
-  lexer.next();
-  lexer.next();
-  */
-
   SourceManager sm;
-  SourceBuffer buff = sm.readSource("/home/artjom/Uni/comp_constr/obewrong/test/counter.obw");
-  std::cout << buff.data << std::endl;
+  auto buff = std::make_shared<SourceBuffer>(sm.readSource("/home/artjom/Uni/comp_constr/obewrong/test/hello_world.obw"));
+  // std::cout << buff.data << std::endl;
+
+  Lexer lexer(buff);
+
+  for (int i = 0; i < 5; i++) {
+    std::unique_ptr<Token> next_tok = lexer.next();
+    if (next_tok) std::cout << "Token: " << next_tok->type << std::endl;
+    else std::cout << "nullptr" << std::endl;
+  }
 }

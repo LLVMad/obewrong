@@ -1,44 +1,23 @@
 ## 1. Lexer
 
-### 1.2 States
+### 1.1 DFA table:
 
-Table 1.1 - For words (either keyword or identifiers)
+Legend:
+- left-most column - current state
+- header - incoming input from source text
+- cell - in a form of: `<next state> { | output }`, so we either change states or change states and return some output
 
-| id  | name                | action                                                                                   |
-| --- | ------------------- | ---------------------------------------------------------------------------------------- |
-| 0   | start_word          | expect next to be a letter                                                               |
-| 1   | reading_word        | expect next to be a letter or a digit or a whitespace                                    |
-| 2   | finish_reading_word | check if its a keyword ? return keyword token : return ident and push it to symbol table |
+|                     | A-z (char)             | 0-9 (num)              | whitespace                        | :                                                  | =   | (                                 | )                                 | ,                                 | .                                 | [                                 | ]                                 | "                      | >                 |
+| ------------------- | ---------------------- | ---------------------- | --------------------------------- | -------------------------------------------------- | --- | --------------------------------- | --------------------------------- | --------------------------------- | --------------------------------- | --------------------------------- | --------------------------------- | ---------------------- | ----------------- |
+| 0 (start)           | 1                      | 2                      | 0                                 | 3                                                  | 8   | 0 \| return rbracket              | 0 \| return lbracket              | 0 \| return comma                 | 0 \| return method_acess          | 0 \| return lsbracket             | 0 \| return rsbracket             | 7                      | 9                 |
+| 1 (read_word)       | 1                      | 4                      | 0 \| return keyword or identifier | 3 \| return identifier (if its a keyword -> error) | 9   | 0 \| return keyword or identifier | 0 \| return keyword or identifier | 0 \| return keyword or identifier | 0 \| return keyword or identifier | 0 \| return keyword or identifier | 0 \| return keyword or identifier | 7                      | 9                 |
+| 2 (read_num)        | 9                      | 2                      | 0 \| return integer               | 9                                                  | 9   | 9                                 | 9                                 | 0 \| return integer               | 5                                 | 9                                 | 9                                 | 9                      | 9                 |
+| 3 (read_decl)       | 1 \| return decl       | 2 \| return decl       | 0 \| return decl                  | 9                                                  | 9   | 9                                 | 9                                 | 9                                 | 9                                 | 9                                 | 9                                 | 7 \| return decl       | 9                 |
+| 4 (read_identifier) | 4                      | 4                      | 0 \| return identifier            | 3 \| return identifier                             | 9   | 0 \| return identifier            | 0 \| return identifier            | 0 \| return identifier            | 0 \| return identifier            | 0 \| return identifier            | 0 \| return identifier            | 7 \| return identifier | 9                 |
+| 5 (read_real)       | 1 \| return real       | 5                      | 0 \| return real                  | 3 \| return real                                   | 9   | 9                                 | 9                                 | 0 \| return real                  | 9                                 | 9                                 | 9                                 | 9                      | 9                 |
+| 6 (read_assign)     | 1 \| return assignment | 2 \| return assignment | 0 \| return assignment            | 9                                                  | 9   | 9                                 | 9                                 | 9                                 | 9                                 | 9                                 | 9                                 | 7 \| return assign     | 9                 |
+| 7 (read_string)     | 7                      | 7                      | 7                                 | 7                                                  | 7   | 7                                 | 7                                 | 7                                 | 7                                 | 7                                 | 7                                 | 0 \| return string     | 7                 |
+| 8 (read_arrow)      | 9                      | 9                      | 9                                 | 9                                                  | 9   | 9                                 | 9                                 | 9                                 | 9                                 | 9                                 | 9                                 | 9                      | 0 \| return arrow |
+| 9 (fail)            |                        |                        |                                   |                                                    |     |                                   |                                   |                                   |                                   |                                   |                                   |                        |                   |
 
-Table 1.2 - For numbers
-
-| id  | name                 | action                             |
-| --- | -------------------- | ---------------------------------- |
-| 3   | start_num            | expect next to be a digit          |
-| 4   | reading_digit        | expect next to be a digit or a dot |
-| 5   | reading_real         | expect next to be a digit          |
-| 6   | finish_reading_digit | return Integer                     |
-| 7   | finish_reading_real  | return Real                        |
-
-Table 1.3 - For special symbols (:=, :, (, ), ,, )
-
-| id  | name                       | action                                         |
-| --- | -------------------------- | ---------------------------------------------- |
-| 8   | start_op                   | expect one of the defined symbols (operations) |
-| 9   | reading_colon              | expect either '=' or ' '                       |
-| 10  | reading_assignment         |                                                |
-| 11  | finish_reading_assignment  |                                                |
-| 12  | reading_declaration        |                                                |
-| 13  | finish_reading_declaration |                                                |
-| 14  | reading_rbacket            |                                                |
-| 15  | finish_reading_rbracket    |                                                |
-| 16  | reading_lbracket           |                                                |
-| 17  | finish_reading_lbracket    |                                                |
-| 18  | reading_comma_sep          |                                                |
-| 19  | finish_reading_comma_sep   |                                                |
-
-### 1.3 DFA table:
-
-|     |     |
-| --- | --- |
-|     |     |
+*Empty cell* -> go to undefined state, then we should return function fail() that would deal with it.

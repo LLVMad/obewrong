@@ -1,10 +1,11 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <cstring>
+#include <regex>
+#include <utility>
 
 #include "Lexer.h"
-
-#include <cstring>
 
 #define TOTAL_KEYWORDS 27
 #define MIN_WORD_LENGTH 1
@@ -12,8 +13,10 @@
 #define MIN_HASH_VALUE 1
 #define MAX_HASH_VALUE 34
 
-// надо бы её в класс а то как то не хорошо
-inline static unsigned int hash(const char *str, size_t len) {
+/*
+ * Hash function for fast check if an input word is a keyword
+ */
+inline unsigned int Lexer::hash(const char *str, size_t len) {
   static unsigned char asso_values[] = {
       35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
       35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
@@ -31,13 +34,14 @@ inline static unsigned int hash(const char *str, size_t len) {
       35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
       35, 35, 35, 35};
 
-
-  return len + asso_values[(unsigned char)str[len - 1]] +
-         asso_values[(unsigned char)str[0]];
+  return len + asso_values[static_cast<unsigned char>(str[len - 1])] +
+         asso_values[static_cast<unsigned char>(str[0])];
 }
 
-// и это тоже
-const char *in_word_set(const char *str, size_t len) {
+/*
+ * Checks if a word is a keyword
+ */
+const char* Lexer::in_word_set(const char *str, size_t len) {
   static const char *wordlist[] = {
       "",       "T",       "is",       "",      "this",   "Class",   "import",
       "if",     "",        "true",     "while", "module", "extends", "",
@@ -58,26 +62,54 @@ const char *in_word_set(const char *str, size_t len) {
   return nullptr;
 }
 
-Lexer::Lexer(SourceBuffer buffer) {
-  this->current = nullptr;
-  this->buffer = buffer.data.c_str();
+Lexer::Lexer(std::shared_ptr<SourceBuffer> buffer) {
+  this->source_buffer = std::move(buffer);
+  this->buffer = source_buffer->data.c_str();
+  curr_state = STATE_START;
+
+  // std::cout << "Current buffer" << this->buffer << std::endl;
 }
 
-Lexer::~Lexer() {}
-
 std::unique_ptr<Token> Lexer::next() {
-
   while (true) {
-    /*
-     * swtich(STATE)
-     * case start: ...    :
-     * case choto tam...  : return token or change state
-     */
-  }
+    char c = peek();
 
-  // char ch = source_file.get();
-  //
-  // printf("%c ", ch);
-  //
-  return nullptr;
+    std::cout << "Looking at char: " << c << std::endl;
+
+    switch (curr_state) {
+      case STATE_START: {
+        if      (std::isalpha(c))   { curr_state = STATE_READ_WORD;   }
+        else if (std::isdigit(c))   { curr_state = STATE_READ_NUM;    }
+        else if (std::isspace(c) || c == '\n' || c == '\r')   { curr_state = STATE_START;       }
+        else if (c == ':')          { curr_state = STATE_READ_DECL;   }
+        else if (c == '"')          { curr_state = STATE_READ_STRING; }
+        else if (c == '(') {
+          curr_state = STATE_START;
+          return std::make_unique<Token>(TOKEN_LBRACKET);
+        }
+        else if (c == ')') {
+          curr_state = STATE_START;
+          return std::make_unique<Token>(TOKEN_RBRACKET);
+        }
+        else if (c == ',') {
+          curr_state = STATE_START;
+          return std::make_unique<Token>(TOKEN_COMMA);
+        }
+        else if (c == '[') {
+          curr_state = STATE_START;
+          return std::make_unique<Token>(TOKEN_LSBRACKET);
+        }
+        else if (c == ']') {
+          curr_state = STATE_START;
+          return std::make_unique<Token>(TOKEN_RSBRACKET);
+        }
+        else curr_state = STATE_FAIL;
+      } break;
+      default: return nullptr;
+    }
+
+    // If no token has been returned move to next char, i.e. eat input
+    advance(); // this->buffer++;
+    std::cout << "New buffer" << this->buffer << std::endl;
+  }
 }

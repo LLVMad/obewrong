@@ -1,7 +1,5 @@
-import IO
-
-class Main is 
-  this(argc: Integer, argv: List[String]) is 
-    IO.Console.print("Hello, world!")
+class Main is
+  this() is
+    print("Hello, world!")
   end  
 end
