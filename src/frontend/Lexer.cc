@@ -97,6 +97,7 @@ std::unique_ptr<Token> Lexer::next() {
     }
 
     switch (curr_state) {
+      // @TODO not so good to call advance on single char lexems, needs rework
       case STATE_START: {
         if      (std::isalpha(c))   { curr_state = STATE_READ_WORD;   }
         else if (std::isdigit(c))   { curr_state = STATE_READ_NUM;    }
@@ -250,6 +251,7 @@ std::unique_ptr<Token> Lexer::next() {
       case STATE_READ_STRING: {
         if (c == '"') {
           curr_state = STATE_START;
+          // @TODO wow, this is bad
           token += c;
           advance();
           return std::make_unique<Token>(TOKEN_STRING, token);
