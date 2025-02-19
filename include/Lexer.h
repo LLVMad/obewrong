@@ -6,6 +6,9 @@
 #include <fstream>
 #include <memory>
 #include <string>
+#ifdef DEBUG
+  #include "util/Logger.h"
+#endif
 
 enum TokenType {
   TOKEN_EOF,
@@ -39,7 +42,16 @@ enum TokenType {
   TOKEN_COLON,      // :
   TOKEN_DOT,        // .
   TOKEN_COMMA,      // ,
-  TOKEN_ARROW,      // =>
+  TOKEN_ARROW,      // =>,
+  TOKEN_TYPE_STRING,
+  TOKEN_TYPE_CHAR,
+  TOKEN_TYPE_INTEGER,
+  TOKEN_TYPE_REAL,
+  TOKEN_TYPE_BOOL,
+  TOKEN_TYPE_LIST,
+  TOKEN_TYPE_ARRAY,
+  TOKEN_TYPE_ANYVAL,
+  TOKEN_TYPE_ANYREF,
   TOKEN_UNKNOWN
 };
 
@@ -73,6 +85,7 @@ enum StateType {
   STATE_READ_REAL,
   STATE_READ_ASSIGN,
   STATE_READ_STRING,
+  STATE_READ_ARROW,
   STATE_FAIL = 9,
 };
 
@@ -82,7 +95,7 @@ public:
     int intValue;     // for Integer numbers
     double realValue; // for Real numbers
     uint64_t identId; // for identifiers, we dont have to store its name,
-                      // instead lets just keep an id in symbol table
+                      // instead lets just keep an id in symbol table ?
   };
 
   TokenType type;
@@ -91,35 +104,44 @@ public:
 
   Token(TokenType type, Value value, const std::string &lexeme);
 
+  // Mostly single-character and/or special symbols
   Token(TokenType type)
       : type(type) {};
 
-  Token(TokenType type, int intValue, const std::string &lexeme)
-      : type(type), value{.intValue = intValue}, lexeme(lexeme) {}
+  // Int value
+  Token(TokenType type, int intValue)
+      : type(type), value{.intValue = intValue} {}
 
-  Token(TokenType type, double realValue, const std::string &lexeme)
-      : type(type), value{.realValue = realValue}, lexeme(lexeme) {}
+  // Real number
+  Token(TokenType type, double realValue)
+      : type(type), value{.realValue = realValue} {}
 
+  // Identifier
   Token(TokenType type, uint64_t identId, const std::string &lexeme)
       : type(type), value{.identId = identId}, lexeme(lexeme) {}
+
+  // String literal
+  Token(TokenType type, const std::string &lexeme)
+      : type(type), value(), lexeme(lexeme) {}
 };
 
 class Lexer {
 public:
   Lexer(std::shared_ptr<SourceBuffer> buffer);
   std::unique_ptr<Token> next();
-
+  static const char* getTokenTypeName(TokenType type);
 private:
   std::shared_ptr<SourceBuffer> source_buffer;
   StateType curr_state;
   const char* buffer;
+  uint64_t id; // @TODO we should take id from symbol table
 
   void advance() { buffer++; };
   void rewind() { buffer--; }
   char peek() { return buffer[0]; };
 
   inline static unsigned int hash(const char *str, size_t len);
-  static const char *in_word_set(const char *str, size_t len);
+  static std::pair<const char*, TokenType> in_word_set(const char *str, size_t len);
 };
 
 #endif
