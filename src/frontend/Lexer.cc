@@ -107,6 +107,9 @@ std::unique_ptr<Token> Lexer::next() {
         advance();
         c = peek();
       }
+
+      ++this->curr_line;
+      this->curr_column = 0;
     }
 
     switch (curr_state) {
@@ -293,6 +296,9 @@ std::unique_ptr<Token> Lexer::next() {
 
     // If no token has been returned move to next char, i.e. eat input
     advance();
+
+    // Move current position
+    this->curr_column++;
     if (c == '\n') {
       ++this->curr_line;
       this->curr_column = 0;

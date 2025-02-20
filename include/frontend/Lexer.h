@@ -135,10 +135,7 @@ private:
   size_t curr_column;
   const char* buffer;
 
-  void advance() {
-    buffer++;
-    curr_column++;
-  };
+  void advance() { buffer++; }
   void rewind() { buffer--; }
   char peek() { return buffer[0]; };
 
