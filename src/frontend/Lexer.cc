@@ -5,7 +5,7 @@
 #include <regex>
 #include <utility>
 
-#include "Lexer.h"
+#include "frontend/Lexer.h"
 
 #define TOTAL_KEYWORDS 27
 #define MIN_WORD_LENGTH 1
@@ -74,8 +74,8 @@ Lexer::Lexer(std::shared_ptr<SourceBuffer> buffer) {
   this->source_buffer = std::move(buffer);
   this->buffer = source_buffer->data.c_str();
   this->curr_state = STATE_START;
-  this->id = 0;
-
+  this->curr_line = 0;
+  this->curr_column = 0;
 #ifdef DEBUG
   LOG("In Lexer::Lexer() incoming buffer:\n%s\n", this->source_buffer->data.c_str());
 #endif
@@ -91,9 +91,22 @@ std::unique_ptr<Token> Lexer::next() {
   while (true) {
     char c = peek();
 
+#ifdef DEBUG
+    LOG("In Lexer::next() incoming buffer: %c with state %u\n", c, curr_state);
+#endif
+
     // EOF / end of buffer
     if (strlen(buffer) <= 0) {
-      return std::make_unique<Token>(TOKEN_EOF);
+      return std::make_unique<Token>(TOKEN_EOF, curr_line, curr_column);
+    }
+
+    // Skip comments
+    // @TODO test, this is SUS
+    if (c == '/') {
+      while (c != '\n') {
+        advance();
+        c = peek();
+      }
     }
 
     switch (curr_state) {
@@ -109,27 +122,32 @@ std::unique_ptr<Token> Lexer::next() {
         else if (c == '(') {
           curr_state = STATE_START;
           advance();
-          return std::make_unique<Token>(TOKEN_LBRACKET);
+          return std::make_unique<Token>(TOKEN_LBRACKET, curr_line, curr_column);
         }
         else if (c == ')') {
           curr_state = STATE_START;
           advance();
-          return std::make_unique<Token>(TOKEN_RBRACKET);
+          return std::make_unique<Token>(TOKEN_RBRACKET, curr_line, curr_column);
         }
         else if (c == ',') {
           curr_state = STATE_START;
           advance();
-          return std::make_unique<Token>(TOKEN_COMMA);
+          return std::make_unique<Token>(TOKEN_COMMA, curr_line, curr_column);
         }
         else if (c == '[') {
           curr_state = STATE_START;
           advance();
-          return std::make_unique<Token>(TOKEN_LSBRACKET);
+          return std::make_unique<Token>(TOKEN_LSBRACKET, curr_line, curr_column);
         }
         else if (c == ']') {
           curr_state = STATE_START;
           advance();
-          return std::make_unique<Token>(TOKEN_RSBRACKET);
+          return std::make_unique<Token>(TOKEN_RSBRACKET, curr_line, curr_column);
+        }
+        else if (c == '.') {
+          curr_state = STATE_START;
+          advance();
+          return std::make_unique<Token>(TOKEN_DOT, curr_line, curr_column);
         }
         else curr_state = STATE_FAIL;
       } break;
@@ -140,20 +158,21 @@ std::unique_ptr<Token> Lexer::next() {
           curr_state = STATE_START;
           auto [word, wtype] = in_word_set(token.c_str(), strlen(token.c_str()));
           if (word) {
-            return std::make_unique<Token>(wtype);
+            return std::make_unique<Token>(wtype, curr_line, curr_column - token.length() + 1);
           }
-          return std::make_unique<Token>(TOKEN_IDENTIFIER, id++, token);
-          // @TODO add to symbol table ?
+          return std::make_unique<Token>(TOKEN_IDENTIFIER, token, curr_line, curr_column - token.length() + 1);
+          // @TODO add to symbol table
         }
         else if (c == ':') {
           auto [word, wtype] = in_word_set(token.c_str(), strlen(token.c_str()));
           if (word) {
             // declaration cant follow a keyword, i.e.: "var while : Integer"
+            std::cout << "keyword: " << word << std::endl;
             curr_state = STATE_FAIL;
           }
 
           curr_state = STATE_READ_DECL;
-          return std::make_unique<Token>(TOKEN_IDENTIFIER, id++, token);
+          return std::make_unique<Token>(TOKEN_IDENTIFIER, token, curr_line, curr_column - token.length() + 1);
           // @TODO add to symbol table ?
         }
         else if (c == '(' || c == ')' || c == ',' || c == '.' || c == '[' || c == ']') {
@@ -161,18 +180,18 @@ std::unique_ptr<Token> Lexer::next() {
 
           auto [word, wtype] = in_word_set(token.c_str(), strlen(token.c_str()));
           if (word) {
-            return std::make_unique<Token>(wtype);
+            return std::make_unique<Token>(wtype, curr_line, curr_column - token.length() + 1);
           }
-          return std::make_unique<Token>(TOKEN_IDENTIFIER, id++, token);
+          return std::make_unique<Token>(TOKEN_IDENTIFIER, token, curr_line, curr_column - token.length() + 1);
           // @TODO add to symbol table ?
         }
         else if (c == '"')          { curr_state = STATE_READ_STRING; }
         else curr_state = STATE_FAIL;
       } break;
       case STATE_READ_NUM: {
-        if (std::isspace(c) || c == ',') {
+        if (std::isspace(c) || c == ',' || c == ')' || c == ']') {
           curr_state = STATE_START;
-          return std::make_unique<Token>(TOKEN_INT_NUMBER, std::stoi(token));
+          return std::make_unique<Token>(TOKEN_INT_NUMBER, std::stoi(token), curr_line, curr_column - token.length() + 1);
         }
         else if (std::isdigit(c))   { curr_state = STATE_READ_NUM;    }
         else if (c == '.')          { curr_state = STATE_READ_REAL;   }
@@ -181,19 +200,24 @@ std::unique_ptr<Token> Lexer::next() {
       case STATE_READ_DECL: {
         if (std::isalpha(c)) {
           curr_state = STATE_READ_WORD;
-          return std::make_unique<Token>(TOKEN_VAR_DECL);
+          return std::make_unique<Token>(TOKEN_VAR_DECL, curr_line, curr_column);
         }
         else if (std::isdigit(c)) {
           curr_state = STATE_READ_NUM;
-          return std::make_unique<Token>(TOKEN_VAR_DECL);
+          return std::make_unique<Token>(TOKEN_VAR_DECL, curr_line, curr_column);
         }
         else if (std::isspace(c)) {
           curr_state = STATE_START;
-          return std::make_unique<Token>(TOKEN_VAR_DECL);
+          return std::make_unique<Token>(TOKEN_VAR_DECL, curr_line, curr_column);
         }
         else if (c == '"') {
           curr_state = STATE_READ_STRING;
-          return std::make_unique<Token>(TOKEN_VAR_DECL);
+          return std::make_unique<Token>(TOKEN_VAR_DECL, curr_line, curr_column);
+        }
+        else if (c == ':') {
+          curr_state = STATE_START;
+          advance();
+          return std::make_unique<Token>(TOKEN_VAR_DECL, curr_line, curr_column);
         }
         else if (c == '=')          { curr_state = STATE_READ_ASSIGN;}
         else curr_state = STATE_FAIL;
@@ -204,47 +228,43 @@ std::unique_ptr<Token> Lexer::next() {
         }
         else if (std::isspace(c)) {
           curr_state = STATE_START;
-          return std::make_unique<Token>(TOKEN_IDENTIFIER, id++, token);
+          return std::make_unique<Token>(TOKEN_IDENTIFIER, token, curr_line, curr_column);
           // @TODO add to symbol table ?
         }
         else if (c == ':') {
           curr_state = STATE_READ_DECL;
-          return std::make_unique<Token>(TOKEN_IDENTIFIER, id++, token);
+          return std::make_unique<Token>(TOKEN_IDENTIFIER, token, curr_line, curr_column);
         }
         else if (c == '(' || c == ')' || c == ',' || c == '.' || c == '[') {
           curr_state = STATE_START;
-          return std::make_unique<Token>(TOKEN_IDENTIFIER, id++, token);
+          return std::make_unique<Token>(TOKEN_IDENTIFIER, token, curr_line, curr_column);
         }
         else curr_state = STATE_FAIL;
       } break;
       case STATE_READ_REAL: {
         if (std::isdigit(c))        { curr_state = STATE_READ_REAL;  }
-        else if (std::isspace(c)) {
+        else if (std::isspace(c) || c == ',' || c == ')' || c == ']') {
           curr_state = STATE_START;
-          return std::make_unique<Token>(TOKEN_REAL_NUMBER, std::stod(token));
-        }
-        else if (c == ',') {
-          curr_state = STATE_START;
-          return std::make_unique<Token>(TOKEN_REAL_NUMBER, std::stod(token));
+          return std::make_unique<Token>(TOKEN_REAL_NUMBER, std::stod(token), curr_line, curr_column - token.length() + 1);
         }
         else curr_state = STATE_FAIL;
       } break;
       case STATE_READ_ASSIGN: {
         if (std::isalpha(c)) {
           curr_state = STATE_READ_WORD;
-          return std::make_unique<Token>(TOKEN_ASSIGNMENT);
+          return std::make_unique<Token>(TOKEN_ASSIGNMENT, curr_line, curr_column);
         }
         else if (std::isdigit(c)) {
           curr_state = STATE_READ_NUM;
-          return std::make_unique<Token>(TOKEN_ASSIGNMENT);
+          return std::make_unique<Token>(TOKEN_ASSIGNMENT, curr_line, curr_column);
         }
         else if (std::isspace(c)) {
           curr_state = STATE_START;
-          return std::make_unique<Token>(TOKEN_ASSIGNMENT);
+          return std::make_unique<Token>(TOKEN_ASSIGNMENT, curr_line, curr_column);
         }
         else if (c == '"') {
           curr_state = STATE_READ_STRING;
-          return std::make_unique<Token>(TOKEN_ASSIGNMENT);
+          return std::make_unique<Token>(TOKEN_ASSIGNMENT, curr_line, curr_column);
         }
         else curr_state = STATE_FAIL;
       } break;
@@ -254,14 +274,14 @@ std::unique_ptr<Token> Lexer::next() {
           // @TODO wow, this is bad
           token += c;
           advance();
-          return std::make_unique<Token>(TOKEN_STRING, token);
+          return std::make_unique<Token>(TOKEN_STRING, token, curr_line, curr_column - token.length() + 1);
         }
         curr_state = STATE_READ_STRING;
       } break;
       case STATE_READ_ARROW: {
         if (c == '>') {
           curr_state = STATE_START;
-          return std::make_unique<Token>(TOKEN_ARROW);
+          return std::make_unique<Token>(TOKEN_ARROW, curr_line, curr_column);
         }
         curr_state = STATE_FAIL;
       } break;
@@ -273,8 +293,12 @@ std::unique_ptr<Token> Lexer::next() {
 
     // If no token has been returned move to next char, i.e. eat input
     advance();
+    if (c == '\n') {
+      ++this->curr_line;
+      this->curr_column = 0;
+    }
 #ifdef DEBUG
-    LOG("Current buffer token %s\n", token.c_str());
+    LOG("Current buffer token: %s | state: %d | column %lu\n", token.c_str(), curr_state, this->curr_column);
 #endif
   }
 }

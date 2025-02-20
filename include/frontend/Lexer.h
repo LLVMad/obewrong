@@ -6,6 +6,7 @@
 #include <fstream>
 #include <memory>
 #include <string>
+#include <variant>
 #ifdef DEBUG
   #include "util/Logger.h"
 #endif
@@ -91,38 +92,35 @@ enum StateType {
 
 class Token {
 public:
+  /*
   union Value {
-    int intValue;     // for Integer numbers
-    double realValue; // for Real numbers
-    uint64_t identId; // for identifiers, we dont have to store its name,
-                      // instead lets just keep an id in symbol table ?
-  };
+    int intValue;            // for Integer numbers
+    double realValue;        // for Real numbers
+    const char* stringValue; // for String literals
+    const char* identName;   // for Identifiers
+  }; */
 
   TokenType type;
-  Value value;
-  std::string lexeme;
-
-  Token(TokenType type, Value value, const std::string &lexeme);
+  std::variant<std::monostate, int, double, std::string> value;
+  size_t line;
+  size_t column;
 
   // Mostly single-character and/or special symbols
-  Token(TokenType type)
-      : type(type) {};
+  Token(TokenType type, size_t line, size_t column)
+      : type(type), line(line), column(column) {};
 
   // Int value
-  Token(TokenType type, int intValue)
-      : type(type), value{.intValue = intValue} {}
+  Token(TokenType type, int intValue, size_t line, size_t column)
+      : type(type), value(intValue), line(line), column(column) {};
 
   // Real number
-  Token(TokenType type, double realValue)
-      : type(type), value{.realValue = realValue} {}
+  Token(TokenType type, double realValue, size_t line, size_t column)
+      : type(type), value(realValue), line(line), column(column) {};
 
-  // Identifier
-  Token(TokenType type, uint64_t identId, const std::string &lexeme)
-      : type(type), value{.identId = identId}, lexeme(lexeme) {}
+  // Identifier or string literal
+  Token(TokenType type, const std::string &lexem, size_t line, size_t column)
+      : type(type), value(lexem), line(line), column(column) {};
 
-  // String literal
-  Token(TokenType type, const std::string &lexeme)
-      : type(type), value(), lexeme(lexeme) {}
 };
 
 class Lexer {
@@ -133,10 +131,14 @@ public:
 private:
   std::shared_ptr<SourceBuffer> source_buffer;
   StateType curr_state;
+  size_t curr_line;   // @TODO sync with source buffer somehow
+  size_t curr_column;
   const char* buffer;
-  uint64_t id; // @TODO we should take id from symbol table
 
-  void advance() { buffer++; };
+  void advance() {
+    buffer++;
+    curr_column++;
+  };
   void rewind() { buffer--; }
   char peek() { return buffer[0]; };
 
