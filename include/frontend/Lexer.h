@@ -123,6 +123,12 @@ public:
 
 };
 
+/*
+ * Lexical analysis
+ *
+ * @TODO maybe take a look at the Brzozowski derivatives method 
+ *       interesting to implement 
+ */
 class Lexer {
 public:
   Lexer(std::shared_ptr<SourceBuffer> buffer);

@@ -116,7 +116,7 @@ std::unique_ptr<Token> Lexer::next() {
       // @TODO not so good to call advance on single char lexems, needs rework
       case STATE_START: {
         if      (std::isalpha(c))   { curr_state = STATE_READ_WORD;   }
-        else if (std::isdigit(c))   { curr_state = STATE_READ_NUM;    }
+        else if (std::isdigit(c) || c == '-')   { curr_state = STATE_READ_NUM;    }
         else if (std::isspace(c) || c == '\n' || c == '\r') {
           curr_state = STATE_START;
         }

@@ -20,6 +20,13 @@ Legend:
 | 8 (read_arrow)      | 9                      | 9                      | 9                                 | 9                                                  | 9   | 9                                 | 9                                 | 9                                 | 9                                 | 9                                 | 9                                 | 9                  | 0 \| return arrow |
 | 9 (fail)            |                        |                        |                                   |                                                    |     |                                   |                                   |                                   |                                   |                                   |                                   |                    |                   |
 
+#### 1.1.1 Notes
+
+Look at the Brzozowski derivatives:
+- https://matt.might.net/articles/parsing-with-derivatives/
+- https://arxiv.org/abs/1010.5023
+- https://parsing.stereobooster.com/pwd/
+
 ### 1.2 Fail table
 
 Generate based on the previous state 
