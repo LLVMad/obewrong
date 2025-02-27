@@ -44,6 +44,8 @@ enum TokenType {
   TOKEN_DOT,        // .
   TOKEN_COMMA,      // ,
   TOKEN_ARROW,      // =>,
+  TOKEN_EQUAL,      // =, even tho its illegal for '=' to be on his own...
+  TOKEN_MORE,       // >, illigel again
   TOKEN_TYPE_STRING,
   TOKEN_TYPE_CHAR,
   TOKEN_TYPE_INTEGER,
@@ -140,6 +142,8 @@ private:
   size_t curr_line;   // @TODO sync with source buffer somehow
   size_t curr_column;
   const char* buffer;
+
+  static bool isSpecial(char c);
 
   void advance() { buffer++; }
   void rewind() { buffer--; }
