@@ -248,7 +248,9 @@ std::unique_ptr<Token> Lexer::next() {
         }
         curr_state = STATE_FAIL;
       } break;
-      default: return nullptr;
+      case STATE_FAIL: default: {
+        return nullptr;
+      } break;
     }
 
     if (!std::isspace(c) && c != '\n' && c != '\r')
