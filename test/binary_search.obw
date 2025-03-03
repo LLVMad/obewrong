@@ -1,5 +1,3 @@
-import IO
-
 class BinarySearch is
   method search(arr: Array[Integer], target: Integer) : Integer is
     var low : Integer(0)
