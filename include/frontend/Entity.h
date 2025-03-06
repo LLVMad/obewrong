@@ -5,7 +5,6 @@
 #include <memory>
 
 struct Loc {
-  std::string file;
   size_t line;
   size_t col;
 };
