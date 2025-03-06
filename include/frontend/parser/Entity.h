@@ -22,11 +22,12 @@ enum Ekind {
   E_Variable,
 
   // Type-related entities
-  E_Integer_Type,
-  E_Real_Type,
-  E_Boolean_Type,
-  E_Array_Type,
-  E_List_Type,
+  E_Integer_Literal,
+  E_Real_Literal,
+  E_String_Literal,
+  E_Boolean_Literal,
+  E_Function,
+  E_Class_Name,
 
   // Special entities
   E_This,
@@ -37,7 +38,9 @@ enum Ekind {
   E_Assignment,
   E_While_Loop,
   E_If_Statement,
-  E_Return_Statement
+  E_Return_Statement,
+
+  E_Literal
 };
 
 /**
@@ -45,12 +48,16 @@ enum Ekind {
 */
 class Entity {
 public:
-  Ekind getKind() const;
+  virtual ~Entity() = default;
+  explicit Entity(Ekind kind);
 
+  Ekind getKind() const;
   Loc getLoc() const;
 
+  virtual Ekind resolveType();
+  virtual bool validate();
   // return scope parent
-  std::unique_ptr<Entity> getScopePar() const;
+  //  std::unique_ptr<Entity> getScopePar() const;
 
 protected:
   Ekind kind;
@@ -60,7 +67,7 @@ protected:
   // Point to entity in whose scope the current entity is
   // i.e. if Ekind == E_Method, then it points to
   // an E_Class, in which this method is declared
-  std::unique_ptr<Entity> scope;
+  //  std::unique_ptr<Entity> scope;
 };
 
 /**

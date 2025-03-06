@@ -5,30 +5,8 @@ class Parser {
 public:
 
 private:
-  /*
-    Parse function for each non-terminal construct:
-      Program
-      ClassDeclaration
-      ClassName
-      MemberDeclaration
-      VariableDeclaration
-      MethodDeclaration
-      MethodHeader
-      MethodBody
-      Parameters
-      ParameterDeclaration
-      Body
-      ConstructorDeclaration
-      Statement
-      Assignment
-      WhileLoop
-      IfStatement
-      ReturnStatement
-      Expression
-      Primary
-      Arguments
-   */
   void parseProgram();
+  void parseProgramDecls();
   void parseClassDeclaration();
   void parseMemberDeclaration();
   void parseVariableDeclaration();
@@ -46,6 +24,6 @@ private:
   void parseMethodCall();
   void parseArguments();
   void parseConstructorDeclaration();
-}
+};
 
 #endif
