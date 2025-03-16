@@ -1,6 +1,8 @@
 #ifndef EXPRESSION_H
 #define EXPRESSION_H
 
+#include <utility>
+
 #include "Entity.h"
 
 /**
@@ -9,7 +11,8 @@
 class Expression : public Entity {
 public:
   explicit Expression(Ekind kind) : Entity(kind) {};
-  Ekind resolveType() override;
+  std::unique_ptr<Type> resolveType() override;
+  // add evaluate method
   bool validate() override;
 };
 
@@ -23,61 +26,103 @@ public:
 */
 class IntLiteralEXP : public Expression {
 public:
-  IntLiteralEXP(int val) : Expression(E_Literal), _value(val) {};
+  IntLiteralEXP(int val) : Expression(E_Integer_Literal), _value(val) {};
 
   int getValue() { return _value; }
 
-  Ekind resolveType() override { return E_Integer_Type; }
+  std::unique_ptr<Type> resolveType() override {
+    auto type = std::make_unique<TypeBuiltin>(TYPE_INT, "Integer", 32);
+    return type;
+  }
 private:
   int _value;
 };
 
 class RealLiteralEXP : public Expression {
 public:
-  RealLiteralEXP(double val) : Expression(E_Literal), _value(val) {};
+  RealLiteralEXP(double val) : Expression(E_Real_Literal), _value(val) {};
 
   double getValue() { return _value; }
 
-  Ekind resolveType() override { return E_Real_Type; }
+  std::unique_ptr<Type> resolveType() override {
+    auto type = std::make_unique<TypeBuiltin>(TYPE_FLOAT, "Real", 32);
+    return type;
+  }
 private:
   double _value;
 };
 
-class StringLiteralEXP : public Expression {
-public:
-  StringLiteralEXP(std::string val) : Expression(E_Literal), _value(val) {};
-
-  std::string getValue() { return _value; }
-
-  Ekind resolveType() override { return E_String_Type; }
-private:
-  std::string _value;
-};
+// @TODO
+// class StringLiteralEXP : public Expression {
+// public:
+//   StringLiteralEXP(std::string val) : Expression(E_Literal), _value(val) {};
+//
+//   std::string getValue() { return _value; }
+//
+//   std::unique_ptr<Type> resolveType() override {
+//     auto type = std::make_unique<TypeBuiltin>(TYPE_STRING, "String", 32);
+//     return E_String_Type;
+//   }
+// private:
+//   std::string _value;
+// };
 
 class BoolLiteralEXP : public Expression {
 public:
-  BoolLiteralEXP(bool val) : Expression(E_Literal), _value(val) {};
+  BoolLiteralEXP(bool val) : Expression(E_Boolean_Literal), _value(val) {};
 
   bool getValue() { return _value; }
 
-  Ekind resolveType() override { return E_Boolean_Type; }
+  std::unique_ptr<Type> resolveType() override {
+    auto type = std::make_unique<TypeBuiltin>(TYPE_BOOL, "Bool", 1);
+    return type;
+  }
 private:
   bool _value;
+};
+
+class VarRefEXP : public Expression {
+
 };
 
 /**
 * A call expression calls a method
 *
-* Adder.add(2, 2), Set.pop()
+* var adder : Adder
+* adder.add(2, 2)
+*
+* ALSO: 2.Plus(2)
 */
 class MethodCallEXP : public Expression {
+public:
+  MethodCallEXP(
+    std::unique_ptr<Expression> left,
+    std::string method_name,
+    std::vector<std::unique_ptr<Expression>> args
+  ) : Expression(E_Function),
+      left(std::move(left)),
+      method_name(std::move(method_name)),
+      arguments(std::move(args)) {}
 
+  std::unique_ptr<Expression> left;
+  std::string method_name;
+  std::vector<std::unique_ptr<Expression>> arguments;
+
+  std::unique_ptr<Type> resolveType() override {
+    // @TODO
+    return nullptr;
+  }
+
+  bool validate() override {
+    // Ensure the class exists and arguments match the constructor.
+    return true;
+  }
 };
 
 /**
 * Evaluates to a class field
 *
-* Adder.x, MyPair.first, LuxMeter.coeffA
+* Adder.x, MyPair.first, LuxMeter.et.pop()coeffA
 */
 class FieldAccessEXP : public Expression {
 
@@ -109,7 +154,7 @@ class ThisEXP : public Expression {
 */
 class ClassNameEXP : public Expression {
 public:
-  ClassNameEXP(std::string name) : Expression(E_New_Type), _name(name) {};
+  ClassNameEXP(std::string name) : Expression(E_Class_Name), _name(std::move(name)) {};
 private:
   std::string _name;
 };

@@ -1,12 +1,15 @@
 #ifndef OBW_EINFO_H
 #define OBW_EINFO_H
 
-#include <ostream>
 #include <memory>
+#include <ostream>
+
+#include "frontend/types/Types.h"
 
 struct Loc {
   size_t line;
   size_t col;
+  std::string file;
 };
 
 /**
@@ -15,18 +18,25 @@ struct Loc {
 * Obewrong language
 */
 enum Ekind {
-  // Class-related entities
-  E_Class,
-  E_Constructor,
-  E_Method,
-  E_Variable,
+  // Declarations
+  E_Class_Decl,
+  E_Constructor_Decl,
+  E_Variable_Decl,
+  E_Function_Decl,
+  E_Array_Decl,
+  E_List_Decl,
 
   // Type-related entities
   E_Integer_Literal,
+  E_Integer_Type,
   E_Real_Literal,
+  E_Real_Type,
   E_String_Literal,
+  E_String_Type,
   E_Boolean_Literal,
+  E_Boolean_Type,
   E_Function,
+  E_Function_Type,
   E_Class_Name,
 
   // Special entities
@@ -39,8 +49,6 @@ enum Ekind {
   E_While_Loop,
   E_If_Statement,
   E_Return_Statement,
-
-  E_Literal
 };
 
 /**
@@ -54,7 +62,7 @@ public:
   Ekind getKind() const;
   Loc getLoc() const;
 
-  virtual Ekind resolveType();
+  virtual std::unique_ptr<Type> resolveType();
   virtual bool validate();
   // return scope parent
   //  std::unique_ptr<Entity> getScopePar() const;

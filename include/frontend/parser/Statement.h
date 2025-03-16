@@ -1,16 +1,32 @@
 #ifndef STATEMENT_H
 #define STATEMENT_H
 
+/*
+ * Entities that control
+ * the control-flow of program
+ */
 #include <memory>
+#include <utility>
+#include <vector>
 
 #include "Entity.h"
 #include "Expression.h"
+#include "frontend/types/Decl.h"
+#include "frontend/types/Types.h"
 
 /**
-* Base statement entity
-*/
+ * Base statement entity
+ *
+ * Yes, this is a dupliacte of Decl class
+ * this is done just for distinction
+ * well, maybe this is incorrect idk
+ */
 class Statement : public Entity {
-
+  explicit Statement(Ekind kind, std::string name) : Entity(kind), name(std::move(name)) {}
+  std::string name;
+  // points to a declaration in which scope this stmt is
+  // i.e. some ClassDecl or FuncDecl
+  std::unique_ptr<Decl> scope;
 };
 
 /**
@@ -22,25 +38,45 @@ class Statement : public Entity {
 *  ...
 * end
 */
-class BlockSTMT : public Statement {
+class Block : public Statement {
+public:
+  explicit Block(
+    Ekind kind,
+    const std::string &name,
+    std::vector<std::unique_ptr<Expression>> body)
+    : Statement(kind, name), body(std::move(body)) {}
 
+  std::vector<std::unique_ptr<Expression>> body;
 };
 
 // Identifier := Expression
-class AssignmentSTMT : public Statement {
-
-};
+// class AssignmentSTMT : public Statement {
+//
+// };
 
 // return [ Expression ]
 class ReturnSTMT : public Statement {
+public:
+  explicit ReturnSTMT(
+    Ekind kind,
+    const std::string &name,
+    std::unique_ptr<Expression> expr)
+  : Statement(kind, name), expr(std::move(expr)) {}
 
+  std::unique_ptr<Expression> expr;
 };
+
+// class ElseSTMT : public Statement {
+// public:
+// }
 
 // if Expression then Body [ else Body ] end
 class IfSTMT : public Statement {
-  Expression condition;
-  BlockSTMT ifTrue;
-  BlockSTMT ifFalse;
+public:
+  std::unique_ptr<Expression> condition;
+  Block ifTrue;
+  Block ifFalse;
+  bool isElsed;
 };
 
 /**
@@ -55,78 +91,16 @@ class IfSTMT : public Statement {
 * end
 */
 class WhileSTMT : public Statement {
-  Expression condition;
-  BlockSTMT whileTrue;
-};
+public:
+  explicit WhileSTMT(
+    Ekind kind,
+    std::string name,
+    std::unique_ptr<Expression> condition,
+    std::unique_ptr<Block> body)
+      : Statement(kind, std::move(name)), condition(std::move(condition)), body(std::move(body)) {}
 
-/**
-* Basic "block" of every OBW programm
-* constuct a new type of <ClassName>
-* with constructor, fields and methods
-*
-* class MyClass is
-*   var a : Integer
-*   this() is ... end
-*   method get() => return a
-* end
-*/
-class ClassDeclSTMT : public Statement {
-
-};
-
-/**
-* Declaration of a method in a class body (block)
-*
-* BEWARE: this can be:
-*   - forward declaration: `method short() : Integer` (no body)
-*   - short syntax decl  : `method get() => return this.a`
-*   - full               : `method set(a: Integer) is ... end`
-*/
-class MethodDeclSTMT : public Statement {
-
-};
-
-/**
-* Declaration of a new type (class) constructor
-*
-* this() is ... end
-* this(a: Integer) => this.a = a
-*/
-class ConstructoDeclSTMT : public Statement {
-
-};
-
-/**
-* Declaration of a class field
-* looks like a variable declaration,
-* except is **cant invoke constructors**
-*
-* <ClassDeclaration>
-*   var a : Integer
-*   var coeff : Real
-*   ...
-* end
-*/
-class FieldDeclSTMT : public Statement {
-
-};
-
-/**
-* Declaration of method parameters
-*
-* (a: Integer, b : Real)
-*/
-class ParamDeclSTMT : public Statement {
-
-};
-
-/**
-* Declaration of arguments passed to method call
-*
-* (a, 5, "Hi")
-*/
-class ArgumentDeclSTMT : public Statement {
-
+  std::unique_ptr<Expression> condition;
+  std::unique_ptr<Block> body;
 };
 
 #endif

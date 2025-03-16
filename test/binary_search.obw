@@ -1,7 +1,7 @@
 class BinarySearch is
   method search(arr: Array[Integer], target: Integer) : Integer is
-    var low : Integer(0)
-    var high : Integer(arr.Length.Minus(1))
+    var low : Integer := 0
+    var high : Integer := arr.Length.Minus(1)
 
     while low.LessEqual(high) loop
       var mid : Integer(low.Plus(high).Div(2))
@@ -22,22 +22,17 @@ end
 
 class Main is
   this() is
-    var arr : Array[Integer](5)
-    arr.set(0, 10)
-    arr.set(1, 20)
-    arr.set(2, 30)
-    arr.set(3, 40)
-    arr.set(4, 50)
+    var arr : Array[Integer](5) := [10, 20, 30, 40, 50]
 
     var bs : BinarySearch()
-    var target : Integer(30)
-    var result : Integer(bs.search(arr, target))
+    var target : Integer := 30
+    var result : Integer := bs.search(arr, target)
 
     if result.Equal(-1) then
-        IO.Console.print("Target not found")
+        Print("Target not found")
     else
-        IO.Console.print("Target found at index: ")
-        IO.Console.print(result)
+        Print("Target found at index: ")
+        Print(result)
     end
   end
 end
