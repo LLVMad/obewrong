@@ -1,7 +1,7 @@
 #ifndef OBW_LEXER_H
 #define OBW_LEXER_H
 
-#include "SourceLocation.h"
+#include "frontend/SourceLocation.h"
 
 #include <fstream>
 #include <memory>
@@ -11,7 +11,7 @@
   #include "util/Logger.h"
 #endif
 
-enum TokenType {
+enum TokenKind {
   TOKEN_EOF,
   TOKEN_IDENTIFIER,  // user-defined: letter { lettter | digit }
   TOKEN_CLASS,       // class
@@ -66,7 +66,7 @@ enum TokenType {
  * start ->
  *  | \A-z\ ->
  *    | whitespace ->
- *      | is keyword ? -> return keyword ( + type )
+ *      | is keyword ? -> return keyword ( + kind )
  *      | else -> return identifier
  *    | \A-z\ -> continue (put new char in str)
  *    | \0-9\ -> continue (it is defienetly an identifier => no need to check if
@@ -102,26 +102,26 @@ public:
     const char* identName;   // for Identifiers
   }; */
 
-  TokenType type;
+  TokenKind kind;
   std::variant<std::monostate, int, double, std::string> value;
   size_t line;
   size_t column;
 
   // Mostly single-character and/or special symbols
-  Token(TokenType type, size_t line, size_t column)
-      : type(type), line(line), column(column) {};
+  Token(TokenKind kind, size_t line, size_t column)
+      : kind(kind), line(line), column(column) {};
 
   // Int value
-  Token(TokenType type, int intValue, size_t line, size_t column)
-      : type(type), value(intValue), line(line), column(column) {};
+  Token(TokenKind kind, int intValue, size_t line, size_t column)
+      : kind(kind), value(intValue), line(line), column(column) {};
 
   // Real number
-  Token(TokenType type, double realValue, size_t line, size_t column)
-      : type(type), value(realValue), line(line), column(column) {};
+  Token(TokenKind kind, double realValue, size_t line, size_t column)
+      : kind(kind), value(realValue), line(line), column(column) {};
 
   // Identifier or string literal
-  Token(TokenType type, const std::string &lexem, size_t line, size_t column)
-      : type(type), value(lexem), line(line), column(column) {};
+  Token(TokenKind kind, const std::string &lexem, size_t line, size_t column)
+      : kind(kind), value(lexem), line(line), column(column) {};
 
 };
 
@@ -135,7 +135,7 @@ class Lexer {
 public:
   Lexer(std::shared_ptr<SourceBuffer> buffer);
   std::unique_ptr<Token> next();
-  static const char* getTokenTypeName(TokenType type);
+  static const char* getTokenTypeName(TokenKind kind);
 private:
   std::shared_ptr<SourceBuffer> source_buffer;
   StateType curr_state;
@@ -150,7 +150,7 @@ private:
   char peek() { return buffer[0]; };
 
   inline static unsigned int hash(const char *str, size_t len);
-  static std::pair<const char*, TokenType> in_word_set(const char *str, size_t len);
+  static std::pair<const char*, TokenKind> in_word_set(const char *str, size_t len);
 };
 
 #endif

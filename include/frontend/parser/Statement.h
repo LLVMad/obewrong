@@ -14,19 +14,9 @@
 #include "frontend/types/Decl.h"
 #include "frontend/types/Types.h"
 
-/**
- * Base statement entity
- *
- * Yes, this is a dupliacte of Decl class
- * this is done just for distinction
- * well, maybe this is incorrect idk
- */
 class Statement : public Entity {
-  explicit Statement(Ekind kind, std::string name) : Entity(kind), name(std::move(name)) {}
-  std::string name;
-  // points to a declaration in which scope this stmt is
-  // i.e. some ClassDecl or FuncDecl
-  std::unique_ptr<Decl> scope;
+  explicit Statement(Ekind kind) : Entity(kind) {}
+  // std::string name;
 };
 
 /**
@@ -41,27 +31,28 @@ class Statement : public Entity {
 class Block : public Statement {
 public:
   explicit Block(
-    Ekind kind,
-    const std::string &name,
     std::vector<std::unique_ptr<Expression>> body)
-    : Statement(kind, name), body(std::move(body)) {}
+    : Statement(E_Block), body(std::move(body)) {}
 
   std::vector<std::unique_ptr<Expression>> body;
 };
 
 // Identifier := Expression
-// class AssignmentSTMT : public Statement {
-//
-// };
+class AssignmentSTMT : public Statement {
+public:
+  AssignmentSTMT(std::unique_ptr<VarDecl> lhs, std::unique_ptr<Expression> rhs)
+    : Statement(E_Assignment), variable(std::move(lhs)), expression(std::move(rhs)) {}
+
+  std::unique_ptr<VarDecl> variable;
+  std::unique_ptr<Expression> expression;
+};
 
 // return [ Expression ]
 class ReturnSTMT : public Statement {
 public:
   explicit ReturnSTMT(
-    Ekind kind,
-    const std::string &name,
     std::unique_ptr<Expression> expr)
-  : Statement(kind, name), expr(std::move(expr)) {}
+  : Statement(E_Return_Statement), expr(std::move(expr)) {}
 
   std::unique_ptr<Expression> expr;
 };
@@ -73,9 +64,12 @@ public:
 // if Expression then Body [ else Body ] end
 class IfSTMT : public Statement {
 public:
+  IfSTMT(std::unique_ptr<Expression> condition, std::unique_ptr<Block> ifTrue, std::unique_ptr<Block> ifFalse, bool elsed)
+    : Statement(E_If_Statement), condition(std::move(condition)), ifTrue(std::move(ifTrue)), ifFalse(std::move(ifFalse)), isElsed(elsed) {}
+
   std::unique_ptr<Expression> condition;
-  Block ifTrue;
-  Block ifFalse;
+  std::unique_ptr<Block> ifTrue;
+  std::unique_ptr<Block> ifFalse;
   bool isElsed;
 };
 
@@ -93,11 +87,9 @@ public:
 class WhileSTMT : public Statement {
 public:
   explicit WhileSTMT(
-    Ekind kind,
-    std::string name,
     std::unique_ptr<Expression> condition,
     std::unique_ptr<Block> body)
-      : Statement(kind, std::move(name)), condition(std::move(condition)), body(std::move(body)) {}
+      : Statement(E_While_Loop), condition(std::move(condition)), body(std::move(body)) {}
 
   std::unique_ptr<Expression> condition;
   std::unique_ptr<Block> body;

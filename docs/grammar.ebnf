@@ -7,7 +7,7 @@ ClassDeclaration ::=
 ClassName ::= Identifier
 
 MemberDeclaration ::= 
-    VariableDeclaration 
+    | VariableDeclaration
     | MethodDeclaration 
     | ConstructorDeclaration
 
@@ -61,8 +61,10 @@ Arguments ::=
     "(" { Expression { "," Expression } } ")"
 
 Primary ::= 
-    IntegerLiteral 
+    | IntegerLiteral
     | RealLiteral 
     | BooleanLiteral 
-    | "this" 
-    | Identifier [ "[" { Identifier { "," Identifier } } "]" ]
+    | StringLiteral
+    | this
+    | ClassName
+    | Identifier

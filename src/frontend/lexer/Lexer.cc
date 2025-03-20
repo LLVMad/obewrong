@@ -5,7 +5,7 @@
 #include <sstream>
 #include <utility>
 
-#include "frontend/Lexer.h"
+#include "frontend/lexer/Lexer.h"
 
 #define TOTAL_KEYWORDS 27
 #define MIN_WORD_LENGTH 1
@@ -41,7 +41,7 @@ inline unsigned int Lexer::hash(const char *str, size_t len) {
 /*
  * Checks if a word is a keyword
  */
-std::pair<const char *, TokenType> Lexer::in_word_set(const char *str,
+std::pair<const char *, TokenKind> Lexer::in_word_set(const char *str,
                                                       size_t len) {
   static const char *wordlist[] = {
       "",       "T",       "is",       "",      "this",   "Class",   "import",
@@ -50,7 +50,7 @@ std::pair<const char *, TokenType> Lexer::in_word_set(const char *str,
       "AnyRef", "Integer", "AnyValue", "then",  "class",  "String",  "Boolean",
       "var",    "loop",    "",         "",      "",       "",        "Real"};
 
-  static const TokenType keytokenlist[] = {
+  static const TokenKind keytokenlist[] = {
       TOKEN_UNKNOWN,     TOKEN_UNKNOWN,      TOKEN_BBEGIN,
       TOKEN_UNKNOWN,     TOKEN_SELFREF,      TOKEN_CLASS,
       TOKEN_MODULE_IMP,  TOKEN_IF,           TOKEN_UNKNOWN,
@@ -197,7 +197,6 @@ std::unique_ptr<Token> Lexer::next() {
         }
         return std::make_unique<Token>(TOKEN_IDENTIFIER, token, curr_line,
                                        curr_column - token.length() + 1);
-        // @TODO add to symbol table
       } else
         curr_state = STATE_FAIL;
     } break;
@@ -278,7 +277,7 @@ std::unique_ptr<Token> Lexer::next() {
   }
 }
 
-const char *Lexer::getTokenTypeName(TokenType type) {
+const char *Lexer::getTokenTypeName(TokenKind type) {
   static const char *tokenNames[] = {
       "TOKEN_EOF",          "TOKEN_IDENTIFIER",  "TOKEN_CLASS",
       "TOKEN_EXTENDS",      "TOKEN_VAR_DECL",    "TOKEN_SELFREF",

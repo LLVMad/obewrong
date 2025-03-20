@@ -52,20 +52,17 @@ private:
   double _value;
 };
 
-// @TODO
-// class StringLiteralEXP : public Expression {
-// public:
-//   StringLiteralEXP(std::string val) : Expression(E_Literal), _value(val) {};
-//
-//   std::string getValue() { return _value; }
-//
-//   std::unique_ptr<Type> resolveType() override {
-//     auto type = std::make_unique<TypeBuiltin>(TYPE_STRING, "String", 32);
-//     return E_String_Type;
-//   }
-// private:
-//   std::string _value;
-// };
+class StringLiteralEXP : public Expression {
+public:
+  StringLiteralEXP(std::string val) : Expression(E_String_Literal), value(std::move(val)) {};
+
+  std::string value;
+
+  std::unique_ptr<Type> resolveType() override {
+    auto type = std::make_unique<TypeString>(sizeof(value.c_str()));
+    return type;
+  }
+};
 
 class BoolLiteralEXP : public Expression {
 public:
@@ -81,12 +78,41 @@ private:
   bool _value;
 };
 
+/**
+* For when we refer to a "value" by
+* referencing associated variable name
+*
+* can/should be translate to other Decl, STMT or EXPR
+*
+* var a : Integer := 2
+* var c : Integer := a.Plus(2)
+*                    ^
+*/
 class VarRefEXP : public Expression {
+public:
+  VarRefEXP(
+    std::string name
+  ) : Expression(E_Var_Reference), var_name(std::move(name)) {};
 
+  std::string var_name;
+
+  std::unique_ptr<Type> resolveType() override {
+    /*
+     * @TODO
+     * search for a VarDecl IN SCOPE
+     *
+     */
+    return nullptr;
+  }
+
+  bool validate() override {
+    // Ensure the class exists and arguments match the constructor.
+    return true;
+  }
 };
 
 /**
-* A call expression calls a method
+* Represents object creation by invoking a constructor
 *
 * var adder : Adder
 * adder.add(2, 2)
@@ -104,6 +130,8 @@ public:
       method_name(std::move(method_name)),
       arguments(std::move(args)) {}
 
+  MethodCallEXP() : Expression(E_Function) {}
+
   std::unique_ptr<Expression> left;
   std::string method_name;
   std::vector<std::unique_ptr<Expression>> arguments;
@@ -114,7 +142,96 @@ public:
   }
 
   bool validate() override {
-    // Ensure the class exists and arguments match the constructor.
+    return true;
+  }
+};
+
+/**
+* Represents a type reference
+* (e.g., in declarations, parameters).
+*
+* var a : Integer := 2
+*         ^^^^^^^
+* method func(a : Integer, b : Integer) is ...
+*                 ^^^^^^^      ^^^^^^^
+* var array : Array[Integer]
+*             ^^^^  ^^^^^^
+* var c : MyClass
+*         ^^^^^^
+*/
+class ClassNameEXP : public Expression {
+public:
+  ClassNameEXP(std::string name) : Expression(E_Class_Name), _name(std::move(name)) {};
+
+  std::unique_ptr<Type> resolveType() override {
+    switch (_name) {
+    case "Integer": {
+      return std::make_unique<TypeInt>();
+    }
+    case "Real": {
+      return std::make_unique<TypeReal>();
+    }
+    case "Bool": {
+      return std::make_unique<TypeBool>();
+    }
+    case "String": {
+      return std::make_unique<TypeString>();
+    }
+    case "Array": {
+      return std::make_unique<TypeArray>();
+    }
+    case "List": {
+      return std::make_unique<TypeList>();
+    }
+      // @TODO what to do if its our own class
+      // lookup in the symbol table ?
+    default: return std::make_unique<Type>(TYPE_UNKNOWN, _name);
+    }
+  }
+
+  bool validate() override {
+    return true;
+  }
+private:
+  std::string _name;
+};
+
+/**
+* A constr expression calls a creation-of-object method
+* a.k.a a constructor
+*
+* var adder : Adder := Adder(2, 2)
+*                      ^^^^^^^^^^^
+*                      search for Adder::this(Integer, Integer)
+* var adder : Adder
+*             ^^^^^
+*             search for Adder::this(), default constr
+*/
+class ConstructorCallEXP : public Expression {
+public:
+  ConstructorCallEXP(
+    std::unique_ptr<ClassNameEXP> left,
+    std::vector<std::unique_ptr<Expression>> args
+  ) : Expression(E_Function),
+      left(std::move(left)),
+      arguments(std::move(args)) {}
+
+  std::unique_ptr<ClassNameEXP> left;
+  std::vector<std::unique_ptr<Expression>> arguments;
+
+  std::unique_ptr<Type> resolveType() override {
+    /*
+     * @TODO
+     * this is interesting
+     * because as far as i understand
+     * the return type of this
+     * should be a pointer to a class
+     * but we dont have pointers...
+     */
+    return nullptr;
+  }
+
+  bool validate() override {
     return true;
   }
 };
@@ -122,10 +239,29 @@ public:
 /**
 * Evaluates to a class field
 *
-* Adder.x, MyPair.first, LuxMeter.et.pop()coeffA
+* Adder.x, MyPair.first, LuxMeter.coeffA
 */
 class FieldAccessEXP : public Expression {
+public:
+  FieldAccessEXP(std::unique_ptr<Expression> left, std::string name)
+    : Expression(E_Field_Reference), left(std::move(left)), field_name(std::move(name)) {};
 
+  std::unique_ptr<Expression> left;
+  std::string field_name;
+
+  std::unique_ptr<Type> resolveType() override {
+    /*
+     * @TODO
+     * 1) search for left side in a class declarations
+     * 2) get type of a field by name
+     * 3) return its type
+     */
+    return nullptr;
+  }
+
+  bool validate() override {
+    return true;
+  }
 };
 
 /**
@@ -134,29 +270,37 @@ class FieldAccessEXP : public Expression {
 * a.Minus(2).Plus(5).Div(2)
 */
 class CompoundEXP : public Expression {
-
-};
-
-class ThisEXP : public Expression {
-
-};
-
-/**
-* A class name expression creates a class
-* same as a class constructor ?
-*
-* Type system: Each language construct (operator, expression,
-* statement, …) is associated with a type expression. The type
-* system is a collection of rules for assigning type expressions
-* to these constructs
-*
-* Integer(2), String("Hi"), Real(1.5), Integer.Min
-*/
-class ClassNameEXP : public Expression {
 public:
-  ClassNameEXP(std::string name) : Expression(E_Class_Name), _name(std::move(name)) {};
-private:
-  std::string _name;
+  CompoundEXP(std::vector<std::unique_ptr<Expression>> parts)
+    : Expression(E_Chained_Functions), parts(std::move(parts)) {}
+
+  std::vector<std::unique_ptr<Expression>> parts;
+
+  std::unique_ptr<Type> resolveType() override {
+    /*
+     * @TODO
+     * call resolveType on each
+     * exp in parts
+     */
+  }
+
+  bool validate() override {
+    return true;
+  }
+};
+
+// @TODO
+class ThisEXP : public Expression {
+public:
+  ThisEXP() : Expression(E_This) {}
+
+  std::unique_ptr<Type> resolveType() override {
+    // return the type of the enclosing class (from the scope).
+  }
+
+  bool validate() override {
+    // ensure `this` is used within a method/constructor.
+  }
 };
 
 #endif

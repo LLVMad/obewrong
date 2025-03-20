@@ -25,9 +25,6 @@ class Decl : public Entity {
 public:
   explicit Decl(Ekind kind, std::string name) : Entity(kind), name(std::move(name)) {}
   std::string name;
-  // points to a declaration in which scope this decl is
-  // i.e. some ClassDecl or FuncDecl
-  std::unique_ptr<Decl> scope;
 };
 
 /**
@@ -43,7 +40,7 @@ public:
 */
 class FieldDecl : public Decl {
 public:
-  explicit FieldDecl(Ekind kind, const std::string &name) : Decl(kind, name) {}
+  explicit FieldDecl(const std::string &name) : Decl(E_Field_Decl, name) {}
 
   std::unique_ptr<Type> type;
 };
@@ -61,11 +58,10 @@ public:
 class VarDecl : public Decl {
 public:
   explicit VarDecl(
-    Ekind kind,
     const std::string &name,
     std::unique_ptr<Type> type,
     std::unique_ptr<Expression> init)
-    : Decl(kind, name), type(std::move(type)), initializer(std::move(init)) {}
+    : Decl(E_Variable_Decl, name), type(std::move(type)), initializer(std::move(init)) {}
 
   std::unique_ptr<Type> type;
 
@@ -75,6 +71,23 @@ public:
   // var a : Integer := 0
   //                 ^^^^
   std::unique_ptr<Expression> initializer;
+};
+
+/**
+* Declaration of an argument
+* **cant have initializers**
+*
+* method func(a : Integer, b : Integer) is ...
+*             ^^^^^^^^^^   ^^^^^^^^^^^
+*/
+class ParameterDecl : public Decl {
+public:
+  explicit ParameterDecl(
+    const std::string &name,
+    std::unique_ptr<Type> type)
+    : Decl(E_Parameter_Decl, name), type(std::move(type)) {}
+
+  std::unique_ptr<Type> type;
 };
 
 /**
@@ -88,11 +101,11 @@ public:
 class FuncDecl : public Decl {
 public:
   explicit FuncDecl(
-    Ekind kind, const std::string &name,
+    const std::string &name,
     std::unique_ptr<TypeFunc> signature,
     std::vector<std::unique_ptr<Decl>> args,
     std::vector<std::unique_ptr<Expression>> body)
-      : Decl(kind, name), signature(std::move(signature)), args(std::move(args)), body(std::move(body)) {}
+      : Decl(E_Function_Decl, name), signature(std::move(signature)), args(std::move(args)), body(std::move(body)) {}
 
   std::unique_ptr<TypeFunc> signature;
   std::vector<std::unique_ptr<Decl>> args;
@@ -117,6 +130,7 @@ class ClassDecl : public Decl {
 public:
   //std::string base_class;
   //std::vector<std::string> generic_params;
+  std::unique_ptr<Type> type;
   std::vector<std::unique_ptr<ClassDecl>> base_classes;
   std::vector<std::unique_ptr<FieldDecl>> fields;
   std::vector<std::unique_ptr<FuncDecl>> methods;

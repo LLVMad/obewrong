@@ -22,6 +22,8 @@ enum Ekind {
   E_Class_Decl,
   E_Constructor_Decl,
   E_Variable_Decl,
+  E_Parameter_Decl,
+  E_Field_Decl,
   E_Function_Decl,
   E_Array_Decl,
   E_List_Decl,
@@ -36,11 +38,12 @@ enum Ekind {
   E_Boolean_Literal,
   E_Boolean_Type,
   E_Function,
+  E_Chained_Functions, // compound expressions, a.Plus(2).Minus(1)...
   E_Function_Type,
   E_Class_Name,
 
   // Special entities
-  E_This,
+  E_This, // current instance of object
   E_Library_Class,
   E_Generic_Class,
 
@@ -49,6 +52,14 @@ enum Ekind {
   E_While_Loop,
   E_If_Statement,
   E_Return_Statement,
+  E_Block,
+
+  E_Var_Reference,
+  E_Field_Reference,
+
+  // fake entities, that just used to link meaningfully ones
+  E_Expression,
+  E_Arguments, // arguments list that is passed to a function
 };
 
 /**
@@ -64,18 +75,25 @@ public:
 
   virtual std::unique_ptr<Type> resolveType();
   virtual bool validate();
-  // return scope parent
-  //  std::unique_ptr<Entity> getScopePar() const;
+
+  // ======== NODE LINKS ========
+  // different types of connection
+  // between nodes in a AAST
+  // type, attributes are defined in children classes
+
+  // SCOPE LINK
+  // points to a declaration in which scope this decl is
+  // i.e. some ClassDecl or FuncDecl
+  std::unique_ptr<Entity> scope;
+
+  // STRUCTURAL LINK
+  // children nodes
+  std::vector<std::unique_ptr<Entity>> children;
 
 protected:
   Ekind kind;
 
   Loc location;
-
-  // Point to entity in whose scope the current entity is
-  // i.e. if Ekind == E_Method, then it points to
-  // an E_Class, in which this method is declared
-  //  std::unique_ptr<Entity> scope;
 };
 
 /**
