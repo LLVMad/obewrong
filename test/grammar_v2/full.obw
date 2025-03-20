@@ -1,0 +1,18 @@
+import std.io 
+
+class MyInteger is 
+  static var max : int := 999
+  var value : int
+  
+  this(val : int) is 
+    this.value := value 
+  end
+end
+
+class Main is
+  var myInt : MyInteger := MyInteger(2)
+
+  if (myInt % 2 == 0) && (myInt > 1) then 
+    printl(2)
+  end
+end

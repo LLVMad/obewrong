@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <iostream>
+#include <vector>
 
-#include "frontend/Lexer.h"
+#include "frontend/lexer/Lexer.h"
 #include "frontend/SourceManager.h"
 
 int main(int argc, char *argv[]) {
@@ -12,14 +13,15 @@ int main(int argc, char *argv[]) {
 
   Lexer lexer(buff);
 
-  int times = std::stoi(argv[2]);
-  for (int i = 0; i < times; i++) {
-    std::unique_ptr<Token> next_tok = lexer.next();
+  // int times = std::stoi(argv[2]);
+  std::vector<std::unique_ptr<Token>> tokens = lexer.lex();
+  for (size_t i = 0; i < tokens.size(); i++) {
+    std::unique_ptr<Token> next_tok = std::move(tokens[i]);
     if (next_tok) {
       std::cout << "[ "
                 << next_tok->line << ":"
                 << next_tok->column << " "
-                << Lexer::getTokenTypeName(next_tok->type);
+                << Lexer::getTokenTypeName(next_tok->kind);
 
       // if (!next_tok->.empty()) std::cout << ",\t" << next_tok->lexeme;
       // if (next_tok->value.identId) std::cout << ",\t" << next_tok->value.identId;

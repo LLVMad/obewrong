@@ -1,7 +1,7 @@
 #ifndef OBW_LEXER_H
 #define OBW_LEXER_H
 
-#include "SourceLocation.h"
+#include "frontend/SourceLocation.h"
 
 #include <fstream>
 #include <memory>
@@ -11,7 +11,11 @@
   #include "util/Logger.h"
 #endif
 
-enum TokenType {
+// '*' means we added this syntax ourselves,
+// and it wasn't mentioned in the reference manual
+// maybe not all of this will be implemented, but
+// its useful to add it before i think
+enum TokenKind {
   TOKEN_EOF,
   TOKEN_IDENTIFIER,  // user-defined: letter { lettter | digit }
   TOKEN_CLASS,       // class
@@ -19,14 +23,20 @@ enum TokenType {
   TOKEN_VAR_DECL,    // var
   TOKEN_SELFREF,     // this (do not confuse with constructor `this(...)`)
   TOKEN_RETURN,      // return
-  TOKEN_MODULE_DECL, // module
-  TOKEN_MODULE_IMP,  // import
+  TOKEN_MODULE_DECL, // * module
+  TOKEN_MODULE_IMP,  // * import
   TOKEN_IF,          // if
   TOKEN_ELSE,        // else
   TOKEN_THEN,        // then
+  TOKEN_SWITCH,      // * switch
+  TOKEN_CASE,        // * case
+  TOKEN_DEFAULT,     // * default
   TOKEN_WHILE,       // while
   TOKEN_LOOP,        // loop
   TOKEN_METHOD,      // method
+  TOKEN_FUNC,        // * func
+  TOKEN_FOR,         // * for
+  TOKEN_STATIC,      // * static
   TOKEN_BBEGIN,      // is
   TOKEN_BEND,        // end
   TOKEN_INT_NUMBER,
@@ -41,11 +51,31 @@ enum TokenType {
   TOKEN_LSBRACKET,  // ]
   TOKEN_ASSIGNMENT, // :=
   TOKEN_COLON,      // :
+  TOKEN_DOUBLE_COLON, // * ::
   TOKEN_DOT,        // .
   TOKEN_COMMA,      // ,
   TOKEN_ARROW,      // =>,
-  TOKEN_EQUAL,      // =, even tho its illegal for '=' to be on his own...
+  TOKEN_EQUAL,      // * ==
+  TOKEN_WRONG_ASSIGN, // =
   TOKEN_MORE,       // >, illigel again
+  TOKEN_LESS,       // * <
+  TOKEN_MORE_EQUAL, // * >=
+  TOKEN_LESS_EQUAL, // * <=
+  TOKEN_BIT_AND,    // * &
+  TOKEN_BIT_OR,     // * |
+  TOKEN_BIT_XOR,    // * ^
+  TOKEN_BIT_INV,    // * ~
+  TOKEN_LOGIC_NOT,  // * !
+  TOKEN_LOGIC_AND,  // * &&
+  TOKEN_LOGIC_OR,   // * ||
+  TOKEN_BIT_SHIFT_LEFT,   // * <<
+  TOKEN_BIT_SHIFT_RIGHT,  // * >>
+  TOKEN_PLUS,       // * +
+  TOKEN_MINUS,      // * -
+  TOKEN_STAR,       // * *
+  TOKEN_SLASH,      // * /
+  TOKEN_PERCENT,    // * %
+  TOKEN_PRINT,      // * printl
   TOKEN_TYPE_STRING,
   TOKEN_TYPE_CHAR,
   TOKEN_TYPE_INTEGER,
@@ -55,6 +85,8 @@ enum TokenType {
   TOKEN_TYPE_ARRAY,
   TOKEN_TYPE_ANYVAL,
   TOKEN_TYPE_ANYREF,
+  TOKEN_TYPE_TYPE,   // * for generics ?
+  TOKEN_NEW,
   TOKEN_UNKNOWN
 };
 
@@ -66,7 +98,7 @@ enum TokenType {
  * start ->
  *  | \A-z\ ->
  *    | whitespace ->
- *      | is keyword ? -> return keyword ( + type )
+ *      | is keyword ? -> return keyword ( + kind )
  *      | else -> return identifier
  *    | \A-z\ -> continue (put new char in str)
  *    | \0-9\ -> continue (it is defienetly an identifier => no need to check if
@@ -102,26 +134,26 @@ public:
     const char* identName;   // for Identifiers
   }; */
 
-  TokenType type;
+  TokenKind kind;
   std::variant<std::monostate, int, double, std::string> value;
   size_t line;
   size_t column;
 
   // Mostly single-character and/or special symbols
-  Token(TokenType type, size_t line, size_t column)
-      : type(type), line(line), column(column) {};
+  Token(TokenKind kind, size_t line, size_t column)
+      : kind(kind), line(line), column(column) {};
 
   // Int value
-  Token(TokenType type, int intValue, size_t line, size_t column)
-      : type(type), value(intValue), line(line), column(column) {};
+  Token(TokenKind kind, int intValue, size_t line, size_t column)
+      : kind(kind), value(intValue), line(line), column(column) {};
 
   // Real number
-  Token(TokenType type, double realValue, size_t line, size_t column)
-      : type(type), value(realValue), line(line), column(column) {};
+  Token(TokenKind kind, double realValue, size_t line, size_t column)
+      : kind(kind), value(realValue), line(line), column(column) {};
 
   // Identifier or string literal
-  Token(TokenType type, const std::string &lexem, size_t line, size_t column)
-      : type(type), value(lexem), line(line), column(column) {};
+  Token(TokenKind kind, const std::string &lexem, size_t line, size_t column)
+      : kind(kind), value(lexem), line(line), column(column) {};
 
 };
 
@@ -135,7 +167,8 @@ class Lexer {
 public:
   Lexer(std::shared_ptr<SourceBuffer> buffer);
   std::unique_ptr<Token> next();
-  static const char* getTokenTypeName(TokenType type);
+  std::vector<std::unique_ptr<Token>> lex();
+  static const char* getTokenTypeName(TokenKind kind);
 private:
   std::shared_ptr<SourceBuffer> source_buffer;
   StateType curr_state;
@@ -150,7 +183,7 @@ private:
   char peek() { return buffer[0]; };
 
   inline static unsigned int hash(const char *str, size_t len);
-  static std::pair<const char*, TokenType> in_word_set(const char *str, size_t len);
+  static std::pair<const char*, TokenKind> in_word_set(const char *str, size_t len);
 };
 
 #endif
