@@ -13,8 +13,11 @@
 #include "Expression.h"
 #include "frontend/types/Decl.h"
 #include "frontend/types/Types.h"
+#include "util/Logger.h"
+#define DEBUG 1 
 
 class Statement : public Entity {
+public:
   explicit Statement(Ekind kind) : Entity(kind) {}
   // std::string name;
 };
@@ -30,11 +33,22 @@ class Statement : public Entity {
 */
 class Block : public Statement {
 public:
-  explicit Block(
-    std::vector<std::unique_ptr<Expression>> body)
-    : Statement(E_Block), body(std::move(body)) {}
+    explicit Block(std::vector<std::unique_ptr<Expression>> body)
+        : Statement(E_Block), body(std::move(body)) {}
 
-  std::vector<std::unique_ptr<Expression>> body;
+    std::vector<std::unique_ptr<Expression>> body;
+
+    bool validate() override {
+        // Проверяем все выражения в блоке
+        for (auto& expr : body) {
+            if (!expr->validate()) {
+                LOG_ERR_NOARGS("Can't validate block");
+                return false;
+            }
+        }
+        LOG_NOARGS("Validate block is OK");
+        return true;
+    }
 };
 
 // Identifier := Expression
@@ -71,6 +85,25 @@ public:
   std::unique_ptr<Block> ifTrue;
   std::unique_ptr<Block> ifFalse;
   bool isElsed;
+
+  bool validate() override {
+    // Проверяем условие
+    if (!condition->validate()) {
+      return false;
+    }
+
+    // Проверяем блок ifTrue
+    if (!ifTrue->validate()) {
+      return false;
+    }
+
+    // Проверяем блок ifFalse, если он есть
+    if (isElsed && !ifFalse->validate()) {
+      return false;
+    }
+
+    return true;
+  }
 };
 
 /**

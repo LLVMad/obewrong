@@ -4,6 +4,9 @@
 #include <utility>
 
 #include "Entity.h"
+#include "util/Logger.h"
+
+#define DEBUG 1 
 
 /**
 * Base expression entity
@@ -11,7 +14,7 @@
 class Expression : public Entity {
 public:
   explicit Expression(Ekind kind) : Entity(kind) {};
-  std::unique_ptr<Type> resolveType() override;
+  std::unique_ptr<Type> resolveType() const override;
   // add evaluate method
   bool validate() override;
 };
@@ -30,10 +33,16 @@ public:
 
   int getValue() { return _value; }
 
-  std::unique_ptr<Type> resolveType() override {
-    auto type = std::make_unique<TypeBuiltin>(TYPE_INT, "Integer", 32);
-    return type;
+  std::unique_ptr<Type> resolveType() const override {
+    return new TypeBuiltin(TYPE_INT, "Integer", 32);
   }
+
+  bool validate() override {
+    // Для литерала проверка не требуется, так как тип известен
+    LOG_NOARGS("Validate IntLiteralEXP is OK");
+    return true;
+  }
+
 private:
   int _value;
 };
@@ -44,9 +53,8 @@ public:
 
   double getValue() { return _value; }
 
-  std::unique_ptr<Type> resolveType() override {
-    auto type = std::make_unique<TypeBuiltin>(TYPE_FLOAT, "Real", 32);
-    return type;
+  std::unique_ptr<Type> resolveType() const override {
+    return new TypeBuiltin(TYPE_FLOAT, "Real", 32);;
   }
 private:
   double _value;
@@ -58,9 +66,8 @@ public:
 
   std::string value;
 
-  std::unique_ptr<Type> resolveType() override {
-    auto type = std::make_unique<TypeString>(sizeof(value.c_str()));
-    return type;
+  std::unique_ptr<Type> resolveType() const override {
+    return new TypeString(sizeof(value.c_str()));
   }
 };
 
@@ -70,9 +77,8 @@ public:
 
   bool getValue() { return _value; }
 
-  std::unique_ptr<Type> resolveType() override {
-    auto type = std::make_unique<TypeBuiltin>(TYPE_BOOL, "Bool", 1);
-    return type;
+  std::unique_ptr<Type> resolveType() const override {
+    return new TypeBuiltin(TYPE_BOOL, "Bool", 1);;
   }
 private:
   bool _value;
@@ -90,24 +96,30 @@ private:
 */
 class VarRefEXP : public Expression {
 public:
-  VarRefEXP(
-    std::string name
-  ) : Expression(E_Var_Reference), var_name(std::move(name)) {};
+  VarRefEXP(std::string name) : Expression(E_Var_Reference), var_name(std::move(name)) {};
 
   std::string var_name;
 
-  std::unique_ptr<Type> resolveType() override {
-    /*
-     * @TODO
-     * search for a VarDecl IN SCOPE
-     *
-     */
-    return nullptr;
+  std::unique_ptr<Type> resolveType() const override {
+    // Ищем переменную в таблице символов
+    const auto& type = resolveSymbol(var_name);
+    if (!type) {
+      throw std::runtime_error("Undefined variable: " + var_name);
+    }
+    return type;
   }
 
   bool validate() override {
-    // Ensure the class exists and arguments match the constructor.
-    return true;
+    LOG_NOARGS("Try to validate VarRefEXP...");
+    // Проверяем, что переменная объявлена
+    auto type = resolveType();
+    if (type != nullptr) {
+      LOG_NOARGS("Validate VarRefEXP is OK");
+    }
+    else {
+      LOG_ERR_NOARGS("Can't validate VarRefEXP");
+    }
+    return type != nullptr;
   }
 };
 
@@ -121,6 +133,8 @@ public:
 */
 class MethodCallEXP : public Expression {
 public:
+  MethodCallEXP() : Expression(E_Function) {}
+
   MethodCallEXP(
     std::unique_ptr<Expression> left,
     std::string method_name,
@@ -130,18 +144,38 @@ public:
       method_name(std::move(method_name)),
       arguments(std::move(args)) {}
 
-  MethodCallEXP() : Expression(E_Function) {}
-
   std::unique_ptr<Expression> left;
   std::string method_name;
   std::vector<std::unique_ptr<Expression>> arguments;
 
-  std::unique_ptr<Type> resolveType() override {
-    // @TODO
+  std::unique_ptr<Type> resolveType() const override {
+    // @TODO: Реализовать разрешение типа для вызова метода
     return nullptr;
   }
 
   bool validate() override {
+    // Проверяем, что левая часть выражения является объектом или классом
+    if (!left->validate()) {
+      LOG_ERR_NOARGS("Can't validate left part of MethodCallEXP");
+      return false;
+    }
+
+    // Проверяем, что метод существует
+    auto leftType = left->resolveType();
+    if (!leftType) {
+      throw std::runtime_error("Left side of method call has no type");
+    }
+
+    // @TODO: Проверить, что метод method_name существует для типа leftType
+
+    // Проверяем аргументы
+    for (auto& arg : arguments) {
+      if (!arg->validate()) {
+        LOG_ERR_NOARGS("Can't validate arguments for MethodCallEXP");
+        return false;
+      }
+    }
+
     return true;
   }
 };
@@ -162,36 +196,40 @@ public:
 class ClassNameEXP : public Expression {
 public:
   ClassNameEXP(std::string name) : Expression(E_Class_Name), _name(std::move(name)) {};
-
-  std::unique_ptr<Type> resolveType() override {
-    switch (_name) {
-    case "Integer": {
-      return std::make_unique<TypeInt>();
-    }
-    case "Real": {
-      return std::make_unique<TypeReal>();
-    }
-    case "Bool": {
-      return std::make_unique<TypeBool>();
-    }
-    case "String": {
-      return std::make_unique<TypeString>();
-    }
-    case "Array": {
-      return std::make_unique<TypeArray>();
-    }
-    case "List": {
-      return std::make_unique<TypeList>();
-    }
-      // @TODO what to do if its our own class
-      // lookup in the symbol table ?
-    default: return std::make_unique<Type>(TYPE_UNKNOWN, _name);
+        const std::string& getName() const {
+            return _name;
+        }
+    
+  std::unique_ptr<Type> resolveType() const override {
+    if (_name == "Integer") {
+      return new TypeInt();
+    } else if (_name == "Real") {
+      return new TypeReal();
+    } else if (_name == "Bool") {
+      return new TypeBool();
+    } else if (_name == "String") {
+      return new TypeString();
+    } else if (_name == "Array") {
+      return new TypeArray();
+    } else if (_name == "List") {
+      return new TypeList();
+    } else {
+      // @TODO: Если это пользовательский класс, нужно искать его в таблице символов
+      return new Type(TYPE_UNKNOWN, _name);
     }
   }
 
   bool validate() override {
+    // Проверяем, что имя класса корректно
+    if (_name.empty()) {
+      LOG_ERR_NOARGS("Can't validate ClassNameEXP"); 
+      return false;
+    }
+    // @TODO: Добавить проверку, что класс существует в таблице символов
+    LOG_NOARGS("Validate ClassNameEXP is OK");
     return true;
   }
+
 private:
   std::string _name;
 };
@@ -219,7 +257,7 @@ public:
   std::unique_ptr<ClassNameEXP> left;
   std::vector<std::unique_ptr<Expression>> arguments;
 
-  std::unique_ptr<Type> resolveType() override {
+  std::unique_ptr<Type> resolveType() const override {
     /*
      * @TODO
      * this is interesting
@@ -232,6 +270,7 @@ public:
   }
 
   bool validate() override {
+    LOG_NOARGS("Validate ConstructorCallEXP is OK");
     return true;
   }
 };
@@ -243,13 +282,15 @@ public:
 */
 class FieldAccessEXP : public Expression {
 public:
+  FieldAccessEXP() : Expression(E_Field_Reference) {}
+
   FieldAccessEXP(std::unique_ptr<Expression> left, std::string name)
     : Expression(E_Field_Reference), left(std::move(left)), field_name(std::move(name)) {};
 
   std::unique_ptr<Expression> left;
   std::string field_name;
 
-  std::unique_ptr<Type> resolveType() override {
+  std::unique_ptr<Type> resolveType() const override {
     /*
      * @TODO
      * 1) search for left side in a class declarations
@@ -260,6 +301,7 @@ public:
   }
 
   bool validate() override {
+    LOG_NOARGS("Validate FieldAccessEXP is OK");
     return true;
   }
 };
@@ -276,30 +318,51 @@ public:
 
   std::vector<std::unique_ptr<Expression>> parts;
 
-  std::unique_ptr<Type> resolveType() override {
-    /*
-     * @TODO
-     * call resolveType on each
-     * exp in parts
-     */
+  std::unique_ptr<Type> resolveType() const override {
+    // Если parts пуст, возвращаем nullptr или тип по умолчанию
+    if (parts.empty()) {
+      return new Type(TYPE_UNKNOWN, "Unknown");
+    }
+
+    // Возвращаем тип последнего выражения в цепочке
+    return parts.back()->resolveType();
   }
 
   bool validate() override {
+    // Проверяем все выражения в цепочке
+    for (const auto& part : parts) {
+      if (!part->validate()) {
+        LOG_ERR_NOARGS("Can't validate CompoundEXP"); 
+        return false;
+      }
+    }
+    LOG_NOARGS("Validate CompoundEXP is OK");
     return true;
   }
 };
 
-// @TODO
 class ThisEXP : public Expression {
 public:
   ThisEXP() : Expression(E_This) {}
 
-  std::unique_ptr<Type> resolveType() override {
-    // return the type of the enclosing class (from the scope).
+  std::unique_ptr<Type> resolveType() const override {
+    // Возвращаем тип текущего класса из scope
+    if (scope) {
+      return scope->resolveType();
+    }
+    // Если scope не установлен, возвращаем nullptr или тип по умолчанию
+    return new Type(TYPE_UNKNOWN, "Unknown");
   }
 
   bool validate() override {
-    // ensure `this` is used within a method/constructor.
+    // Проверяем, что `this` используется внутри метода/конструктора
+    if (scope == nullptr) {
+      LOG_ERR_NOARGS("Can't validate ThisEXP"); 
+    }
+    else {
+      LOG_NOARGS("Validate ThisEXP is OK");
+    }
+    return scope != nullptr;
   }
 };
 

@@ -3,6 +3,11 @@
 
 #include <memory>
 #include <ostream>
+#include <unordered_map>
+#include "util/Logger.h"
+
+#define DEBUG 1 
+
 
 #include "frontend/types/Types.h"
 
@@ -73,26 +78,55 @@ public:
   Ekind getKind() const;
   Loc getLoc() const;
 
-  virtual std::unique_ptr<Type> resolveType();
+  virtual std::unique_ptr<Type> resolveType() const;
   virtual bool validate();
 
   // ======== NODE LINKS ========
-  // different types of connection
-  // between nodes in a AAST
-  // type, attributes are defined in children classes
-
-  // SCOPE LINK
-  // points to a declaration in which scope this decl is
-  // i.e. some ClassDecl or FuncDecl
   std::unique_ptr<Entity> scope;
-
-  // STRUCTURAL LINK
-  // children nodes
   std::vector<std::unique_ptr<Entity>> children;
+
+  // Таблица символов для текущей области видимости
+  std::unordered_map<std::string, std::unique_ptr<Type>> symbolTable;
+
+  void printSymbolTable() const {
+    LOG_NOARGS("Symbol Table: ");
+    LOG_NOARGS("-------------");
+    for (const auto& pair : symbolTable) {
+        const std::string& name = pair.first;
+        const Type* type = pair.second.get(); // Получаем сырой указатель
+        LOG("Name: %s, Type: %s", name.c_str(), type->name.c_str());
+    }
+    LOG_NOARGS("-------------");
+  }
+
+  // Добавляем символ в таблицу
+  void addSymbol(const std::string& name, std::unique_ptr<Type> type) {
+    if (!type) {
+      throw std::runtime_error("Type is nullptr");
+    }
+    if (symbolTable.find(name) != symbolTable.end()) {
+      throw std::runtime_error("Duplicate symbol: " + name);
+    }
+    printSymbolTable();
+    symbolTable[name] = std::move(type);
+    printSymbolTable();
+    LOG_NOARGS("Add symbol to symbolTable is success");
+  }
+
+  // Ищем символ в таблице
+  std::unique_ptr<Type> resolveSymbol(const std::string& name) const {
+    auto it = symbolTable.find(name);
+    if (it != symbolTable.end()) {
+      LOG("In simbolTable found simbol: %s", name.c_str());
+      return std::make_unique<Type>(*it->second);
+    }
+    LOG_ERR("In simbolTable coundn't find simbol: %s", name.c_str());
+    printSymbolTable();
+    return nullptr;
+  }
 
 protected:
   Ekind kind;
-
   Loc location;
 };
 

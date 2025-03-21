@@ -6,6 +6,8 @@
 #include "Entity.h"
 #include "frontend/lexer/Lexer.h"
 #include "frontend/types/Decl.h"
+#include "util/Logger.h"
+#include "Statement.h"
 
 class Parser {
 public:

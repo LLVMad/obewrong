@@ -2,8 +2,6 @@
 
 #include "frontend/parser/Expression.h"
 
-#define
-
 std::unique_ptr<Token> Parser::next() {
   if (tokens[tokenPos + 1]->kind != TOKEN_EOF) {
     return std::make_unique<Token>(*tokens[++tokenPos]);
@@ -20,46 +18,69 @@ std::unique_ptr<Token> Parser::peek() {
   return nullptr;
 }
 
+std::unique_ptr<Entity> Parser::parseProgram() {
+  auto program = std::make_unique<Block>(std::vector<std::unique_ptr<Expression>>());
+  
+  // Парсим выражения и добавляем их в блок
+  while (peek() != nullptr) {
+      auto expr = parseExpression();
+      if (expr) {
+          if (auto expression = dynamic_cast<Expression*>(expr.get())) {
+              program->body.push_back(std::unique_ptr<Expression>(expression));
+              expr.release(); // Освобождаем владение у expr, чтобы избежать двойного удаления
+          } else {
+              throw std::runtime_error("Expected Expression type in parseProgram");
+          }
+      }
+  }
+
+  return program;
+}
+
 std::unique_ptr<Entity> Parser::parseExpression() {
   std::unique_ptr<Entity> node = parsePrimary();
 
   std::unique_ptr<Token> token = peek();
   if (token == nullptr) return node;
 
-  // '.' is a delimeter between entitys here
-  // a.k.a. a terminal char
+  // Обработка точек (FieldAccess или MethodCall)
   while (token->kind == TOKEN_DOT) {
-    // if we are here
-    // it means that we expect:
-    // or a `.Identifier(..)` => MethodCallExpr
-    // or without a `(`, just ident => FieldAccessExpr
-    // or chains of them => CompoundExpr
-    //
-    // here we construct a tree
-    // of expression(-s)
-
-    token = next();
-
-    std::unique_ptr<Entity> after_dot = parsePrimary();
-    // @TODO throw error if after_dot is not an Identifier
-
-    // then we decide if our identifier is a fieldaccess or a methodcall
-    // - check for brackets -> MethodCall
-    if (peek()->kind == TOKEN_LBRACKET) {
       token = next();
 
-      // after_dot then is a method_name in a method call
-      auto method_call = std::make_unique<MethodCallEXP>();
-      parseArguments(method_call);
+      std::unique_ptr<Entity> after_dot = parsePrimary();
+      if (!after_dot) {
+          throw std::runtime_error("Expected identifier after dot");
+      }
+
+      if (peek()->kind == TOKEN_LBRACKET) {
+          token = next();
+
+          // Создаем MethodCall
+          auto method_call = std::make_unique<MethodCallEXP>();
+          parseArguments(method_call);
+
+          return method_call;
+      } else {
+          auto field_access = std::make_unique<FieldAccessEXP>();
+
+          if (auto expr = dynamic_cast<Expression*>(node.get())) {
+              field_access->left.reset(expr);
+              node.release(); // Освобождаем владение у node, чтобы избежать двойного удаления
+          } else {
+              throw std::runtime_error("Expected Expression type for left side of FieldAccess");
+          }
+
+          field_access->field_name = std::get<std::string>(token->value);
+          node = std::move(field_access);
+      }
 
       token = peek();
-      if (token == nullptr) return method_call;
-    }
-
-    token = peek();
-    if (token == nullptr) return node;
+      if (token == nullptr) return node;
   }
+
+  return node;
 }
+
 
 void Parser::parseArguments(const std::unique_ptr<MethodCallEXP> &method_name) {
   auto node = parseExpression();

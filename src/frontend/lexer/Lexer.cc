@@ -299,4 +299,4 @@ const char *Lexer::getTokenTypeName(TokenKind type) {
     return tokenNames[type];
   }
   return "TOKEN_UNKNOWN";
-};
+}

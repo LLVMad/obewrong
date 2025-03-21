@@ -34,6 +34,8 @@ struct SourceLocation {
 struct SourceBuffer {
   BufferID id;
   std::string data;
+
+  SourceBuffer(BufferID id_, const std::string& data_) : id(id_), data(data_) {}
 };
 
 #endif
