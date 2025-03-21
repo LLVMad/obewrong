@@ -11,6 +11,10 @@
   #include "util/Logger.h"
 #endif
 
+// '*' means we added this syntax ourselves,
+// and it wasn't mentioned in the reference manual
+// maybe not all of this will be implemented, but
+// its useful to add it before i think
 enum TokenKind {
   TOKEN_EOF,
   TOKEN_IDENTIFIER,  // user-defined: letter { lettter | digit }
@@ -19,14 +23,20 @@ enum TokenKind {
   TOKEN_VAR_DECL,    // var
   TOKEN_SELFREF,     // this (do not confuse with constructor `this(...)`)
   TOKEN_RETURN,      // return
-  TOKEN_MODULE_DECL, // module
-  TOKEN_MODULE_IMP,  // import
+  TOKEN_MODULE_DECL, // * module
+  TOKEN_MODULE_IMP,  // * import
   TOKEN_IF,          // if
   TOKEN_ELSE,        // else
   TOKEN_THEN,        // then
+  TOKEN_SWITCH,      // * switch
+  TOKEN_CASE,        // * case
+  TOKEN_DEFAULT,     // * default
   TOKEN_WHILE,       // while
   TOKEN_LOOP,        // loop
   TOKEN_METHOD,      // method
+  TOKEN_FUNC,        // * func
+  TOKEN_FOR,         // * for
+  TOKEN_STATIC,      // * static
   TOKEN_BBEGIN,      // is
   TOKEN_BEND,        // end
   TOKEN_INT_NUMBER,
@@ -41,20 +51,48 @@ enum TokenKind {
   TOKEN_LSBRACKET,  // ]
   TOKEN_ASSIGNMENT, // :=
   TOKEN_COLON,      // :
+  TOKEN_DOUBLE_COLON, // * ::
   TOKEN_DOT,        // .
   TOKEN_COMMA,      // ,
   TOKEN_ARROW,      // =>,
-  TOKEN_EQUAL,      // =, even tho its illegal for '=' to be on his own...
+  TOKEN_EQUAL,      // * ==
+  TOKEN_NOT_EQUAL,  // * !=
+  TOKEN_WRONG_ASSIGN, // =
   TOKEN_MORE,       // >, illigel again
-  TOKEN_TYPE_STRING,
-  TOKEN_TYPE_CHAR,
-  TOKEN_TYPE_INTEGER,
-  TOKEN_TYPE_REAL,
-  TOKEN_TYPE_BOOL,
-  TOKEN_TYPE_LIST,
-  TOKEN_TYPE_ARRAY,
+  TOKEN_LESS,       // * <
+  TOKEN_MORE_EQUAL, // * >=
+  TOKEN_LESS_EQUAL, // * <=
+  TOKEN_BIT_AND,    // * &
+  TOKEN_BIT_OR,     // * |
+  TOKEN_BIT_XOR,    // * ^
+  TOKEN_BIT_INV,    // * ~
+  TOKEN_LOGIC_NOT,  // * !
+  TOKEN_LOGIC_AND,  // * &&
+  TOKEN_LOGIC_OR,   // * ||
+  TOKEN_BIT_SHIFT_LEFT,   // * <<
+  TOKEN_BIT_SHIFT_RIGHT,  // * >>
+  TOKEN_PLUS,       // * +
+  TOKEN_MINUS,      // * -
+  TOKEN_STAR,       // * *
+  TOKEN_SLASH,      // * /
+  TOKEN_PERCENT,    // * %
+  TOKEN_PRINT,      // * printl
+  TOKEN_TYPE_STRING, // String, string
+  TOKEN_TYPE_INT32, // Integer, int, i32
+  TOKEN_TYPE_INT64, // i64
+  TOKEN_TYPE_INT16,  // i16
+  TOKEN_TYPE_U32,   // u32
+  TOKEN_TYPE_U16,   // u16
+  TOKEN_TYPE_U64,   // u64
+  TOKEN_TYPE_REAL,  // Real, real, f32
+  TOKEN_TYPE_F64,   // f64
+  TOKEN_TYPE_BOOL,  // Boolean, bool
+  TOKEN_TYPE_LIST,  // List, list
+  TOKEN_TYPE_ARRAY, // Array, array
   TOKEN_TYPE_ANYVAL,
   TOKEN_TYPE_ANYREF,
+  TOKEN_TYPE_TYPE,   // * for generics ?
+  TOKEN_NEW,
   TOKEN_UNKNOWN
 };
 
@@ -135,6 +173,7 @@ class Lexer {
 public:
   Lexer(std::shared_ptr<SourceBuffer> buffer);
   std::unique_ptr<Token> next();
+  std::vector<std::unique_ptr<Token>> lex();
   static const char* getTokenTypeName(TokenKind kind);
 private:
   std::shared_ptr<SourceBuffer> source_buffer;

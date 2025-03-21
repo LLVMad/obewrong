@@ -7,35 +7,35 @@
 
 #include "frontend/lexer/Lexer.h"
 
-#define TOTAL_KEYWORDS 27
-#define MIN_WORD_LENGTH 1
+#define TOTAL_KEYWORDS 47
+#define MIN_WORD_LENGTH 2
 #define MAX_WORD_LENGTH 8
-#define MIN_HASH_VALUE 1
-#define MAX_HASH_VALUE 34
+#define MIN_HASH_VALUE 2
+#define MAX_HASH_VALUE 78
 
 /*
  * Hash function for fast check if an input word is a keyword
  */
 inline unsigned int Lexer::hash(const char *str, size_t len) {
   static unsigned char asso_values[] = {
-      35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
-      35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
-      35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
-      35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 10, 0,  0,  35, 35, 35, 35,
-      35, 0,  35, 35, 13, 35, 35, 35, 35, 35, 15, 10, 0,  35, 35, 35, 35, 35,
-      35, 35, 35, 35, 35, 35, 35, 35, 35, 20, 10, 5,  5,  10, 35, 0,  35, 35,
-      15, 0,  20, 35, 10, 35, 15, 0,  0,  35, 10, 0,  35, 5,  35, 35, 35, 35,
-      35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
-      35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
-      35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
-      35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
-      35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
-      35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
-      35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
-      35, 35, 35, 35};
+      79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
+      79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
+      79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 10, 79, 5,  79,
+      50, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 5,  0,  0,  79, 79, 79, 79,
+      79, 0,  79, 79, 45, 79, 79, 79, 79, 79, 20, 15, 79, 79, 79, 79, 79, 79,
+      79, 79, 79, 79, 79, 79, 79, 15, 15, 10, 35, 5,  15, 25, 15, 0,  79, 79,
+      20, 0,  55, 79, 10, 79, 30, 0,  0,  25, 30, 0,  79, 10, 79, 79, 79, 79,
+      79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
+      79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
+      79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
+      79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
+      79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
+      79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
+      79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
+      79, 79, 79, 79};
 
-  return len + asso_values[static_cast<unsigned char>(str[len - 1])] +
-         asso_values[static_cast<unsigned char>(str[0])];
+  return len + asso_values[(unsigned char)str[len - 1]] +
+         asso_values[(unsigned char)str[0]];
 }
 
 /*
@@ -44,25 +44,41 @@ inline unsigned int Lexer::hash(const char *str, size_t len) {
 std::pair<const char *, TokenKind> Lexer::in_word_set(const char *str,
                                                       size_t len) {
   static const char *wordlist[] = {
-      "",       "T",       "is",       "",      "this",   "Class",   "import",
-      "if",     "",        "true",     "while", "module", "extends", "",
-      "else",   "false",   "method",   "List",  "end",    "Char",    "Array",
-      "AnyRef", "Integer", "AnyValue", "then",  "class",  "String",  "Boolean",
-      "var",    "loop",    "",         "",      "",       "",        "Real"};
+      "",         "",        "is",      "int",    "this",   "Class",
+      "import",   "",        "i64",     "true",   "while",  "module",
+      "extends",  "i32",     "else",    "class",  "static", "if",
+      "AnyValue", "case",    "Array",   "switch", "",       "f64",
+      "list",     "false",   "AnyRef",  "",       "f32",    "func",
+      "array",    "string",  "",        "u64",    "loop",   "",
+      "printl",   "Integer", "u32",     "bool",   "",       "method",
+      "default",  "end",     "Real",    "",       "String", "",
+      "for",      "List",    "",        "",       "",       "i16",
+      "real",     "",        "",        "",       "new",    "then",
+      "",         "",        "Boolean", "var",    "",       "",
+      "",         "",        "",        "",       "",       "",
+      "",         "",        "",        "",       "",       "",
+      "u16"};
 
   static const TokenKind keytokenlist[] = {
-      TOKEN_UNKNOWN,     TOKEN_UNKNOWN,      TOKEN_BBEGIN,
-      TOKEN_UNKNOWN,     TOKEN_SELFREF,      TOKEN_CLASS,
-      TOKEN_MODULE_IMP,  TOKEN_IF,           TOKEN_UNKNOWN,
-      TOKEN_BOOL_TRUE,   TOKEN_WHILE,        TOKEN_MODULE_DECL,
-      TOKEN_EXTENDS,     TOKEN_UNKNOWN,      TOKEN_ELSE,
-      TOKEN_BOOL_FALSE,  TOKEN_METHOD,       TOKEN_TYPE_LIST,
-      TOKEN_BEND,        TOKEN_TYPE_CHAR,    TOKEN_TYPE_ARRAY,
-      TOKEN_TYPE_ANYREF, TOKEN_TYPE_INTEGER, TOKEN_TYPE_ANYVAL,
-      TOKEN_THEN,        TOKEN_CLASS,        TOKEN_TYPE_STRING,
-      TOKEN_TYPE_BOOL,   TOKEN_VAR_DECL,     TOKEN_LOOP,
-      TOKEN_UNKNOWN,     TOKEN_UNKNOWN,      TOKEN_UNKNOWN,
-      TOKEN_UNKNOWN,     TOKEN_TYPE_REAL};
+      TOKEN_UNKNOWN,    TOKEN_UNKNOWN,    TOKEN_BBEGIN,      TOKEN_TYPE_INT32,
+      TOKEN_SELFREF,    TOKEN_CLASS,      TOKEN_MODULE_IMP,  TOKEN_UNKNOWN,
+      TOKEN_TYPE_INT64, TOKEN_BOOL_TRUE,  TOKEN_WHILE,       TOKEN_MODULE_DECL,
+      TOKEN_EXTENDS,    TOKEN_TYPE_INT32, TOKEN_ELSE,        TOKEN_CLASS,
+      TOKEN_STATIC,     TOKEN_IF,         TOKEN_TYPE_ANYVAL, TOKEN_CASE,
+      TOKEN_TYPE_ARRAY, TOKEN_SWITCH,     TOKEN_UNKNOWN,     TOKEN_TYPE_F64,
+      TOKEN_TYPE_LIST,  TOKEN_BOOL_FALSE, TOKEN_TYPE_ANYREF, TOKEN_UNKNOWN,
+      TOKEN_TYPE_REAL,  TOKEN_FUNC,       TOKEN_TYPE_ARRAY,  TOKEN_TYPE_STRING,
+      TOKEN_UNKNOWN,    TOKEN_TYPE_U64,   TOKEN_LOOP,        TOKEN_UNKNOWN,
+      TOKEN_PRINT,      TOKEN_TYPE_INT32, TOKEN_TYPE_U32,    TOKEN_TYPE_BOOL,
+      TOKEN_UNKNOWN,    TOKEN_METHOD,     TOKEN_DEFAULT,     TOKEN_BEND,
+      TOKEN_TYPE_REAL,  TOKEN_UNKNOWN,    TOKEN_TYPE_STRING, TOKEN_UNKNOWN,
+      TOKEN_FOR,        TOKEN_TYPE_LIST,  TOKEN_UNKNOWN,     TOKEN_UNKNOWN,
+      TOKEN_UNKNOWN,    TOKEN_TYPE_INT16, TOKEN_TYPE_REAL,   TOKEN_UNKNOWN,
+      TOKEN_UNKNOWN,    TOKEN_UNKNOWN,    TOKEN_NEW,         TOKEN_THEN,
+      TOKEN_UNKNOWN,    TOKEN_UNKNOWN,    TOKEN_TYPE_BOOL,   TOKEN_VAR_DECL,
+      TOKEN_UNKNOWN,    TOKEN_UNKNOWN,    TOKEN_UNKNOWN,     TOKEN_UNKNOWN,
+      TOKEN_UNKNOWN,    TOKEN_UNKNOWN,    TOKEN_UNKNOWN,     TOKEN_UNKNOWN,
+      TOKEN_UNKNOWN,    TOKEN_UNKNOWN,    TOKEN_TYPE_U16};
 
   if (len <= MAX_WORD_LENGTH && len >= MIN_WORD_LENGTH) {
     unsigned int key = hash(str, len);
@@ -91,7 +107,9 @@ Lexer::Lexer(std::shared_ptr<SourceBuffer> buffer) {
 bool Lexer::isSpecial(char c) {
   return c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '.' ||
          c == '"' || c == '(' || c == ')' || c == ',' || c == '[' || c == ']' ||
-         c == '=' || c == '>' || std::isspace(c);
+         c == '=' || c == '>' || c == '<' || c == '!' || c == '&' || c == '~' ||
+         c == '/' || c == '%' || c == '^' || c == '{' || c == '|' || c == '}' ||
+         c == ':' ||std::isspace(c);
 }
 
 /*
@@ -140,7 +158,13 @@ std::unique_ptr<Token> Lexer::next() {
                                          curr_column);
         }
 
-        return std::make_unique<Token>(TOKEN_VAR_DECL, curr_line, curr_column);
+        if (peek() == ':') {
+          advance();
+          return std::make_unique<Token>(TOKEN_DOUBLE_COLON, curr_line,
+                                         curr_column);
+        }
+
+        return std::make_unique<Token>(TOKEN_COLON, curr_line, curr_column);
       } else if (c == '=') {
         curr_state = STATE_START;
         advance();
@@ -148,12 +172,44 @@ std::unique_ptr<Token> Lexer::next() {
           advance();
           return std::make_unique<Token>(TOKEN_ARROW, curr_line, curr_column);
         }
+        if (peek() == '=') {
+          advance();
+          return std::make_unique<Token>(TOKEN_EQUAL, curr_line, curr_column);
+        }
 
-        return std::make_unique<Token>(TOKEN_EQUAL, curr_line, curr_column);
+        return std::make_unique<Token>(TOKEN_WRONG_ASSIGN, curr_line,
+                                       curr_column);
       } else if (c == '>') {
         curr_state = STATE_START;
         advance();
+
+        if (peek() == '>') {
+          advance();
+          return std::make_unique<Token>(TOKEN_BIT_SHIFT_RIGHT, curr_line,
+                                         curr_column);
+        }
+        if (peek() == '=') {
+          advance();
+          return std::make_unique<Token>(TOKEN_ARROW, curr_line, curr_column);
+        }
+
         return std::make_unique<Token>(TOKEN_MORE, curr_line, curr_column);
+      } else if (c == '<') {
+        curr_state = STATE_START;
+        advance();
+
+        if (peek() == '<') {
+          advance();
+          return std::make_unique<Token>(TOKEN_BIT_SHIFT_LEFT, curr_line,
+                                         curr_column);
+        }
+        if (peek() == '=') {
+          advance();
+          return std::make_unique<Token>(TOKEN_LESS_EQUAL, curr_line,
+                                         curr_column);
+        }
+
+        return std::make_unique<Token>(TOKEN_LESS, curr_line, curr_column);
       } else if (c == '"') {
         curr_state = STATE_READ_STRING;
       } else if (c == '(') {
@@ -180,14 +236,73 @@ std::unique_ptr<Token> Lexer::next() {
         curr_state = STATE_START;
         advance();
         return std::make_unique<Token>(TOKEN_DOT, curr_line, curr_column);
+      } else if (c == '&') {
+        curr_state = STATE_START;
+        advance();
+        if (peek() == '&') {
+          advance();
+          return std::make_unique<Token>(TOKEN_LOGIC_AND, curr_line,
+                                         curr_column);
+        }
+
+        return std::make_unique<Token>(TOKEN_BIT_AND, curr_line, curr_column);
+      } else if (c == '|') {
+        curr_state = STATE_START;
+        advance();
+
+        if (peek() == '|') {
+          advance();
+          return std::make_unique<Token>(TOKEN_LOGIC_OR, curr_line,
+                                         curr_column);
+        }
+
+        return std::make_unique<Token>(TOKEN_BIT_OR, curr_line, curr_column);
+      } else if (c == '^') {
+        curr_state = STATE_START;
+        advance();
+        return std::make_unique<Token>(TOKEN_BIT_XOR, curr_line, curr_column);
+      } else if (c == '!') {
+        curr_state = STATE_START;
+        advance();
+
+        if (peek() == '=') {
+          advance();
+          return std::make_unique<Token>(TOKEN_NOT_EQUAL, curr_line, curr_column);
+        }
+
+        return std::make_unique<Token>(TOKEN_LOGIC_NOT, curr_line, curr_column);
+      } else if (c == '~') {
+        curr_state = STATE_START;
+        advance();
+        return std::make_unique<Token>(TOKEN_BIT_INV, curr_line, curr_column);
+      } else if (c == '+') {
+        curr_state = STATE_START;
+        advance();
+        return std::make_unique<Token>(TOKEN_PLUS, curr_line, curr_column);
+      } else if (c == '-') {
+        curr_state = STATE_START;
+        advance();
+        return std::make_unique<Token>(TOKEN_MINUS, curr_line, curr_column);
+      } else if (c == '*') {
+        curr_state = STATE_START;
+        advance();
+        return std::make_unique<Token>(TOKEN_STAR, curr_line, curr_column);
+      } else if (c == '/') {
+        curr_state = STATE_START;
+        advance();
+        return std::make_unique<Token>(TOKEN_SLASH, curr_line, curr_column);
+      } else if (c == '%') {
+        curr_state = STATE_START;
+        advance();
+        return std::make_unique<Token>(TOKEN_PERCENT, curr_line, curr_column);
       } else
         curr_state = STATE_FAIL;
     } break;
     case STATE_READ_WORD: {
-      if (isalpha(c)) {
+      if (isalpha(c) || c == '_' || std::isdigit(c)) {
         curr_state = STATE_READ_WORD;
-      } else if (std::isdigit(c)) {
-        curr_state = STATE_READ_IDENT;
+      // } else if (std::isdigit(c)) {
+      //   curr_state = STATE_READ_IDENT;
       } else if (isSpecial(c)) {
         curr_state = STATE_START;
         auto [word, wtype] = in_word_set(token.c_str(), strlen(token.c_str()));
@@ -197,6 +312,7 @@ std::unique_ptr<Token> Lexer::next() {
         }
         return std::make_unique<Token>(TOKEN_IDENTIFIER, token, curr_line,
                                        curr_column - token.length() + 1);
+        // @TODO add to symbol table
       } else
         curr_state = STATE_FAIL;
     } break;
@@ -254,6 +370,7 @@ std::unique_ptr<Token> Lexer::next() {
     } break;
     case STATE_FAIL:
     default: {
+      throw std::runtime_error("Lexer: Unrecognized token type");
       return nullptr;
     } break;
     }
@@ -277,26 +394,105 @@ std::unique_ptr<Token> Lexer::next() {
   }
 }
 
+std::vector<std::unique_ptr<Token>> Lexer::lex() {
+  std::vector<std::unique_ptr<Token>> tokens;
+
+  std::unique_ptr<Token> token = next();
+  while (token->kind != TOKEN_EOF) {
+#ifdef DEBUG
+    LOG("next token is %s\n", getTokenTypeName(token->kind));
+#endif
+    tokens.push_back(std::move(token));
+    token = next();
+  }
+
+  tokens.push_back(std::move(token));
+
+  return tokens;
+}
+
 const char *Lexer::getTokenTypeName(TokenKind type) {
-  static const char *tokenNames[] = {
-      "TOKEN_EOF",          "TOKEN_IDENTIFIER",  "TOKEN_CLASS",
-      "TOKEN_EXTENDS",      "TOKEN_VAR_DECL",    "TOKEN_SELFREF",
-      "TOKEN_RETURN",       "TOKEN_MODULE_DECL", "TOKEN_MODULE_IMP",
-      "TOKEN_IF",           "TOKEN_ELSE",        "TOKEN_THEN",
-      "TOKEN_WHILE",        "TOKEN_LOOP",        "TOKEN_METHOD",
-      "TOKEN_BBEGIN",       "TOKEN_BEND",        "TOKEN_INT_NUMBER",
-      "TOKEN_REAL_NUMBER",  "TOKEN_COMMENT",     "TOKEN_STRING",
-      "TOKEN_BOOL_TRUE",    "TOKEN_BOOL_FALSE",  "TOKEN_RBRACKET",
-      "TOKEN_LBRACKET",     "TOKEN_RSBRACKET",   "TOKEN_LSBRACKET",
-      "TOKEN_ASSIGNMENT",   "TOKEN_COLON",       "TOKEN_DOT",
-      "TOKEN_COMMA",        "TOKEN_ARROW",       "TOKEN_EQUAL",
-      "TOKEN_MORE",         "TOKEN_TYPE_STRING", "TOKEN_TYPE_CHAR",
-      "TOKEN_TYPE_INTEGER", "TOKEN_TYPE_REAL",   "TOKEN_TYPE_BOOL",
-      "TOKEN_TYPE_LIST",    "TOKEN_TYPE_ARRAY",  "TOKEN_TYPE_ANYVAL",
-      "TOKEN_TYPE_ANYREF",  "TOKEN_UNKNOWN"};
+  static const char *tokenNames[] = {"TOKEN_EOF",
+                                     "TOKEN_IDENTIFIER",
+                                     "TOKEN_CLASS",
+                                     "TOKEN_EXTENDS",
+                                     "TOKEN_VAR_DECL",
+                                     "TOKEN_SELFREF",
+                                     "TOKEN_RETURN",
+                                     "TOKEN_MODULE_DECL",
+                                     "TOKEN_MODULE_IMP",
+                                     "TOKEN_IF",
+                                     "TOKEN_ELSE",
+                                     "TOKEN_THEN",
+                                     "TOKEN_SWITCH",
+                                     "TOKEN_CASE",
+                                     "TOKEN_DEFAULT",
+                                     "TOKEN_WHILE",
+                                     "TOKEN_LOOP",
+                                     "TOKEN_METHOD",
+                                     "TOKEN_FUNC",
+                                     "TOKEN_FOR",
+                                     "TOKEN_STATIC",
+                                     "TOKEN_BBEGIN",
+                                     "TOKEN_BEND",
+                                     "TOKEN_INT_NUMBER",
+                                     "TOKEN_REAL_NUMBER",
+                                     "TOKEN_COMMENT",
+                                     "TOKEN_STRING",
+                                     "TOKEN_BOOL_TRUE",
+                                     "TOKEN_BOOL_FALSE",
+                                     "TOKEN_RBRACKET",
+                                     "TOKEN_LBRACKET",
+                                     "TOKEN_RSBRACKET",
+                                     "TOKEN_LSBRACKET",
+                                     "TOKEN_ASSIGNMENT",
+                                     "TOKEN_COLON",
+                                     "TOKEN_DOUBLE_COLON",
+                                     "TOKEN_DOT",
+                                     "TOKEN_COMMA",
+                                     "TOKEN_ARROW",
+                                     "TOKEN_EQUAL",
+                                      "TOKEN_NOT_EQUAL",
+                                     "TOKEN_WRONG_ASSIGN",
+                                     "TOKEN_MORE",
+                                     "TOKEN_LESS",
+                                     "TOKEN_MORE_EQUAL",
+                                     "TOKEN_LESS_EQUAL",
+                                     "TOKEN_BIT_AND",
+                                     "TOKEN_BIT_OR",
+                                     "TOKEN_BIT_XOR",
+                                     "TOKEN_BIT_INV",
+                                     "TOKEN_LOGIC_NOT",
+                                     "TOKEN_LOGIC_AND",
+                                     "TOKEN_LOGIC_OR",
+                                     "TOKEN_BIT_SHIFT_LEFT",
+                                     "TOKEN_BIT_SHIFT_RIGHT",
+                                     "TOKEN_PLUS",
+                                     "TOKEN_MINUS",
+                                     "TOKEN_STAR",
+                                     "TOKEN_SLASH",
+                                     "TOKEN_PERCENT",
+                                     "TOKEN_PRINT",
+                                     "TOKEN_TYPE_STRING",
+                                     "TOKEN_TYPE_INT32",
+                                     "TOKEN_TYPE_INT64",
+                                     "TOKEN_TYPE_INT16",
+                                     "TOKEN_TYPE_U32",
+                                     "TOKEN_TYPE_U16",
+                                     "TOKEN_TYPE_U64",
+                                     "TOKEN_TYPE_REAL",
+                                     "TOKEN_TYPE_F64",
+                                     "TOKEN_TYPE_BOOL",
+                                     "TOKEN_TYPE_LIST",
+                                     "TOKEN_TYPE_ARRAY",
+                                     "TOKEN_TYPE_ANYVAL",
+                                     "TOKEN_TYPE_ANYREF",
+                                     "TOKEN_TYPE_TYPE",
+                                     "TOKEN_NEW",
+                                     "TOKEN_UNKNOWN"};
 
   if (type >= TOKEN_EOF && type <= TOKEN_UNKNOWN) {
     return tokenNames[type];
   }
   return "TOKEN_UNKNOWN";
-};
+}
