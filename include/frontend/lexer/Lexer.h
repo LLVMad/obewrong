@@ -56,6 +56,7 @@ enum TokenKind {
   TOKEN_COMMA,      // ,
   TOKEN_ARROW,      // =>,
   TOKEN_EQUAL,      // * ==
+  TOKEN_NOT_EQUAL,  // * !=
   TOKEN_WRONG_ASSIGN, // =
   TOKEN_MORE,       // >, illigel again
   TOKEN_LESS,       // * <
@@ -76,13 +77,18 @@ enum TokenKind {
   TOKEN_SLASH,      // * /
   TOKEN_PERCENT,    // * %
   TOKEN_PRINT,      // * printl
-  TOKEN_TYPE_STRING,
-  TOKEN_TYPE_CHAR,
-  TOKEN_TYPE_INTEGER,
-  TOKEN_TYPE_REAL,
-  TOKEN_TYPE_BOOL,
-  TOKEN_TYPE_LIST,
-  TOKEN_TYPE_ARRAY,
+  TOKEN_TYPE_STRING, // String, string
+  TOKEN_TYPE_INT32, // Integer, int, i32
+  TOKEN_TYPE_INT64, // i64
+  TOKEN_TYPE_INT16,  // i16
+  TOKEN_TYPE_U32,   // u32
+  TOKEN_TYPE_U16,   // u16
+  TOKEN_TYPE_U64,   // u64
+  TOKEN_TYPE_REAL,  // Real, real, f32
+  TOKEN_TYPE_F64,   // f64
+  TOKEN_TYPE_BOOL,  // Boolean, bool
+  TOKEN_TYPE_LIST,  // List, list
+  TOKEN_TYPE_ARRAY, // Array, array
   TOKEN_TYPE_ANYVAL,
   TOKEN_TYPE_ANYREF,
   TOKEN_TYPE_TYPE,   // * for generics ?
