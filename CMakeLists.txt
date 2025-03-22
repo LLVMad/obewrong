@@ -6,9 +6,19 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/refs/heads/main.zip
+)
+FetchContent_MakeAvailable(googletest)
+
+include(GoogleTest)
+
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     add_definitions(-DDEBUG)
-endif ()
+endif()
+
 # Find LLVM
 find_package(LLVM REQUIRED CONFIG)
 
@@ -26,20 +36,23 @@ include_directories("include")
 file(GLOB_RECURSE SOURCES "src/*.cc")
 file(GLOB_RECURSE HEADERS "include/*.h")
 
-# Define the executable
-add_executable(obewrong ${SOURCES} ${HEADERS})
+add_library(obewrong_lib STATIC ${SOURCES} ${HEADERS})
 
-# Link against LLVM components
 llvm_map_components_to_libnames(LLVM_LIBS core support irreader)
-target_link_libraries(obewrong PRIVATE ${LLVM_LIBS})
+target_link_libraries(obewrong_lib PRIVATE ${LLVM_LIBS})
 
-# Enable warnings
-target_compile_options(obewrong PRIVATE 
-    -Wall -Wextra -Wpedantic -Werror
+add_executable(obewrong src/main.cc)
+target_link_libraries(obewrong PRIVATE obewrong_lib)
+
+enable_testing()
+
+file(GLOB_RECURSE TEST_SOURCES "test/gtests/*.cc")
+add_executable(obewrong_tests ${TEST_SOURCES})
+
+target_link_libraries(obewrong_tests 
+    PRIVATE 
+    gtest_main 
+    obewrong_lib
 )
 
-# Enable optimizations in Release mode
-if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    target_compile_options(obewrong PRIVATE -O2)
-endif()
-
+gtest_discover_tests(obewrong_tests)
