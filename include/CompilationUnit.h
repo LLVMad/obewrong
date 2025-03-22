@@ -3,7 +3,6 @@
 
 class CompilationUnit {
 public:
-
 private:
 };
 

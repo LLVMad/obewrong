@@ -3,9 +3,9 @@
 Entity::Entity(Ekind kind) : kind(kind) {}
 
 std::unique_ptr<Type> Entity::resolveType() {
-    return nullptr; // Заглушка
+  return nullptr; // Заглушка
 }
 
 bool Entity::validate() {
-    return false; // Заглушка
+  return false; // Заглушка
 }

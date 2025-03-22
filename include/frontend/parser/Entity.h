@@ -13,10 +13,10 @@ struct Loc {
 };
 
 /**
-* Describes different kind of
-* entitys available in
-* Obewrong language
-*/
+ * Describes different kind of
+ * entitys available in
+ * Obewrong language
+ */
 enum Ekind {
   // Declarations
   E_Class_Decl,
@@ -63,8 +63,8 @@ enum Ekind {
 };
 
 /**
-* Foundation for obewrong entities
-*/
+ * Foundation for obewrong entities
+ */
 class Entity {
 public:
   virtual ~Entity() = default;
@@ -97,12 +97,10 @@ protected:
 };
 
 /**
-* @TODO construct classes for each entitys
-* i.e. `class ClassDeclaration : Entity`
-* this will make it possible to return `Entity*` from some
-* `parse*` functions like for example from parseParameters()
-*/
-
-
+ * @TODO construct classes for each entitys
+ * i.e. `class ClassDeclaration : Entity`
+ * this will make it possible to return `Entity*` from some
+ * `parse*` functions like for example from parseParameters()
+ */
 
 #endif

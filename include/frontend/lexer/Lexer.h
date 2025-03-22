@@ -8,7 +8,7 @@
 #include <string>
 #include <variant>
 #ifdef DEBUG
-  #include "util/Logger.h"
+#include "util/Logger.h"
 #endif
 
 enum TokenKind {
@@ -109,39 +109,39 @@ public:
 
   // Mostly single-character and/or special symbols
   Token(TokenKind kind, size_t line, size_t column)
-      : kind(kind), line(line), column(column) {};
+      : kind(kind), line(line), column(column){};
 
   // Int value
   Token(TokenKind kind, int intValue, size_t line, size_t column)
-      : kind(kind), value(intValue), line(line), column(column) {};
+      : kind(kind), value(intValue), line(line), column(column){};
 
   // Real number
   Token(TokenKind kind, double realValue, size_t line, size_t column)
-      : kind(kind), value(realValue), line(line), column(column) {};
+      : kind(kind), value(realValue), line(line), column(column){};
 
   // Identifier or string literal
   Token(TokenKind kind, const std::string &lexem, size_t line, size_t column)
-      : kind(kind), value(lexem), line(line), column(column) {};
-
+      : kind(kind), value(lexem), line(line), column(column){};
 };
 
 /*
  * Lexical analysis
  *
- * @TODO maybe take a look at the Brzozowski derivatives method 
- *       interesting to implement 
+ * @TODO maybe take a look at the Brzozowski derivatives method
+ *       interesting to implement
  */
 class Lexer {
 public:
   Lexer(std::shared_ptr<SourceBuffer> buffer);
   std::unique_ptr<Token> next();
-  static const char* getTokenTypeName(TokenKind kind);
+  static const char *getTokenTypeName(TokenKind kind);
+
 private:
   std::shared_ptr<SourceBuffer> source_buffer;
   StateType curr_state;
-  size_t curr_line;   // @TODO sync with source buffer somehow
+  size_t curr_line; // @TODO sync with source buffer somehow
   size_t curr_column;
-  const char* buffer;
+  const char *buffer;
 
   static bool isSpecial(char c);
 
@@ -150,7 +150,8 @@ private:
   char peek() { return buffer[0]; };
 
   inline static unsigned int hash(const char *str, size_t len);
-  static std::pair<const char*, TokenKind> in_word_set(const char *str, size_t len);
+  static std::pair<const char *, TokenKind> in_word_set(const char *str,
+                                                        size_t len);
 };
 
 #endif

@@ -1,8 +1,8 @@
 #ifndef OBW_SOURCELOCATION_H
 #define OBW_SOURCELOCATION_H
 
-#include <string>
 #include <cstdint>
+#include <string>
 
 /*
  * To distinguish files
@@ -13,7 +13,7 @@ struct BufferID {
   std::string name;
   uint32_t id;
 
-  BufferID(const std::string& name, uint32_t id) : name(name), id(id) {}
+  BufferID(const std::string &name, uint32_t id) : name(name), id(id) {}
 };
 
 /*
@@ -35,7 +35,7 @@ struct SourceBuffer {
   BufferID id;
   std::string data;
 
-  SourceBuffer(BufferID id_, const std::string& data_) : id(id_), data(data_) {}
+  SourceBuffer(BufferID id_, const std::string &data_) : id(id_), data(data_) {}
 };
 
 #endif

@@ -24,7 +24,8 @@ std::unique_ptr<Entity> Parser::parseExpression() {
   std::unique_ptr<Entity> node = parsePrimary();
 
   std::unique_ptr<Token> token = peek();
-  if (token == nullptr) return node;
+  if (token == nullptr)
+    return node;
 
   // '.' is a delimeter between entitys here
   // a.k.a. a terminal char
@@ -53,22 +54,26 @@ std::unique_ptr<Entity> Parser::parseExpression() {
       parseArguments(method_call);
 
       token = peek();
-      if (token == nullptr) return method_call;
+      if (token == nullptr)
+        return method_call;
     }
 
     token = peek();
-    if (token == nullptr) return node;
+    if (token == nullptr)
+      return node;
   }
-  return nullptr; //Заглушка???нужно норм переписать а то компилятор ругаеца
+  return nullptr; // Заглушка???нужно норм переписать а то компилятор ругаеца
 }
 
 void Parser::parseArguments(const std::unique_ptr<MethodCallEXP> &method_name) {
   auto node = parseExpression();
-  auto expr = std::unique_ptr<Expression>(dynamic_cast<Expression*>(node.release()));
+  auto expr =
+      std::unique_ptr<Expression>(dynamic_cast<Expression *>(node.release()));
   method_name->arguments.push_back(std::move(expr));
 
   std::unique_ptr<Token> token = peek();
-  if (token == nullptr) return;
+  if (token == nullptr)
+    return;
 
   // arg, arg, arg
   // ',' is a delimiter
@@ -77,40 +82,47 @@ void Parser::parseArguments(const std::unique_ptr<MethodCallEXP> &method_name) {
 
     // add a node to a fake root
     std::unique_ptr<Entity> after_comma = parseExpression();
-    auto uexpr = std::unique_ptr<Expression>(dynamic_cast<Expression*>(after_comma.release()));
+    auto uexpr = std::unique_ptr<Expression>(
+        dynamic_cast<Expression *>(after_comma.release()));
     method_name->children.push_back(std::move(uexpr));
 
     token = peek();
-    if (token == nullptr) return;
+    if (token == nullptr)
+      return;
   }
 }
 
 std::unique_ptr<Entity> Parser::parsePrimary() {
   std::unique_ptr<Token> token = peek();
-  if (token == nullptr) return nullptr;
+  if (token == nullptr)
+    return nullptr;
 
   token = next();
   switch (token->kind) {
-    case TOKEN_INT_NUMBER: {
-      return std::make_unique<IntLiteralEXP>(std::get<int>(token->value));
-    }
-    case TOKEN_REAL_NUMBER: {
-      return std::make_unique<RealLiteralEXP>(std::get<double>(token->value));
-    }
-    case TOKEN_BOOL_TRUE: {
-      return std::make_unique<BoolLiteralEXP>(true);
-    }
-    case TOKEN_BOOL_FALSE: {
-      return std::make_unique<BoolLiteralEXP>(false);
-    }
-    case TOKEN_STRING: {
-      return std::make_unique<StringLiteralEXP>(std::get<std::string>(token->value));
-    }
-    case TOKEN_IDENTIFIER: {
-      auto var = symbolTable.lookup(std::get<std::string>(token->value));
-      if (!var) throw std::runtime_error("Undefined variable: " + std::get<std::string>(token->value));
-      return std::make_unique<VarRefEXP>(std::get<std::string>(token->value));
+  case TOKEN_INT_NUMBER: {
+    return std::make_unique<IntLiteralEXP>(std::get<int>(token->value));
   }
-    default: return nullptr;
+  case TOKEN_REAL_NUMBER: {
+    return std::make_unique<RealLiteralEXP>(std::get<double>(token->value));
+  }
+  case TOKEN_BOOL_TRUE: {
+    return std::make_unique<BoolLiteralEXP>(true);
+  }
+  case TOKEN_BOOL_FALSE: {
+    return std::make_unique<BoolLiteralEXP>(false);
+  }
+  case TOKEN_STRING: {
+    return std::make_unique<StringLiteralEXP>(
+        std::get<std::string>(token->value));
+  }
+  case TOKEN_IDENTIFIER: {
+    auto var = symbolTable.lookup(std::get<std::string>(token->value));
+    if (!var)
+      throw std::runtime_error("Undefined variable: " +
+                               std::get<std::string>(token->value));
+    return std::make_unique<VarRefEXP>(std::get<std::string>(token->value));
+  }
+  default:
+    return nullptr;
   }
 }
