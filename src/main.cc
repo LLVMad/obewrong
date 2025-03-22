@@ -95,12 +95,45 @@ void testTypeTable() {
     std::cout << "Test 3: " << (!badType ? "PASSED" : "FAILED") << "\n";
 }
 
+void testTypeTable2() {
+  TypeTable typeTable;
+  typeTable.initBuiltinTypes();
+
+  // Добавление класса
+  std::string className = "MyClass";
+  if (!typeTable.addClassType(className)) {
+      throw std::runtime_error("Class " + className + " already exists");
+  }
+  std::cout << "Test 1 (Add class): PASSED\n";
+
+  // Добавление массива
+  // Type* intType = typeTable.getType("Integer");
+  std::string arrayName = "Array<Integer,10>";
+  if (!typeTable.addArrayType(arrayName, std::make_unique<TypeInt>(), 10)) {
+      throw std::runtime_error("Array " + arrayName + " already exists");
+  }
+  std::cout << "Test 2 (Add array): PASSED\n";
+
+  // Добавление функции
+  std::string funcName = "Func_IntInt_Bool";
+  std::vector<std::unique_ptr<Type>> args;
+  args.push_back(std::make_unique<TypeInt>());
+  args.push_back(std::make_unique<TypeInt>());
+  if (!typeTable.addFuncType(funcName, std::make_unique<TypeBool>(), std::move(args))) {
+      throw std::runtime_error("Function " + funcName + " already exists");
+  }
+  std::cout << "Test 3 (Add function): PASSED\n";
+}
+
 int main() {
     std::cout << "=== Testing SymbolTable ===\n";
     testSymbolTable();
     
     std::cout << "\n=== Testing TypeTable ===\n";
     testTypeTable();
+
+    std::cout << "\n=== Testing TypeTable2 ===\n";
+    testTypeTable2();
     
     return 0;
 }
