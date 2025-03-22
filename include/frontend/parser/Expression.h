@@ -163,29 +163,22 @@ class ClassNameEXP : public Expression {
 public:
   ClassNameEXP(std::string name) : Expression(E_Class_Name), _name(std::move(name)) {};
 
+  // В классе ClassNameEXP
   std::unique_ptr<Type> resolveType() override {
-    switch (_name) {
-    case "Integer": {
-      return std::make_unique<TypeInt>();
-    }
-    case "Real": {
-      return std::make_unique<TypeReal>();
-    }
-    case "Bool": {
-      return std::make_unique<TypeBool>();
-    }
-    case "String": {
-      return std::make_unique<TypeString>();
-    }
-    case "Array": {
-      return std::make_unique<TypeArray>();
-    }
-    case "List": {
-      return std::make_unique<TypeList>();
-    }
-      // @TODO what to do if its our own class
-      // lookup in the symbol table ?
-    default: return std::make_unique<Type>(TYPE_UNKNOWN, _name);
+    if (_name == "Integer") {
+        return std::make_unique<TypeInt>();
+    } else if (_name == "Real") {
+        return std::make_unique<TypeReal>();
+    } else if (_name == "Bool") {
+        return std::make_unique<TypeBool>();
+    } else if (_name == "String") {
+        return std::make_unique<TypeString>();
+    } else if (_name == "Array") {
+        return std::make_unique<TypeArray>();
+    } else if (_name == "List") {
+        return std::make_unique<TypeList>();
+    } else {
+        return std::make_unique<Type>(TYPE_UNKNOWN, _name);
     }
   }
 
@@ -282,6 +275,8 @@ public:
      * call resolveType on each
      * exp in parts
      */
+    // Временная заглушка
+    return std::make_unique<Type>(TYPE_UNKNOWN, "Unresolved compound type");
   }
 
   bool validate() override {
@@ -296,10 +291,14 @@ public:
 
   std::unique_ptr<Type> resolveType() override {
     // return the type of the enclosing class (from the scope).
+    // Временная заглушка
+    return std::make_unique<Type>(TYPE_UNKNOWN, "Unresolved 'this' type");
   }
 
   bool validate() override {
     // ensure `this` is used within a method/constructor.
+    // Временная заглушка
+    return true;
   }
 };
 

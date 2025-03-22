@@ -1,8 +1,8 @@
 #include "frontend/parser/Parser.h"
 
 #include "frontend/parser/Expression.h"
-
-#define
+#include "frontend/parser/SymbolTable.h"
+#include "frontend/parser/TypeTable.h"
 
 std::unique_ptr<Token> Parser::next() {
   if (tokens[tokenPos + 1]->kind != TOKEN_EOF) {
@@ -59,6 +59,7 @@ std::unique_ptr<Entity> Parser::parseExpression() {
     token = peek();
     if (token == nullptr) return node;
   }
+  return nullptr; //Заглушка???нужно норм переписать а то компилятор ругаеца
 }
 
 void Parser::parseArguments(const std::unique_ptr<MethodCallEXP> &method_name) {
@@ -105,10 +106,11 @@ std::unique_ptr<Entity> Parser::parsePrimary() {
     case TOKEN_STRING: {
       return std::make_unique<StringLiteralEXP>(std::get<std::string>(token->value));
     }
-    // should be translated to something meaningful in upper steps
     case TOKEN_IDENTIFIER: {
+      auto var = symbolTable.lookup(std::get<std::string>(token->value));
+      if (!var) throw std::runtime_error("Undefined variable: " + std::get<std::string>(token->value));
       return std::make_unique<VarRefEXP>(std::get<std::string>(token->value));
-    }
+  }
     default: return nullptr;
   }
 }
