@@ -1,4 +1,4 @@
-name: Run Tests on Push
+name: Run Tests and Check Style on Push
 
 on:
   pull_request:
@@ -14,7 +14,20 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential cmake
+        sudo apt-get install -y build-essential cmake clang-format
+
+    - name: Check code style
+      run: |
+        set -e
+
+        FILES=$(find src include -name "*.cc" -o -name "*.h" 2>&1)
+
+        if [ -z "$FILES" ]; then
+          echo "No source files found"
+          exit 0
+        fi
+
+        echo "$FILES" | xargs clang-format --dry-run --Werror -style=file
 
     - name: Create build directory
       run: mkdir -p build
