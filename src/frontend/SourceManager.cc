@@ -1,13 +1,11 @@
 #include "frontend/SourceManager.h"
 
-#include <sstream>
 #include <fstream>
+#include <sstream>
 
-SourceManager::SourceManager() {
+SourceManager::SourceManager() {}
 
-}
-
-SourceBuffer SourceManager::readSource(const std::filesystem::path& fullPath) {
+SourceBuffer SourceManager::readSource(const std::filesystem::path &fullPath) {
   auto source_file = std::ifstream(fullPath);
   if (!source_file) {
     // Error
@@ -22,9 +20,10 @@ SourceBuffer SourceManager::readSource(const std::filesystem::path& fullPath) {
   // @TODO check if exists already
   files.push_back(fd);
 
-  return SourceBuffer(BufferID(fd.name, static_cast<uint32_t>(files.size() - 1)), contents);
+  return SourceBuffer(
+      BufferID(fd.name, static_cast<uint32_t>(files.size() - 1)), contents);
 }
 
-std::string SourceManager::getSourceText(const BufferID& buffer) {
+std::string SourceManager::getSourceText(const BufferID &buffer) {
   return files[buffer.id].content;
 }

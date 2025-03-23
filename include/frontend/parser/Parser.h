@@ -5,12 +5,28 @@
 
 #include "Entity.h"
 #include "frontend/lexer/Lexer.h"
+#include "frontend/parser/SymbolTable.h"
+#include "frontend/parser/TypeTable.h"
 #include "frontend/types/Decl.h"
+#include <stdexcept>
 
 class Parser {
+  SymbolTable symbolTable;
+  TypeTable typeTable;
+
+  void initBuiltinTypes() {
+    typeTable.addType("Integer", std::make_unique<TypeInt>());
+    typeTable.addType("Real", std::make_unique<TypeReal>());
+    typeTable.addType("Bool", std::make_unique<TypeBool>());
+    typeTable.addType("String", std::make_unique<TypeString>());
+  }
+
 public:
   Parser(std::vector<std::unique_ptr<Token>> tokens)
-    : tokens(std::move(tokens)), tokenPos(-1) {}
+      : tokens(std::move(tokens)), tokenPos(-1) {
+    initBuiltinTypes();
+    symbolTable.enterScope();
+  }
 
   /**
    * @brief Main function for parsing a program
@@ -66,7 +82,8 @@ private:
   /**
    * @brief Parses arguments in a method call
    * or a constructor and adds them as a children of method_name
-   * @param method_name name of a method, that we read arguments for, that will be called
+   * @param method_name name of a method, that we read arguments for, that will
+   * be called
    */
   void parseArguments(const std::unique_ptr<MethodCallEXP> &method_name);
 

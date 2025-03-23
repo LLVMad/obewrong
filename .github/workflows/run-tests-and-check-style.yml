@@ -1,0 +1,45 @@
+name: Run Tests and Check Style on Push
+
+on:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake clang-format
+
+    - name: Check code style
+      run: |
+        set -e
+
+        FILES=$(find src include -name "*.cc" -o -name "*.h" 2>&1)
+
+        if [ -z "$FILES" ]; then
+          echo "No source files found"
+          exit 0
+        fi
+
+        echo "$FILES" | xargs clang-format --dry-run --Werror -style=file
+
+    - name: Create build directory
+      run: mkdir -p build
+
+    - name: Configure project with CMake
+      working-directory: ./build
+      run: cmake ..
+
+    - name: Build project
+      working-directory: ./build
+      run: cmake --build .
+
+    - name: Run tests
+      working-directory: ./build
+      run: ctest --output-on-failure

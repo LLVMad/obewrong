@@ -1,6 +1,8 @@
 #include "frontend/parser/Parser.h"
 
 #include "frontend/parser/Expression.h"
+#include "frontend/parser/SymbolTable.h"
+#include "frontend/parser/TypeTable.h"
 
 std::unique_ptr<Token> Parser::next() {
   if (tokens[tokenPos + 1]->kind != TOKEN_EOF) {
@@ -88,25 +90,30 @@ std::unique_ptr<Entity> Parser::parsePrimary() {
 
   token = next();
   switch (token->kind) {
-    case TOKEN_INT_NUMBER: {
-      return std::make_unique<IntLiteralEXP>(std::get<int>(token->value));
-    }
-    case TOKEN_REAL_NUMBER: {
-      return std::make_unique<RealLiteralEXP>(std::get<double>(token->value));
-    }
-    case TOKEN_BOOL_TRUE: {
-      return std::make_unique<BoolLiteralEXP>(true);
-    }
-    case TOKEN_BOOL_FALSE: {
-      return std::make_unique<BoolLiteralEXP>(false);
-    }
-    case TOKEN_STRING: {
-      return std::make_unique<StringLiteralEXP>(std::get<std::string>(token->value));
-    }
-    // should be translated to something meaningful in upper steps
-    case TOKEN_IDENTIFIER: {
-      return std::make_unique<VarRefEXP>(std::get<std::string>(token->value));
-    }
-    default: return nullptr;
+  case TOKEN_INT_NUMBER: {
+    return std::make_unique<IntLiteralEXP>(std::get<int>(token->value));
+  }
+  case TOKEN_REAL_NUMBER: {
+    return std::make_unique<RealLiteralEXP>(std::get<double>(token->value));
+  }
+  case TOKEN_BOOL_TRUE: {
+    return std::make_unique<BoolLiteralEXP>(true);
+  }
+  case TOKEN_BOOL_FALSE: {
+    return std::make_unique<BoolLiteralEXP>(false);
+  }
+  case TOKEN_STRING: {
+    return std::make_unique<StringLiteralEXP>(
+        std::get<std::string>(token->value));
+  }
+  case TOKEN_IDENTIFIER: {
+    auto var = symbolTable.lookup(std::get<std::string>(token->value));
+    if (!var)
+      throw std::runtime_error("Undefined variable: " +
+                               std::get<std::string>(token->value));
+    return std::make_unique<VarRefEXP>(std::get<std::string>(token->value));
+  }
+  default:
+    return nullptr;
   }
 }

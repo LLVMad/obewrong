@@ -1,8 +1,8 @@
 #ifndef OBW_SOURCEMANAGER_H
 #define OBW_SOURCEMANAGER_H
 
-#include <string>
 #include <filesystem>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -14,15 +14,14 @@ struct FileData {
   std::string content;
   const std::filesystem::path fullPath;
 
-  FileData(std::filesystem::path directory, std::string name, std::string data, std::filesystem::path fullPath) :
-    directory(std::move(directory)),
-    name(std::move(name)),
-    content(std::move(data)),
-    fullPath(std::move(fullPath)) {}
+  FileData(std::filesystem::path directory, std::string name, std::string data,
+           std::filesystem::path fullPath)
+      : directory(std::move(directory)), name(std::move(name)),
+        content(std::move(data)), fullPath(std::move(fullPath)) {}
 };
 
 struct FileInfo {
-  FileData* data;
+  FileData *data;
   SourceLocation includedLocation;
 };
 
@@ -38,9 +37,10 @@ public:
 
   size_t getColumnNumber();
 
-  SourceBuffer readSource(const std::filesystem::path& fullPath);
+  SourceBuffer readSource(const std::filesystem::path &fullPath);
 
-  std::string getSourceText(const BufferID& buffer);
+  std::string getSourceText(const BufferID &buffer);
+
 private:
   // include dirs
   std::vector<std::filesystem::path> systemDirectories;
