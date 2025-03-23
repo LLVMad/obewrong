@@ -2,8 +2,6 @@
 
 #include "frontend/parser/Expression.h"
 
-#define
-
 std::unique_ptr<Token> Parser::next() {
   if (tokens[tokenPos + 1]->kind != TOKEN_EOF) {
     return std::make_unique<Token>(*tokens[++tokenPos]);
