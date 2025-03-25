@@ -45,6 +45,11 @@ Statement ::=
 Assignment ::= 
     Identifier ":=" Expression
 
+ForLoop ::=
+    "for" Assignment "," Expression "," Assignment "is"
+    Body
+    "end"
+
 WhileLoop ::= 
     "while" Expression "loop" Body "end"
 

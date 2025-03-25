@@ -11,9 +11,16 @@
 class Expression : public Entity {
 public:
   explicit Expression(Ekind kind) : Entity(kind){};
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+    (void)typeTable;
+    return nullptr;
+  }
   // add evaluate method
-  bool validate() override;
+  bool validate() override {
+    return false;
+  };
+
+  ~Expression() override;
 };
 
 /**
@@ -30,11 +37,7 @@ public:
 
   int getValue() { return _value; }
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
-    // auto type = std::make_unique<TypeBuiltin>(TYPE_INT, "Integer", 32);
-    // return type;
-    return typeTable.getType("Integer");
-  }
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
 private:
   int _value;
@@ -46,9 +49,7 @@ public:
 
   double getValue() { return _value; }
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
-    return typeTable.getType("Real");
-  }
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
 private:
   double _value;
@@ -61,11 +62,7 @@ public:
 
   std::string value;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
-    // auto type = std::make_unique<TypeString>(sizeof(value.c_str()));
-    // return type;
-    return typeTable.getType("String");
-  }
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 };
 
 class BoolLiteralEXP : public Expression {
@@ -74,11 +71,7 @@ public:
 
   bool getValue() { return _value; }
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
-    // auto type = std::make_unique<TypeBuiltin>(TYPE_BOOL, "Bool", 1);
-    // return type;
-    return typeTable.getType("Bool");
-  }
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
 private:
   bool _value;
@@ -93,7 +86,7 @@ private:
  */
 class ArrayLiteralExpr : public Expression {
 public:
-  ArrayLiteralExpr(std::vector<std::unique_ptr<Expression>>)
+  ArrayLiteralExpr(std::vector<std::unique_ptr<Expression>> elements)
     : Expression(E_Array_Literal), elements(std::move(elements)) {};
 
   // children should be
@@ -103,20 +96,9 @@ public:
   //
   // }
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
-    (void)typeTable;
-    /*
-     * @TODO
-     * search for a FieldDecl IN class
-     *
-     */
-    return nullptr;
-  }
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
-  bool validate() override {
-    // Ensure the class exists and arguments match the constructor.
-    return true;
-  }
+  bool validate() override;
 };
 
 /**
@@ -139,20 +121,8 @@ public:
 
   std::string field_name;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
-    (void)typeTable;
-    /*
-     * @TODO
-     * search for a FieldDecl IN class
-     *
-     */
-    return nullptr;
-  }
-
-  bool validate() override {
-    // Ensure the class exists and arguments match the constructor.
-    return true;
-  }
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  bool validate() override;
 };
 
 /**
@@ -174,20 +144,9 @@ public:
 
   // no children, link to a VarDecl probably
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
-    (void)typeTable;
-    /*
-     * @TODO
-     * search for a VarDecl IN SCOPE
-     *
-     */
-    return nullptr;
-  }
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
-  bool validate() override {
-    // Ensure the class exists and arguments match the constructor.
-    return true;
-  }
+  bool validate() override;
 };
 
 /**
@@ -219,13 +178,8 @@ public:
   //   this->children.push_back(arg);
   // }
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
-    (void)typeTable;
-    // @TODO
-    return nullptr;
-  }
-
-  bool validate() override { return true; }
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  bool validate() override;
 };
 
 class FuncCallEXP : public Expression {
@@ -245,13 +199,9 @@ public:
   //   this->children.push_back(arg);
   // }
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
-    (void)typeTable;
-    // @TODO
-    return nullptr;
-  }
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
-  bool validate() override { return true; }
+  bool validate() override;
 };
 
 /**
@@ -273,28 +223,9 @@ public:
       : Expression(E_Class_Name), _name(std::move(name)){};
 
   // В классе ClassNameEXP
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
-    (void)typeTable;
-    // if (_name == "Integer") {
-    //   return
-    // } else if (_name == "Real") {
-    //   return std::make_unique<TypeReal>();
-    // } else if (_name == "Bool") {
-    //   return std::make_unique<TypeBool>();
-    // } else if (_name == "String") {
-    //   return std::make_unique<TypeString>();
-    // } else if (_name == "Array") {
-    //   return std::make_unique<TypeArray>();
-    // } else if (_name == "List") {
-    //   return std::make_unique<TypeList>();
-    // } else {
-    //   return std::make_unique<Type>(TYPE_UNKNOWN, _name);
-    // }
-    // @TODO not found
-    return typeTable.getType(_name);
-  }
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
-  bool validate() override { return true; }
+  bool validate() override;
 
 private:
   std::string _name;
@@ -328,20 +259,9 @@ public:
   //   this->children.push_back(arg);
   // }
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
-    (void)typeTable;
-    /*
-     * @TODO
-     * this is interesting
-     * because as far as i understand
-     * the return type of this
-     * should be a pointer to a class
-     * but we dont have pointers...
-     */
-    return nullptr;
-  }
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
-  bool validate() override { return true; }
+  bool validate() override;
 };
 
 /**
@@ -362,18 +282,9 @@ public:
   //   this->children.push_back(lhs);
   // }
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
-    (void)typeTable;
-    /*
-     * @TODO
-     * 1) search for left side in a class declarations
-     * 2) get type of a field by name
-     * 3) return its type
-     */
-    return nullptr;
-  }
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
-  bool validate() override { return true; }
+  bool validate() override;
 };
 
 /**
@@ -394,19 +305,9 @@ public:
     this->parts.push_back(std::move(expr));
   }
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
-    (void)typeTable;
-    /*
-     * @TODO
-     * call resolveType on each
-     * exp in parts
-     */
-    // Временная заглушка
-    // return std::make_unique<Type>(TYPE_UNKNOWN, "Unresolved compound type");
-    return nullptr;
-  }
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
-  bool validate() override { return true; }
+  bool validate() override;
 };
 
 // @TODO
@@ -416,19 +317,9 @@ public:
 
   // no children, just a link to ???
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
-    (void)typeTable;
-    // return the type of the enclosing class (from the scope).
-    // Временная заглушка
-    // return std::make_unique<Type>(TYPE_UNKNOWN, "Unresolved 'this' type");
-    return nullptr;
-  }
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
-  bool validate() override {
-    // ensure `this` is used within a method/constructor.
-    // Временная заглушка
-    return true;
-  }
+  bool validate() override;
 };
 
 #endif

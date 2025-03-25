@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(obewrong LANGUAGES CXX)
+project(obewrong LANGUAGES C CXX)
 
 # Require C++20
 set(CMAKE_CXX_STANDARD 20)

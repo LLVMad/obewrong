@@ -78,13 +78,13 @@ enum Ekind {
 class Entity {
 public:
   virtual ~Entity() = default;
-  explicit Entity(Ekind kind);
+  explicit Entity(Ekind kind) : location() { this->kind = kind; };
 
-  Ekind getKind() const;
+  Ekind getKind() const { return kind; };
   Loc getLoc() const;
 
-  virtual std::shared_ptr<Type> resolveType(TypeTable typeTable);
-  virtual bool validate();
+  virtual std::shared_ptr<Type> resolveType(TypeTable typeTable) = 0;
+  virtual bool validate() = 0;
 
   // ======== NODE LINKS ========
   // different types of connection
@@ -106,12 +106,32 @@ protected:
   Loc location;
 };
 
+enum BlockKind {
+  BLOCK_IN_CLASS,
+  BLOCK_IN_METHOD,
+  BLOCK_IN_FUNCTION,
+  BLOCK_IN_WHILE,
+  BLOCK_IN_IF,
+  BLOCK_IN_FOR,
+  BLOCK_IN_SWITCH,
+};
+
 class Block : public Entity {
 public:
-  Block(std::vector<std::unique_ptr<Entity>> parts)
-    : Entity(E_Block), parts(std::move(parts)) {}
+  Block(std::vector<std::unique_ptr<Entity>> parts, BlockKind kind)
+    : Entity(E_Block), parts(std::move(parts)), kind(kind) {};
 
   std::vector<std::unique_ptr<Entity>> parts;
+  BlockKind kind;
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+    (void)typeTable;
+    return nullptr;
+  }
+
+  bool validate() override {
+    return false;
+  }
 };
 
 /**

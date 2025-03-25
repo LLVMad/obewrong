@@ -27,6 +27,12 @@ public:
   explicit Decl(Ekind kind, std::string name)
       : Entity(kind), name(std::move(name)) {}
   std::string name;
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+
+  bool validate() override;
+
+  ~Decl() override;
 };
 
 /**
@@ -42,9 +48,14 @@ public:
  */
 class FieldDecl : public Decl {
 public:
-  explicit FieldDecl(const std::string &name) : Decl(E_Field_Decl, name) {}
+  explicit FieldDecl(const std::string &name, std::shared_ptr<Type> type)
+    : Decl(E_Field_Decl, name), type(std::move(type)) {}
 
   std::shared_ptr<Type> type;
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+
+  bool validate() override;
 };
 
 /**
@@ -70,6 +81,10 @@ public:
   // var a : Integer := 0
   //                 ^^^^
   std::unique_ptr<Expression> initializer;
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+
+  bool validate() override;
 };
 
 /**
@@ -85,6 +100,10 @@ public:
       : Decl(E_Parameter_Decl, name), type(type) {}
 
   std::shared_ptr<Type> type;
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+
+  bool validate() override;
 };
 
 /**
@@ -110,32 +129,31 @@ public:
   bool isForward;
   bool isShort;
   std::unique_ptr<Block> body;
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+
+  bool validate() override;
 };
 
 class FuncDecl : public Decl {
 public:
   explicit FuncDecl(const std::string &name,
                     std::shared_ptr<TypeFunc> signature,
-                    std::vector<std::unique_ptr<Decl>> args,
+                    std::vector<std::unique_ptr<ParameterDecl>> args,
                     std::unique_ptr<Block> body)
       : Decl(E_Function_Decl, name), signature(signature),
         args(std::move(args)), body(std::move(body)) {}
 
   std::shared_ptr<TypeFunc> signature;
-  std::vector<std::unique_ptr<Decl>> args;
+  std::vector<std::unique_ptr<ParameterDecl>> args;
 
   bool isForward;
   bool isShort;
   std::unique_ptr<Block> body;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
-    (void)typeTable;
-    return signature;
-  }
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
-  bool validate() override {
-    return true;
-  }
+  bool validate() override;
 };
 
 /**
@@ -174,15 +192,9 @@ public:
   std::vector<std::unique_ptr<FuncDecl>> methods;
   std::vector<std::unique_ptr<FuncDecl>> constructors;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
-    (void)typeTable;
-    return type;
-  }
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
-  bool validate() override {
-    // @TODO ?
-    return true;
-  }
+  bool validate() override;
 };
 
 class ArrayDecl : public Decl {
@@ -199,19 +211,16 @@ public:
   //                           ^^^^^^^^^
   std::unique_ptr<ArrayLiteralExpr> initializer;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
-    (void)typeTable;
-    return type;
-  }
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
-  bool validate() override {
-    // @TODO check that all elements are of the same type
-    return true;
-  }
+  bool validate() override;
 };
 
 class ListDecl : public Decl {
 public:
+  ListDecl(const std::string &name, std::shared_ptr<TypeList> type, std::unique_ptr<ArrayLiteralExpr> initz)
+    : Decl(E_List_Decl, name), type(std::move(type)), initializer(std::move(initz)) {}
+
   std::shared_ptr<TypeList> type;
 
   // optional initializer if present
@@ -219,17 +228,11 @@ public:
   //
   // var a : List[Integer] := [1, 2, 3]
   //                          ^^^^^^^^^
-  std::unique_ptr<Expression> initializer;
+  std::unique_ptr<ArrayLiteralExpr> initializer;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
-    (void)typeTable;
-    return type;
-  };
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
-  bool validate() override {
-    // @TODO check that all elements are of the same type
-    return true;
-  }
+  bool validate() override;
 };
 
 #endif

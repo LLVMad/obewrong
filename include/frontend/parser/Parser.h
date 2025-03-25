@@ -66,14 +66,27 @@ private:
 
   std::unique_ptr<Entity> parseVarDecl();
 
+  std::unique_ptr<Entity> parseMethodDecl();
+
   std::unique_ptr<Entity> parseFunctionDecl();
 
   std::unique_ptr<Entity> parseClassDecl();
 
   std::unique_ptr<Entity> parseFieldDecl();
 
+  /**
+   * @note WhileLoop ::= \n
+   * "while" Expression "loop" Body "end"
+   *
+   */
   std::unique_ptr<Entity> parseWhileStatement();
 
+  /**
+    * @note ForLoop ::=\n
+      "for" Assignment ";" Expression ";" Expression ";" "is"\n
+      Body\n
+      "end"
+   */
   std::unique_ptr<Entity> parseForStatement();
 
   std::unique_ptr<Entity> parseAssignment();
@@ -85,7 +98,7 @@ private:
    *  parse WHATEVER construct is between is and end
    *  could be ANYTHING!!!
    */
-  std::unique_ptr<Entity> parseBlock();
+  std::unique_ptr<Entity> parseBlock(BlockKind blockKind);
 
   /**
    * @note Expression \n
@@ -95,6 +108,14 @@ private:
    */
   std::unique_ptr<Entity> parseExpression();
 
+  /**
+   *
+   */
+  std::unique_ptr<ParameterDecl> parseParameterDecl();
+
+  /**
+   *
+   */
   void parseParameters(const std::unique_ptr<FuncDecl>& funcDecl);
 
   void parseParameters(const std::unique_ptr<MethodDecl>& funcDecl);
@@ -128,6 +149,13 @@ private:
     | Identifier \n
    */
   std::unique_ptr<Entity> parsePrimary();
+
+  // variables to keep track
+  // of declared important constructs
+  // and their scope
+  std::unique_ptr<ClassDecl> lastDeclaredClass;
+  std::unique_ptr<MethodDecl> lastDeclaredMethod;
+  std::unique_ptr<FuncDecl> lastDeclaredFunction;
 };
 
 #endif

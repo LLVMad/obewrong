@@ -67,7 +67,7 @@ std::unique_ptr<Entity> Parser::parseCase() {
 
   // case body
   auto body_block =
-    std::unique_ptr<Block>(dynamic_cast<Block *>(parseBlock().release()));
+    std::unique_ptr<Block>(dynamic_cast<Block *>(parseBlock(BLOCK_IN_SWITCH).release()));
 
   return std::make_unique<CaseSTMT>(std::move(cond_lit), std::move(body_block));
 }
@@ -81,11 +81,11 @@ std::unique_ptr<Entity> Parser::parseIfStatement() {
     std::unique_ptr<Expression>(dynamic_cast<Expression *>(parseExpression().release()));
 
   auto ifTrue =
-    std::unique_ptr<Block>(dynamic_cast<Block *>(parseBlock().release()));
+    std::unique_ptr<Block>(dynamic_cast<Block *>(parseBlock(BLOCK_IN_IF).release()));
 
   if (peek()->kind == TOKEN_ELSE) {
     auto ifFalse =
-      std::unique_ptr<Block>(dynamic_cast<Block *>(parseBlock().release()));
+      std::unique_ptr<Block>(dynamic_cast<Block *>(parseBlock(BLOCK_IN_IF).release()));
 
     return std::make_unique<IfSTMT>(std::move(condition), std::move(ifTrue), std::move(ifFalse));
   }
@@ -153,7 +153,7 @@ std::unique_ptr<Entity> Parser::parseAssignment() {
   return ass;
 }
 
-std::unique_ptr<Entity> Parser::parseBlock() {
+std::unique_ptr<Entity> Parser::parseBlock(BlockKind blockKind) {
   std::unique_ptr<Token> token = peek();
   if (token == nullptr || token->kind != TOKEN_BBEGIN || token->kind != TOKEN_THEN || token->kind != TOKEN_LOOP) return nullptr;
 
@@ -165,7 +165,10 @@ std::unique_ptr<Entity> Parser::parseBlock() {
     token = next();
     switch (token->kind) {
       case TOKEN_VAR_DECL: {
-        part = parseVarDecl();
+        if (blockKind > 0)
+          part = parseVarDecl();
+        else // in class
+          part = parseFieldDecl();
       } break;
       case TOKEN_IDENTIFIER: {
         // a.set(...)
@@ -200,7 +203,103 @@ std::unique_ptr<Entity> Parser::parseBlock() {
     if (token == nullptr) return nullptr;
   }
 
-  return std::make_unique<Block>(std::move(block_body));
+  // eat 'end'
+  token = next();
+
+  return std::make_unique<Block>(std::move(block_body), blockKind);
+}
+
+std::unique_ptr<Entity> Parser::parseClassDecl() {
+  std::unique_ptr<Token> token = peek();
+  if (token == nullptr || token->kind != TOKEN_CLASS) return nullptr;
+  token = next(); // eat 'class'
+
+  // read classname
+  if (peek()->kind != TOKEN_IDENTIFIER) return nullptr;
+  token = next();
+  auto var_name = std::get<std::string>(token->value);
+
+  // read body of class
+  auto body_block =
+    std::unique_ptr<Block>(dynamic_cast<Block *>(parseBlock(BLOCK_IN_CLASS).release()));
+
+  auto class_stmt =
+    std::make_unique<ClassDecl>()
+}
+
+std::unique_ptr<Entity> Parser::parseFieldDecl() {
+  std::unique_ptr<Token> token = peek();
+  if (token == nullptr || token->kind != TOKEN_VAR_DECL) return nullptr;
+  token = next();
+
+  // read lvalue var name
+  token = next();
+  auto var_name = std::get<std::string>(token->value);
+  // auto var_ref = std::make_unique<VarRefEXP>(var_name);
+
+  // eat ':'
+  if (peek()->kind != TOKEN_COLON) return nullptr;
+  token = next();
+
+  // read type
+  if (peek()->kind != TOKEN_IDENTIFIER) return nullptr;
+  token = next();
+  auto var_type = typeTable.getType(std::get<std::string>(token->value));
+
+  auto ass = std::make_unique<FieldDecl>(std::move(var_name), var_type);
+
+  return ass;
+}
+
+std::unique_ptr<Entity> Parser::parseWhileStatement() {
+  std::unique_ptr<Token> token = peek();
+  if (token == nullptr || token->kind != TOKEN_WHILE) return nullptr;
+  token = next(); // eat 'while'
+
+  auto condition =
+    std::unique_ptr<Expression>(dynamic_cast<Expression *>(parseExpression().release()));
+
+  auto block_body =
+    std::unique_ptr<Block>(dynamic_cast<Block *>(parseBlock(BLOCK_IN_WHILE).release()));
+
+  return std::make_unique<WhileSTMT>(std::move(condition), std::move(block_body));
+}
+
+std::unique_ptr<Entity> Parser::parseForStatement() {
+  std::unique_ptr<Token> token = peek();
+  if (token == nullptr || token->kind != TOKEN_FOR) return nullptr;
+  token = next(); // eat 'for'
+
+  // assignment
+  token = peek();
+  if (token->kind != TOKEN_IDENTIFIER) return nullptr;
+  auto varRef =
+    std::unique_ptr<AssignmentSTMT>(dynamic_cast<AssignmentSTMT *>(parseAssignment().release()));
+
+  // eat ','
+  token = peek();
+  if (token->kind != TOKEN_COMMA) return nullptr;
+  token = next();
+
+  // condition
+  auto cond =
+    std::unique_ptr<Expression>(dynamic_cast<Expression *>(parseExpression().release()));
+
+  // eat ','
+  token = peek();
+  if (token->kind != TOKEN_COMMA) return nullptr;
+  token = next();
+
+  // step after i.e. "i++"
+  auto post =
+    std::unique_ptr<Expression>(dynamic_cast<Expression *>(parseExpression().release()));
+
+  auto block_body =
+    std::unique_ptr<Block>(dynamic_cast<Block *>(parseBlock(BLOCK_IN_FOR).release()));
+
+  return std::make_unique<ForSTMT>(std::move(varRef), std::move(cond), std::move(post), std::move(block_body));
+
+  // auto varAssign = std::make_unique<AssignmentSTMT>(std::move(varRef), )
 }
 
 std::unique_ptr<Entity> Parser::parseReturnStatement() {
@@ -347,13 +446,71 @@ std::unique_ptr<Entity> Parser::parseExpression() {
   return comp;
 }
 
-// void Parser::parseParameters(const std::unique_ptr<FuncDecl>& funcDecl) {
-//   // @TODO
-// }
-//
-// void Parser::parseParameters(const std::unique_ptr<MethodDecl>& funcDecl) {
-//   // @TODO
-// }
+std::unique_ptr<ParameterDecl> Parser::parseParameterDecl() {
+  std::unique_ptr<Token> token = peek();
+
+  // read first parameter
+  token = peek();
+  if (token->kind != TOKEN_IDENTIFIER) return nullptr;
+  token = next();
+  auto param_name = std::get<std::string>(token->value);
+
+  // read ':'
+  token = peek();
+  if (token->kind != TOKEN_COLON) return nullptr;
+  token = next();
+
+  // read type
+  token = peek();
+  if (token->kind != TOKEN_IDENTIFIER) return nullptr;
+  token = next();
+  auto param_type = std::get<std::string>(token->value);
+
+  // create paramdecl
+  auto paramDecl = std::make_unique<ParameterDecl>(param_name, typeTable.getType(param_type));
+  return paramDecl;
+}
+
+
+void Parser::parseParameters(const std::unique_ptr<FuncDecl>& funcDecl) {
+  std::unique_ptr<Token> token = peek();
+  if (token == nullptr || token->kind != TOKEN_LBRACKET) return;
+  token = next();
+
+  auto paramDecl = parseParameterDecl();
+
+  funcDecl->args.push_back(std::move(paramDecl));
+
+  while (token->kind == TOKEN_COMMA) {
+    token = next();
+
+    paramDecl = parseParameterDecl();
+    funcDecl->args.push_back(std::move(paramDecl));
+
+    token = peek();
+    if (token == nullptr) return;
+  }
+}
+
+void Parser::parseParameters(const std::unique_ptr<MethodDecl>& funcDecl) {
+  std::unique_ptr<Token> token = peek();
+  if (token == nullptr || token->kind != TOKEN_LBRACKET) return;
+  token = next();
+
+  auto paramDecl = parseParameterDecl();
+
+  funcDecl->args.push_back(std::move(paramDecl));
+
+  while (token->kind == TOKEN_COMMA) {
+    token = next();
+
+    paramDecl = parseParameterDecl();
+    funcDecl->args.push_back(std::move(paramDecl));
+
+    token = peek();
+    if (token == nullptr) return;
+  }
+}
 
 void Parser::parseArguments(const std::unique_ptr<MethodCallEXP> &method_name) {
   auto node = parseExpression();
@@ -370,7 +527,7 @@ void Parser::parseArguments(const std::unique_ptr<MethodCallEXP> &method_name) {
 
     std::unique_ptr<Entity> after_comma = parseExpression();
     auto uexpr = std::unique_ptr<Expression>(dynamic_cast<Expression*>(after_comma.release()));
-    method_name->children.push_back(std::move(uexpr));
+    method_name->arguments.push_back(std::move(uexpr));
 
     token = peek();
     if (token == nullptr) return;
@@ -392,7 +549,7 @@ void Parser::parseArguments(const std::unique_ptr<FuncCallEXP> &function_name) {
 
     std::unique_ptr<Entity> after_comma = parseExpression();
     auto uexpr = std::unique_ptr<Expression>(dynamic_cast<Expression*>(after_comma.release()));
-    function_name->children.push_back(std::move(uexpr));
+    function_name->arguments.push_back(std::move(uexpr));
 
     token = peek();
     if (token == nullptr) return;

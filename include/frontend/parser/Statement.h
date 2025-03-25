@@ -17,7 +17,12 @@
 class Statement : public Entity {
 public:
   explicit Statement(Ekind kind) : Entity(kind) {}
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+
+  bool validate() override;
   // std::string name;
+  ~Statement() override;
 };
 
 // Identifier := Expression
@@ -141,6 +146,22 @@ public:
         body(std::move(body)) {}
 
   std::unique_ptr<Expression> condition;
+  std::unique_ptr<Block> body;
+};
+
+class ForSTMT : public Statement {
+public:
+  explicit ForSTMT(
+    std::unique_ptr<AssignmentSTMT> varWithAss,
+    std::unique_ptr<Expression> condition,
+    std::unique_ptr<Expression> post,
+    std::unique_ptr<Block> body)
+      : Statement(E_While_Loop), varWithAss(std::move(varWithAss)),
+      condition(std::move(condition)), post(std::move(post)), body(std::move(body)) {}
+
+  std::unique_ptr<AssignmentSTMT> varWithAss;
+  std::unique_ptr<Expression> condition;
+  std::unique_ptr<Expression> post;
   std::unique_ptr<Block> body;
 };
 
