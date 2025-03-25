@@ -11,7 +11,7 @@
 class Expression : public Entity {
 public:
   explicit Expression(Ekind kind) : Entity(kind){};
-  std::unique_ptr<Type> resolveType() override;
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
   // add evaluate method
   bool validate() override;
 };
@@ -30,9 +30,10 @@ public:
 
   int getValue() { return _value; }
 
-  std::unique_ptr<Type> resolveType() override {
-    auto type = std::make_unique<TypeBuiltin>(TYPE_INT, "Integer", 32);
-    return type;
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+    // auto type = std::make_unique<TypeBuiltin>(TYPE_INT, "Integer", 32);
+    // return type;
+    return typeTable.getType("Integer");
   }
 
 private:
@@ -45,9 +46,8 @@ public:
 
   double getValue() { return _value; }
 
-  std::unique_ptr<Type> resolveType() override {
-    auto type = std::make_unique<TypeBuiltin>(TYPE_FLOAT, "Real", 32);
-    return type;
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+    return typeTable.getType("Real");
   }
 
 private:
@@ -61,9 +61,10 @@ public:
 
   std::string value;
 
-  std::unique_ptr<Type> resolveType() override {
-    auto type = std::make_unique<TypeString>(sizeof(value.c_str()));
-    return type;
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+    // auto type = std::make_unique<TypeString>(sizeof(value.c_str()));
+    // return type;
+    return typeTable.getType("String");
   }
 };
 
@@ -73,13 +74,85 @@ public:
 
   bool getValue() { return _value; }
 
-  std::unique_ptr<Type> resolveType() override {
-    auto type = std::make_unique<TypeBuiltin>(TYPE_BOOL, "Bool", 1);
-    return type;
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+    // auto type = std::make_unique<TypeBuiltin>(TYPE_BOOL, "Bool", 1);
+    // return type;
+    return typeTable.getType("Bool");
   }
 
 private:
   bool _value;
+};
+
+/**
+ * Enumiration of array elements
+ * between [ and ] separated by comma
+ *
+ * var arr : Array[Integer] := [1, 2, 3, 4]
+ *                             ^^^^^^^^^^^
+ */
+class ArrayLiteralExpr : public Expression {
+public:
+  ArrayLiteralExpr(std::vector<std::unique_ptr<Expression>>)
+    : Expression(E_Array_Literal), elements(std::move(elements)) {};
+
+  // children should be
+  std::vector<std::unique_ptr<Expression>> elements;
+
+  // void addElement(std::shared_ptr<Expression> expr) {
+  //
+  // }
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+    (void)typeTable;
+    /*
+     * @TODO
+     * search for a FieldDecl IN class
+     *
+     */
+    return nullptr;
+  }
+
+  bool validate() override {
+    // Ensure the class exists and arguments match the constructor.
+    return true;
+  }
+};
+
+/**
+ * For when we refer to a "value" by
+ * referencing associated variable name
+ *
+ * can/should be translate to other Decl, STMT or EXPR
+ *
+ * class A is
+ *   var a : Integer
+ * end
+ *
+ * var c : Integer := a.Plus(2)
+ *                    ^
+ */
+class FieldRefEXP : public Expression {
+public:
+  FieldRefEXP(std::string name)
+      : Expression(E_Field_Reference), field_name(std::move(name)){};
+
+  std::string field_name;
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+    (void)typeTable;
+    /*
+     * @TODO
+     * search for a FieldDecl IN class
+     *
+     */
+    return nullptr;
+  }
+
+  bool validate() override {
+    // Ensure the class exists and arguments match the constructor.
+    return true;
+  }
 };
 
 /**
@@ -94,12 +167,15 @@ private:
  */
 class VarRefEXP : public Expression {
 public:
-  VarRefEXP(std::string name)
-      : Expression(E_Var_Reference), var_name(std::move(name)){};
+  VarRefEXP(const std::string &name)
+      : Expression(E_Var_Reference), var_name(name) {};
 
   std::string var_name;
 
-  std::unique_ptr<Type> resolveType() override {
+  // no children, link to a VarDecl probably
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+    (void)typeTable;
     /*
      * @TODO
      * search for a VarDecl IN SCOPE
@@ -124,18 +200,53 @@ public:
  */
 class MethodCallEXP : public Expression {
 public:
-  MethodCallEXP(std::unique_ptr<Expression> left, std::string method_name,
-                std::vector<std::unique_ptr<Expression>> args)
-      : Expression(E_Function), left(std::move(left)),
-        method_name(std::move(method_name)), arguments(std::move(args)) {}
+  MethodCallEXP(std::string method_name, std::unique_ptr<Expression> left, std::vector<std::unique_ptr<Expression>> arguments)
+      : Expression(E_Method_Call), method_name(std::move(method_name)), left(std::move(left)), arguments(std::move(arguments)) {};
 
-  MethodCallEXP() : Expression(E_Function) {}
+  MethodCallEXP() : Expression(E_Method_Call) {}
 
-  std::unique_ptr<Expression> left;
   std::string method_name;
+
+  // children should be
+  std::unique_ptr<Expression> left;
   std::vector<std::unique_ptr<Expression>> arguments;
 
-  std::unique_ptr<Type> resolveType() override {
+  // void addLhs(const std::shared_ptr<Expression> &lhs) {
+  //   this->children.push_back(lhs);
+  // }
+  //
+  // void addArgument(const std::shared_ptr<Expression> &arg) {
+  //   this->children.push_back(arg);
+  // }
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+    (void)typeTable;
+    // @TODO
+    return nullptr;
+  }
+
+  bool validate() override { return true; }
+};
+
+class FuncCallEXP : public Expression {
+public:
+  FuncCallEXP(std::string method_name, std::vector<std::unique_ptr<Expression>> arguments)
+      : Expression(E_Function_Call),
+        func_name(std::move(method_name)), arguments(std::move(arguments)) {};
+
+  FuncCallEXP() : Expression(E_Function_Call) {}
+
+  std::string func_name;
+
+  // children should be
+  std::vector<std::unique_ptr<Expression>> arguments;
+
+  // void addArgument(const std::shared_ptr<Expression> &arg) {
+  //   this->children.push_back(arg);
+  // }
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+    (void)typeTable;
     // @TODO
     return nullptr;
   }
@@ -162,22 +273,25 @@ public:
       : Expression(E_Class_Name), _name(std::move(name)){};
 
   // В классе ClassNameEXP
-  std::unique_ptr<Type> resolveType() override {
-    if (_name == "Integer") {
-      return std::make_unique<TypeInt>();
-    } else if (_name == "Real") {
-      return std::make_unique<TypeReal>();
-    } else if (_name == "Bool") {
-      return std::make_unique<TypeBool>();
-    } else if (_name == "String") {
-      return std::make_unique<TypeString>();
-    } else if (_name == "Array") {
-      return std::make_unique<TypeArray>();
-    } else if (_name == "List") {
-      return std::make_unique<TypeList>();
-    } else {
-      return std::make_unique<Type>(TYPE_UNKNOWN, _name);
-    }
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+    (void)typeTable;
+    // if (_name == "Integer") {
+    //   return
+    // } else if (_name == "Real") {
+    //   return std::make_unique<TypeReal>();
+    // } else if (_name == "Bool") {
+    //   return std::make_unique<TypeBool>();
+    // } else if (_name == "String") {
+    //   return std::make_unique<TypeString>();
+    // } else if (_name == "Array") {
+    //   return std::make_unique<TypeArray>();
+    // } else if (_name == "List") {
+    //   return std::make_unique<TypeList>();
+    // } else {
+    //   return std::make_unique<Type>(TYPE_UNKNOWN, _name);
+    // }
+    // @TODO not found
+    return typeTable.getType(_name);
   }
 
   bool validate() override { return true; }
@@ -199,15 +313,23 @@ private:
  */
 class ConstructorCallEXP : public Expression {
 public:
-  ConstructorCallEXP(std::unique_ptr<ClassNameEXP> left,
-                     std::vector<std::unique_ptr<Expression>> args)
-      : Expression(E_Function), left(std::move(left)),
-        arguments(std::move(args)) {}
+  ConstructorCallEXP(std::unique_ptr<ClassNameEXP> left, std::vector<std::unique_ptr<Expression>> arguments)
+      : Expression(E_Function), left(std::move(left)), arguments(std::move(arguments)) {};
 
+  // children should be
   std::unique_ptr<ClassNameEXP> left;
   std::vector<std::unique_ptr<Expression>> arguments;
 
-  std::unique_ptr<Type> resolveType() override {
+  // void addLhs(const std::shared_ptr<ClassNameEXP> &lhs) {
+  //   this->children.push_back(lhs);
+  // }
+  //
+  // void addArgument(const std::shared_ptr<Entity> &arg) {
+  //   this->children.push_back(arg);
+  // }
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+    (void)typeTable;
     /*
      * @TODO
      * this is interesting
@@ -229,14 +351,19 @@ public:
  */
 class FieldAccessEXP : public Expression {
 public:
-  FieldAccessEXP(std::unique_ptr<Expression> left, std::string name)
-      : Expression(E_Field_Reference), left(std::move(left)),
-        field_name(std::move(name)){};
+  FieldAccessEXP(std::string name, std::unique_ptr<Expression> left)
+      : Expression(E_Field_Reference), left(std::move(left)), field_name(std::move(name)) {};
 
+  // children should be
   std::unique_ptr<Expression> left;
   std::string field_name;
 
-  std::unique_ptr<Type> resolveType() override {
+  // void addLhs(const std::shared_ptr<Expression> &lhs) {
+  //   this->children.push_back(lhs);
+  // }
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+    (void)typeTable;
     /*
      * @TODO
      * 1) search for left side in a class declarations
@@ -256,19 +383,27 @@ public:
  */
 class CompoundEXP : public Expression {
 public:
-  CompoundEXP(std::vector<std::unique_ptr<Expression>> parts)
-      : Expression(E_Chained_Functions), parts(std::move(parts)) {}
+  CompoundEXP()
+      : Expression(E_Chained_Functions) {}
 
+  // children should be
   std::vector<std::unique_ptr<Expression>> parts;
 
-  std::unique_ptr<Type> resolveType() override {
+  // moves the pointer
+  void addExpression(std::unique_ptr<Expression> expr) {
+    this->parts.push_back(std::move(expr));
+  }
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+    (void)typeTable;
     /*
      * @TODO
      * call resolveType on each
      * exp in parts
      */
     // Временная заглушка
-    return std::make_unique<Type>(TYPE_UNKNOWN, "Unresolved compound type");
+    // return std::make_unique<Type>(TYPE_UNKNOWN, "Unresolved compound type");
+    return nullptr;
   }
 
   bool validate() override { return true; }
@@ -279,10 +414,14 @@ class ThisEXP : public Expression {
 public:
   ThisEXP() : Expression(E_This) {}
 
-  std::unique_ptr<Type> resolveType() override {
+  // no children, just a link to ???
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+    (void)typeTable;
     // return the type of the enclosing class (from the scope).
     // Временная заглушка
-    return std::make_unique<Type>(TYPE_UNKNOWN, "Unresolved 'this' type");
+    // return std::make_unique<Type>(TYPE_UNKNOWN, "Unresolved 'this' type");
+    return nullptr;
   }
 
   bool validate() override {

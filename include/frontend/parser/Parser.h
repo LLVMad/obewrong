@@ -55,37 +55,64 @@ private:
   int tokenPos;
 
   // void parseProgramDecls();
-  // void parseClassDeclaration();
-  // void parseMemberDeclaration();
-  // void parseVariableDeclaration();
-  // void parseMethodDeclaration();
-  // void parseMethodHeader();
-  // void parseMethodBody();
-  // void parseParameters();
-  // void parseBody();
-  // void parseStatement();
-  // void parseAssignmentStatement();
-  // void parseIfStatement();
-  // void parseWhileStatement();
-  // void parseReturnStatement();
-  // void parseExpression();
-  // void parseMethodCall();
-  // void parseArguments();
-  // void parseConstructorDeclaration();
+
+  std::unique_ptr<Entity> parseIfStatement();
+
+  std::unique_ptr<Entity> parseReturnStatement();
+
+  std::unique_ptr<Entity> parseSwitch();
+
+  std::unique_ptr<Entity> parseCase();
+
+  std::unique_ptr<Entity> parseVarDecl();
+
+  std::unique_ptr<Entity> parseFunctionDecl();
+
+  std::unique_ptr<Entity> parseClassDecl();
+
+  std::unique_ptr<Entity> parseFieldDecl();
+
+  std::unique_ptr<Entity> parseWhileStatement();
+
+  std::unique_ptr<Entity> parseForStatement();
+
+  std::unique_ptr<Entity> parseAssignment();
+
+  /**
+   * @note Block \n
+   *  : "is" ... "end" \n
+   *  this creature of a function should
+   *  parse WHATEVER construct is between is and end
+   *  could be ANYTHING!!!
+   */
+  std::unique_ptr<Entity> parseBlock();
 
   /**
    * @note Expression \n
    * : Primary { . Identifier [ Arguments ] }
+   *
+   * @note also parses functioncalls and compund expressions
    */
   std::unique_ptr<Entity> parseExpression();
 
+  void parseParameters(const std::unique_ptr<FuncDecl>& funcDecl);
+
+  void parseParameters(const std::unique_ptr<MethodDecl>& funcDecl);
+
   /**
    * @brief Parses arguments in a method call
-   * or a constructor and adds them as a children of method_name
    * @param method_name name of a method, that we read arguments for, that will
    * be called
    */
   void parseArguments(const std::unique_ptr<MethodCallEXP> &method_name);
+
+  /**
+   * @brief Parses arguments in a function call
+   * or a constructor and adds them as a children of method_name
+   * @param function_name name of a func, that we read arguments for, that will
+   * be called
+   */
+  void parseArguments(const std::unique_ptr<FuncCallEXP> &function_name);
 
   /**
    * @brief this is the last point
@@ -98,6 +125,7 @@ private:
     | StringLiteral \n
     | this \n
     | ClassName \n
+    | Identifier \n
    */
   std::unique_ptr<Entity> parsePrimary();
 };

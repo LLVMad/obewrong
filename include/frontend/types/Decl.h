@@ -12,6 +12,7 @@
 
 #include "Types.h"
 #include "frontend/parser/Expression.h"
+#include "frontend/parser/Statement.h"
 
 // enum DeclKind {
 //   DECL_VAR,
@@ -43,7 +44,7 @@ class FieldDecl : public Decl {
 public:
   explicit FieldDecl(const std::string &name) : Decl(E_Field_Decl, name) {}
 
-  std::unique_ptr<Type> type;
+  std::shared_ptr<Type> type;
 };
 
 /**
@@ -58,12 +59,10 @@ public:
  */
 class VarDecl : public Decl {
 public:
-  explicit VarDecl(const std::string &name, std::unique_ptr<Type> type,
-                   std::unique_ptr<Expression> init)
-      : Decl(E_Variable_Decl, name), type(std::move(type)),
-        initializer(std::move(init)) {}
+  explicit VarDecl(const std::string &name, std::shared_ptr<Type> type)
+      : Decl(E_Variable_Decl, name), type(std::move(type)) {}
 
-  std::unique_ptr<Type> type;
+  std::shared_ptr<Type> type;
 
   // optional initializer if present
   // if a part of declaration
@@ -82,10 +81,10 @@ public:
  */
 class ParameterDecl : public Decl {
 public:
-  explicit ParameterDecl(const std::string &name, std::unique_ptr<Type> type)
-      : Decl(E_Parameter_Decl, name), type(std::move(type)) {}
+  explicit ParameterDecl(const std::string &name, std::shared_ptr<Type> type)
+      : Decl(E_Parameter_Decl, name), type(type) {}
 
-  std::unique_ptr<Type> type;
+  std::shared_ptr<Type> type;
 };
 
 /**
@@ -96,21 +95,47 @@ public:
  *   - short syntax decl  : `method get() => return this.a`
  *   - full               : `method set(a: Integer) is ... end`
  */
-class FuncDecl : public Decl {
+class MethodDecl : public Decl {
 public:
-  explicit FuncDecl(const std::string &name,
-                    std::unique_ptr<TypeFunc> signature,
+  explicit MethodDecl(const std::string &name,
+                    std::shared_ptr<TypeFunc> signature,
                     std::vector<std::unique_ptr<Decl>> args,
-                    std::vector<std::unique_ptr<Expression>> body)
-      : Decl(E_Function_Decl, name), signature(std::move(signature)),
+                    std::unique_ptr<Block> body)
+      : Decl(E_Method_Decl, name), signature(signature),
         args(std::move(args)), body(std::move(body)) {}
 
-  std::unique_ptr<TypeFunc> signature;
+  std::shared_ptr<TypeFunc> signature;
   std::vector<std::unique_ptr<Decl>> args;
 
   bool isForward;
   bool isShort;
-  std::vector<std::unique_ptr<Expression>> body;
+  std::unique_ptr<Block> body;
+};
+
+class FuncDecl : public Decl {
+public:
+  explicit FuncDecl(const std::string &name,
+                    std::shared_ptr<TypeFunc> signature,
+                    std::vector<std::unique_ptr<Decl>> args,
+                    std::unique_ptr<Block> body)
+      : Decl(E_Function_Decl, name), signature(signature),
+        args(std::move(args)), body(std::move(body)) {}
+
+  std::shared_ptr<TypeFunc> signature;
+  std::vector<std::unique_ptr<Decl>> args;
+
+  bool isForward;
+  bool isShort;
+  std::unique_ptr<Block> body;
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+    (void)typeTable;
+    return signature;
+  }
+
+  bool validate() override {
+    return true;
+  }
 };
 
 /**
@@ -126,30 +151,68 @@ public:
  */
 class ClassDecl : public Decl {
 public:
-  // std::string base_class;
-  // std::vector<std::string> generic_params;
-  std::unique_ptr<Type> type;
-  std::vector<std::unique_ptr<ClassDecl>> base_classes;
+  ClassDecl(
+    const std::string &name, std::shared_ptr<TypeClass> type,
+    std::vector<std::shared_ptr<ClassDecl>> base_class,
+    std::vector<std::unique_ptr<FieldDecl>> fields,
+    std::vector<std::unique_ptr<FuncDecl>> methods,
+    std::vector<std::unique_ptr<FuncDecl>> constructors
+  ) : Decl(E_Class_Decl, name), type(type), base_classes(std::move(base_class)),
+      fields(std::move(fields)), methods(std::move(methods)), constructors(std::move(constructors)) {}
+
+  ClassDecl(
+    const std::string &name, std::shared_ptr<TypeClass> type,
+    std::vector<std::unique_ptr<FieldDecl>> fields,
+    std::vector<std::unique_ptr<FuncDecl>> methods,
+    std::vector<std::unique_ptr<FuncDecl>> constructors
+  ) : Decl(E_Class_Decl, name), type(type),
+  fields(std::move(fields)), methods(std::move(methods)), constructors(std::move(constructors)) {}
+
+  std::shared_ptr<TypeClass> type;
+  std::vector<std::shared_ptr<ClassDecl>> base_classes;
   std::vector<std::unique_ptr<FieldDecl>> fields;
   std::vector<std::unique_ptr<FuncDecl>> methods;
   std::vector<std::unique_ptr<FuncDecl>> constructors;
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+    (void)typeTable;
+    return type;
+  }
+
+  bool validate() override {
+    // @TODO ?
+    return true;
+  }
 };
 
 class ArrayDecl : public Decl {
 public:
-  std::unique_ptr<TypeArray> type;
+  ArrayDecl(const std::string &name, std::shared_ptr<TypeArray> type, std::unique_ptr<ArrayLiteralExpr> initz)
+    : Decl(E_Array_Decl, name), type(type), initializer(std::move(initz)) {}
+
+  std::shared_ptr<TypeArray> type;
 
   // optional initializer if present
   // if a part of declaration
   //
   // var a : Array[Integer] := [1, 2, 3]
   //                           ^^^^^^^^^
-  std::unique_ptr<Expression> initializer;
+  std::unique_ptr<ArrayLiteralExpr> initializer;
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+    (void)typeTable;
+    return type;
+  }
+
+  bool validate() override {
+    // @TODO check that all elements are of the same type
+    return true;
+  }
 };
 
 class ListDecl : public Decl {
 public:
-  std::unique_ptr<TypeList> type;
+  std::shared_ptr<TypeList> type;
 
   // optional initializer if present
   // if a part of declaration
@@ -157,6 +220,16 @@ public:
   // var a : List[Integer] := [1, 2, 3]
   //                          ^^^^^^^^^
   std::unique_ptr<Expression> initializer;
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+    (void)typeTable;
+    return type;
+  };
+
+  bool validate() override {
+    // @TODO check that all elements are of the same type
+    return true;
+  }
 };
 
 #endif

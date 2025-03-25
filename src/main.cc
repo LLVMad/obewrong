@@ -2,8 +2,9 @@
 #include <iostream>
 #include <vector>
 
-#include "frontend/lexer/Lexer.h"
 #include "frontend/SourceManager.h"
+#include "frontend/lexer/Lexer.h"
+#include "frontend/parser/Parser.h"
 
 int main(int argc, char *argv[]) {
   if (argc != 3) {}
@@ -42,4 +43,8 @@ int main(int argc, char *argv[]) {
     }
     else std::cout << "nullptr" << std::endl;
   }
+
+  Parser parser(std::move(tokens));
+
+  std::unique_ptr<Entity> expr = parser.parseProgram();
 }

@@ -1,6 +1,8 @@
 #ifndef OBW_EINFO_H
 #define OBW_EINFO_H
 
+#include "TypeTable.h"
+
 #include <memory>
 #include <ostream>
 
@@ -25,6 +27,7 @@ enum Ekind {
   E_Parameter_Decl,
   E_Field_Decl,
   E_Function_Decl,
+  E_Method_Decl,
   E_Array_Decl,
   E_List_Decl,
 
@@ -38,6 +41,7 @@ enum Ekind {
   E_Boolean_Literal,
   E_Boolean_Type,
   E_Function,
+  E_Method,
   E_Chained_Functions, // compound expressions, a.Plus(2).Minus(1)...
   E_Function_Type,
   E_Class_Name,
@@ -51,6 +55,8 @@ enum Ekind {
   E_Assignment,
   E_While_Loop,
   E_If_Statement,
+  E_Switch_Statement,
+  E_Case_Statement,
   E_Return_Statement,
   E_Block,
 
@@ -60,6 +66,10 @@ enum Ekind {
   // fake entities, that just used to link meaningfully ones
   E_Expression,
   E_Arguments, // arguments list that is passed to a function
+
+  E_Function_Call,
+  E_Method_Call,
+  E_Array_Literal,
 };
 
 /**
@@ -73,7 +83,7 @@ public:
   Ekind getKind() const;
   Loc getLoc() const;
 
-  virtual std::unique_ptr<Type> resolveType();
+  virtual std::shared_ptr<Type> resolveType(TypeTable typeTable);
   virtual bool validate();
 
   // ======== NODE LINKS ========
@@ -84,7 +94,7 @@ public:
   // SCOPE LINK
   // points to a declaration in which scope this decl is
   // i.e. some ClassDecl or FuncDecl
-  std::unique_ptr<Entity> scope;
+  std::shared_ptr<Entity> scope;
 
   // STRUCTURAL LINK
   // children nodes
@@ -94,6 +104,14 @@ protected:
   Ekind kind;
 
   Loc location;
+};
+
+class Block : public Entity {
+public:
+  Block(std::vector<std::unique_ptr<Entity>> parts)
+    : Entity(E_Block), parts(std::move(parts)) {}
+
+  std::vector<std::unique_ptr<Entity>> parts;
 };
 
 /**

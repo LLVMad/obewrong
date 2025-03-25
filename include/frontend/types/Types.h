@@ -13,7 +13,13 @@
 enum TypeKind {
   TYPE_UNKNOWN = -1,
   TYPE_INT,
+  TYPE_I16,
+  TYPE_I64,
+  TYPE_U16,
+  TYPE_U64,
+  TYPE_U32,
   TYPE_FLOAT,
+  TYPE_F64,
   TYPE_STRING,
   TYPE_ARRAY,
   TYPE_CLASS,
@@ -32,16 +38,16 @@ public:
   virtual ~Type() = default;
 
   explicit Type(TypeKind kind, std::string name)
-      : kind(kind), name(std::move(name)) {}
+      : kind(kind), name((name)) {}
 };
 
 class TypeBuiltin : public Type {
 public:
-  // @TODO add max/min and epsilon
-  uint8_t bitsize; // can be added
-
   TypeBuiltin(TypeKind kind, const std::string &name, uint8_t bitsize)
-      : Type(kind, name), bitsize(bitsize) {}
+      : Type(kind, name), bitsize(bitsize), bytesize(bitsize / 8) {}
+
+  uint8_t bitsize; // can be added
+  uint8_t bytesize;
 };
 
 class TypeInt : public TypeBuiltin {
@@ -61,11 +67,61 @@ public:
   TypeInt() : TypeBuiltin(TYPE_INT, "Integer", 32) {}
 };
 
+class TypeInt16 : public TypeBuiltin {
+public:
+  int16_t max = std::numeric_limits<int16_t>::max();
+  int16_t min = std::numeric_limits<int16_t>::min();
+
+  TypeInt16() : TypeBuiltin(TYPE_I16, "Int16", 16) {}
+};
+
+class TypeInt64 : public TypeBuiltin {
+public:
+  int64_t max = std::numeric_limits<int64_t>::max();
+  int64_t min = std::numeric_limits<int64_t>::min();
+
+  TypeInt64() : TypeBuiltin(TYPE_I64, "Int64", 64) {}
+};
+
+class TypeUint16 : public TypeBuiltin {
+public:
+  uint16_t max = std::numeric_limits<uint16_t>::max();
+  uint16_t min = std::numeric_limits<uint16_t>::min();
+
+  TypeUint16() : TypeBuiltin(TYPE_U16, "Uint16", 16) {}
+};
+
+class TypeUint32 : public TypeBuiltin {
+public:
+  uint32_t max = std::numeric_limits<uint32_t>::max();
+  uint32_t min = std::numeric_limits<uint32_t>::min();
+
+  TypeUint32() : TypeBuiltin(TYPE_U32, "Uint32", 32) {}
+};
+
+class TypeUint64 : public TypeBuiltin {
+public:
+  uint64_t max = std::numeric_limits<uint64_t>::max();
+  uint64_t min = std::numeric_limits<uint64_t>::min();
+
+  TypeUint64() : TypeBuiltin(TYPE_U64, "Uint64", 64) {}
+};
+
+class TypeFloat64 : public TypeBuiltin {
+public:
+  double min = std::numeric_limits<double>::min();
+  double max = std::numeric_limits<double>::max();
+  double eps = std::numeric_limits<double>::epsilon();
+
+  TypeFloat64() : TypeBuiltin(TYPE_F64, "Float64", 64) {}
+};
+
+// f32
 class TypeReal : public TypeBuiltin {
 public:
-  float max = FLT_MAX;
-  float min = FLT_MIN;
-  float eps = FLT_EPSILON;
+  float max = std::numeric_limits<float>::max();
+  float min = std::numeric_limits<float>::min();
+  float eps = std::numeric_limits<float>::epsilon();
 
   TypeReal() : TypeBuiltin(TYPE_FLOAT, "Real", 32) {}
 };
@@ -85,11 +141,11 @@ public:
 
 class TypeArray : public Type {
 public:
-  std::unique_ptr<Type> el_type;
+  std::shared_ptr<Type> el_type;
   uint32_t size;
 
-  TypeArray(uint32_t size, std::unique_ptr<Type> el_type)
-      : Type(TYPE_ARRAY, "Array"), el_type(std::move(el_type)), size(size) {}
+  TypeArray(uint32_t size, std::shared_ptr<Type> el_type)
+      : Type(TYPE_ARRAY, "Array"), el_type(el_type), size(size) {}
 
   // for when we dont know the parameters yet
   TypeArray() : Type(TYPE_ARRAY, "Array"), el_type(nullptr), size(0) {}
@@ -102,13 +158,13 @@ class TypeFunc : public Type {
 public:
   // store just the signature
   // so just return type and arg types
-  std::unique_ptr<Type> return_type;
-  std::vector<std::unique_ptr<Type>> args;
+  std::shared_ptr<Type> return_type;
+  std::vector<std::shared_ptr<Type>> args;
 
-  TypeFunc(std::unique_ptr<Type> return_type,
-           std::vector<std::unique_ptr<Type>> args)
-      : Type(TYPE_FUNC, "Function"), return_type(std::move(return_type)),
-        args(std::move(args)) {}
+  TypeFunc(std::shared_ptr<Type> return_type,
+           std::vector<std::shared_ptr<Type>> args)
+      : Type(TYPE_FUNC, "Function"), return_type((return_type)),
+        args((args)) {}
 };
 
 // class "signature"
@@ -119,23 +175,27 @@ class TypeClass : public Type {
 public:
   //  std::string name;
   // @TODO add base class info
-  std::vector<std::unique_ptr<TypeClass>> base_class;
-  std::vector<std::unique_ptr<Type>> fields_types;
-  std::vector<std::unique_ptr<TypeFunc>> methods_types;
+  std::vector<std::shared_ptr<TypeClass>> base_class;
+  std::vector<std::shared_ptr<Type>> fields_types;
+  std::vector<std::shared_ptr<TypeFunc>> methods_types;
 
   TypeClass(const std::string &name,
-            std::vector<std::unique_ptr<Type>> fields_types,
-            std::vector<std::unique_ptr<TypeFunc>> methods_types)
-      : Type(TYPE_CLASS, name), fields_types(std::move(fields_types)),
-        methods_types(std::move(methods_types)) {}
+            std::vector<std::shared_ptr<Type>> fields_types,
+            std::vector<std::shared_ptr<TypeFunc>> methods_types)
+      : Type(TYPE_CLASS, name), fields_types(fields_types),
+        methods_types((methods_types)) {}
+
+  void addBaseClass(std::shared_ptr<TypeClass> base) {
+    base_class.push_back(base);
+  }
 };
 
 class TypeList : public Type {
 public:
-  std::unique_ptr<Type> el_type;
+  std::shared_ptr<Type> el_type;
 
-  TypeList(std::unique_ptr<Type> el_type)
-      : Type(TYPE_LIST, "List"), el_type(std::move(el_type)) {}
+  TypeList(std::shared_ptr<Type> el_type)
+      : Type(TYPE_LIST, "List"), el_type((el_type)) {}
 
   TypeList() : Type(TYPE_LIST, "List"), el_type(nullptr) {}
 };
