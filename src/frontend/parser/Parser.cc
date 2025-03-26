@@ -24,23 +24,35 @@ std::unique_ptr<Token> Parser::peek() {
 std::shared_ptr<Entity> Parser::parseProgram() {
   // return parseExpression();
   std::unique_ptr<Token> token = peek();
-  std::shared_ptr<Entity> root;
+  if (token == nullptr || token->kind != TOKEN_MODULE_DECL) return nullptr;
+  token = next(); // eat 'module'
+
+  // read module name
+  token = peek();
+  if (token == nullptr || token->kind != TOKEN_IDENTIFIER) return nullptr;
+  token = next();
+
+  std::shared_ptr<Entity> root = std::make_shared<ModuleDecl>(std::get<std::string>(token->value));
   lastDeclaredScopeParent.emplace("Global");
 
+  token = peek();
   while (token->kind != TOKEN_EOF) {
     // in global scope we can wait for class or function
     switch (token->kind) {
       case TOKEN_CLASS: {
-
+        // token = next();
+        root->next = parseClassDecl();
       } break;
-      case TOKEN_FUNC: {
-
-      }
+      // case TOKEN_FUNC: {
+      //   root->next = parseFunctionDecl();
+      // }
       default: break;
     }
 
     token = peek();
   }
+
+  return root;
 }
 
 std::shared_ptr<Entity> Parser::parseMethodDecl() {
@@ -63,9 +75,27 @@ std::shared_ptr<Entity> Parser::parseMethodDecl() {
   // get method parameters
   parseParameters(method);
 
+  std::vector<std::shared_ptr<Type>> args_types;
+  for (const auto &param : method->args) {
+    auto param_decl =
+      std::dynamic_pointer_cast<ParameterDecl>(param);
+    args_types.push_back(param_decl->type);
+  }
+
+  // get return type
+  token = next();
+  auto return_type =
+    globalTypeTable.getType(moduleName, std::get<std::string>(token->value));
+
+  // build signature
+  auto signature =
+    std::make_shared<TypeFunc>(return_type, args_types);
+
   // get body of method
   auto body_block =
     std::dynamic_pointer_cast<Block>(parseBlock(BLOCK_IN_CLASS));
+
+  method->body = body_block;
 
   // quit scope
   lastDeclaredScopeParent.pop();
@@ -172,7 +202,7 @@ std::shared_ptr<Entity> Parser::parseVarDecl() {
     std::shared_ptr<Expression>(dynamic_cast<Expression *>(parseExpression().get()));
   var->initializer = std::move(initializer);
 
-  this->globalSymbolTable.addToGlobalScope(moduleName, lastDeclaredScopeParent, var.get());
+  this->globalSymbolTable.addToGlobalScope(moduleName, lastDeclaredScopeParent.top(), var.get());
 
   return var;
 }
@@ -204,14 +234,14 @@ std::shared_ptr<Entity> Parser::parseAssignment() {
 
 std::shared_ptr<Entity> Parser::parseBlock(BlockKind blockKind) {
   std::unique_ptr<Token> token = peek();
-  if (token == nullptr || token->kind != TOKEN_BBEGIN || token->kind != TOKEN_THEN || token->kind != TOKEN_LOOP) return nullptr;
-
+  if (token == nullptr || (token->kind != TOKEN_BBEGIN && token->kind != TOKEN_THEN && token->kind != TOKEN_LOOP)) return nullptr;
+  token = next();
   std::vector<std::shared_ptr<Entity>> block_body;
 
   while (token->kind != TOKEN_BEND) {
     std::shared_ptr<Entity> part;
 
-    token = next();
+    token = peek();
     switch (token->kind) {
       case TOKEN_VAR_DECL: {
         if (blockKind > 0)
@@ -246,10 +276,10 @@ std::shared_ptr<Entity> Parser::parseBlock(BlockKind blockKind) {
         // @TODO this() or this.var
         switch (blockKind) {
           case BLOCK_IN_CLASS: {
-            // part = parseConstructor();
+            part = parseConstructorDecl();
           } break;
           // case BLOCK_IN_METHOD: {
-          //
+          //   part =
           // }
           default: break;
         }
@@ -268,6 +298,27 @@ std::shared_ptr<Entity> Parser::parseBlock(BlockKind blockKind) {
   token = next();
 
   return std::make_shared<Block>(std::move(block_body), blockKind);
+}
+
+std::shared_ptr<Entity> Parser::parseConstructorDecl() {
+  std::unique_ptr<Token> token = peek();
+  if (token == nullptr || token->kind != TOKEN_SELFREF) return nullptr;
+  token = next(); // eat 'this'
+
+  // read parameters
+  // @TODO name constructor
+  auto constr = std::make_shared<ConstrDecl>("This");
+
+  // read params
+  parseParameters(constr);
+
+  // read constr body
+  auto body_block
+  = std::dynamic_pointer_cast<Block>(parseBlock(BLOCK_IN_METHOD));
+
+  constr->body = body_block;
+
+  return constr;
 }
 
 std::shared_ptr<Entity> Parser::parseClassDecl() {
@@ -334,6 +385,8 @@ std::shared_ptr<Entity> Parser::parseClassDecl() {
   auto class_stmt =
     std::make_shared<ClassDecl>(class_name, class_new_type, fields, methods, constructors);
   globalSymbolTable.addToGlobalScope(moduleName, "Global", class_stmt.get());
+
+  return class_stmt;
 }
 
 std::shared_ptr<Entity> Parser::parseFieldDecl() {
@@ -625,6 +678,26 @@ void Parser::parseParameters(const std::shared_ptr<MethodDecl>& funcDecl) {
   }
 }
 
+void Parser::parseParameters(const std::shared_ptr<ConstrDecl>& constrDecl) {
+  std::unique_ptr<Token> token = peek();
+  if (token == nullptr || token->kind != TOKEN_LBRACKET) return;
+  token = next();
+
+  auto paramDecl = parseParameterDecl();
+
+  constrDecl->args.push_back(paramDecl);
+
+  while (token->kind == TOKEN_COMMA) {
+    token = next();
+
+    paramDecl = parseParameterDecl();
+    constrDecl->args.push_back(std::move(paramDecl));
+
+    token = peek();
+    if (token == nullptr) return;
+  }
+}
+
 void Parser::parseArguments(const std::shared_ptr<MethodCallEXP> &method_name) {
   auto node = parseExpression();
   auto expr = std::shared_ptr<Expression>(dynamic_cast<Expression*>(node.get()));
@@ -641,6 +714,28 @@ void Parser::parseArguments(const std::shared_ptr<MethodCallEXP> &method_name) {
     std::shared_ptr<Entity> after_comma = parseExpression();
     auto uexpr = std::shared_ptr<Expression>(dynamic_cast<Expression*>(after_comma.get()));
     method_name->arguments.push_back(std::move(uexpr));
+
+    token = peek();
+    if (token == nullptr) return;
+  }
+}
+
+void Parser::parseArguments(const std::shared_ptr<ConstructorCallEXP> &constr_name) {
+  auto node = parseExpression();
+  auto expr = std::shared_ptr<Expression>(dynamic_cast<Expression*>(node.get()));
+  constr_name->arguments.push_back(std::move(expr));
+
+  std::unique_ptr<Token> token = peek();
+  if (token == nullptr) return;
+
+  // arg, arg, arg
+  // ',' is a delimiter
+  while (token->kind == TOKEN_COMMA) {
+    token = next();
+
+    std::shared_ptr<Entity> after_comma = parseExpression();
+    auto uexpr = std::shared_ptr<Expression>(dynamic_cast<Expression*>(after_comma.get()));
+    constr_name->arguments.push_back(std::move(uexpr));
 
     token = peek();
     if (token == nullptr) return;
@@ -695,7 +790,7 @@ std::shared_ptr<Entity> Parser::parsePrimary() {
     return std::make_shared<ThisEXP>();
   }
   case TOKEN_IDENTIFIER: {
-    auto var = globalSymbolTable.lookup(moduleName, lastDeclaredScopeParent, std::get<std::string>(token->value));
+    auto var = globalSymbolTable.lookup(moduleName, lastDeclaredScopeParent.top(), std::get<std::string>(token->value));
     if (!var)
       throw std::runtime_error("Undefined variable: " +
                                std::get<std::string>(token->value));

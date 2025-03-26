@@ -26,8 +26,8 @@ class Parser {
   }
 
 public:
-  Parser(std::vector<std::unique_ptr<Token>> tokens, std::string moduleName)
-      : tokens(std::move(tokens)), tokenPos(-1), moduleName(std::move(moduleName)) {
+  Parser(std::vector<std::unique_ptr<Token>> tokens)
+      : tokens(std::move(tokens)), tokenPos(-1) {
     initBuiltinTypes();
     // symbolTable.enterScope();
   }
@@ -69,6 +69,8 @@ private:
   std::shared_ptr<Entity> parseCase();
 
   std::shared_ptr<Entity> parseVarDecl();
+
+  std::shared_ptr<Entity> parseConstructorDecl();
 
   std::shared_ptr<Entity> parseMethodDecl();
 
@@ -121,7 +123,7 @@ private:
    *
    */
   void parseParameters(const std::shared_ptr<FuncDecl>& funcDecl);
-
+  void parseParameters(const std::shared_ptr<ConstrDecl>& constrDecl);
   void parseParameters(const std::shared_ptr<MethodDecl>& funcDecl);
 
   /**
@@ -130,6 +132,8 @@ private:
    * be called
    */
   void parseArguments(const std::shared_ptr<MethodCallEXP> &method_name);
+
+  void parseArguments(const std::shared_ptr<ConstructorCallEXP> &constr_name);
 
   /**
    * @brief Parses arguments in a function call

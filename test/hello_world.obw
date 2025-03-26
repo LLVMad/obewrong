@@ -1,3 +1,5 @@
+module hello
+
 class Main is
   this() is
     print("Hello, world!")

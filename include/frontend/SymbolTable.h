@@ -33,7 +33,7 @@ public:
 
 class ModuleSymbolTable {
 public:
-  ModuleSymbolTable(const std::string &moduleName) : moduleName(moduleName) {};
+  ModuleSymbolTable(const std::string &moduleName) : moduleName(moduleName), symbolTables() {};
 
   std::string moduleName;
   std::unordered_map<std::string, SymbolTable> symbolTables;
@@ -58,6 +58,8 @@ public:
 
 class GlobalSymbolTable {
 public:
+
+  GlobalSymbolTable() : moduleSymbolTables() {}
 
   std::unordered_map<std::string, ModuleSymbolTable> moduleSymbolTables;
 

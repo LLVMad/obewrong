@@ -43,11 +43,24 @@ bool SymbolTable::isGlobalScope() const { return scopes.size() == 1; }
 //
 // }
 
-void GlobalSymbolTable::addToGlobalScope(const std::string &moduleName, const std::string &parentDeclName, Decl* decl){
-  this->moduleSymbolTables[moduleName].symbolTables[parentDeclName].addSymbol(decl->name, decl);
+void GlobalSymbolTable::addToGlobalScope(
+    const std::string &moduleName,
+    const std::string &parentDeclName,
+    Decl* decl
+) {
+  auto &moduleSymTab = moduleSymbolTables.try_emplace(moduleName, moduleName).first->second;
+  moduleSymTab.symbolTables[parentDeclName].addSymbol(decl->name, decl);
 }
 
-Decl* GlobalSymbolTable::lookup(std::string moduleName, std::string parentScope, const std::string &name) {
-  return this->moduleSymbolTables[moduleName].symbolTables[parentScope].lookup(name);
+Decl* GlobalSymbolTable::lookup(
+    std::string moduleName,
+    std::string parentScope,
+    const std::string &name
+) {
+  auto moduleIt = moduleSymbolTables.find(moduleName);
+  if (moduleIt == moduleSymbolTables.end()) return nullptr; // Module not found
+
+  auto &symTab = moduleIt->second.symbolTables[parentScope];
+  return symTab.lookup(name);
 }
 

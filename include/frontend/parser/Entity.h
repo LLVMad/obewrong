@@ -30,6 +30,7 @@ enum Ekind {
   E_Method_Decl,
   E_Array_Decl,
   E_List_Decl,
+  E_Module_Decl,
 
   // Type-related entities
   E_Integer_Literal,
@@ -94,11 +95,12 @@ public:
   // SCOPE LINK
   // points to a declaration in which scope this decl is
   // i.e. some ClassDecl or FuncDecl
-  std::shared_ptr<Entity> scope;
+  // std::shared_ptr<Entity> scope;
+  // @deprecated now we use symbol table for scope
 
   // STRUCTURAL LINK
   // children nodes
-  std::vector<std::unique_ptr<Entity>> children;
+  std::shared_ptr<Entity> next;
 
 protected:
   Ekind kind;

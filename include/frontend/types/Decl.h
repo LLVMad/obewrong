@@ -237,4 +237,31 @@ public:
   bool validate() override;
 };
 
+class ModuleDecl: public Decl {
+public:
+  ModuleDecl(const std::string &moduleNmae)
+    : Decl(E_Module_Decl, moduleNmae) {}
+};
+
+class ConstrDecl : public Decl {
+public:
+  ConstrDecl(const std::string &name)
+    : Decl(E_Constructor_Decl, name) {}
+  explicit ConstrDecl(const std::string &name,
+                    std::shared_ptr<TypeFunc> signature,
+                    std::vector<std::shared_ptr<Decl>> args,
+                    std::shared_ptr<Block> body)
+      : Decl(E_Method_Decl, name), signature(std::move(signature)),
+        args(std::move(args)), body(std::move(body)) {}
+
+  std::shared_ptr<TypeFunc> signature;
+  std::vector<std::shared_ptr<Decl>> args;
+
+  std::shared_ptr<Block> body;
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+
+  bool validate() override;
+};
+
 #endif

@@ -46,5 +46,7 @@ int main(int argc, char *argv[]) {
 
   Parser parser(std::move(tokens));
 
-  std::unique_ptr<Entity> expr = parser.parseProgram();
+  std::shared_ptr<Entity> parseTree = parser.parseProgram();
+
+  std::cout << parseTree->getKind() << std::endl;
 }
