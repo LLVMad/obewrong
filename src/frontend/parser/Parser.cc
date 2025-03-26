@@ -76,20 +76,44 @@ std::shared_ptr<Entity> Parser::parseMethodDecl() {
   parseParameters(method);
 
   std::vector<std::shared_ptr<Type>> args_types;
-  for (const auto &param : method->args) {
-    auto param_decl =
-      std::dynamic_pointer_cast<ParameterDecl>(param);
-    args_types.push_back(param_decl->type);
+  if (!method->isVoided) {
+    for (const auto &param : method->args) {
+      auto param_decl =
+        std::dynamic_pointer_cast<ParameterDecl>(param);
+      args_types.push_back(param_decl->type);
+    }
   }
 
   // get return type
+  token = peek();
+  if (token == nullptr || token->kind != TOKEN_IDENTIFIER) {
+    // no return type
+    // build signature
+    auto signature = std::make_shared<TypeFunc>(args_types);
+    method->isVoid= true;
+
+    // get body of method
+    auto body_block =
+      std::dynamic_pointer_cast<Block>(parseBlock(BLOCK_IN_CLASS));
+
+    method->body = body_block;
+
+    // quit scope
+    lastDeclaredScopeParent.pop();
+
+    return method;
+  };
+
   token = next();
   auto return_type =
     globalTypeTable.getType(moduleName, std::get<std::string>(token->value));
 
   // build signature
   auto signature =
-    std::make_shared<TypeFunc>(return_type, args_types);
+    method->isVoided ?
+      std::make_shared<TypeFunc>(return_type)
+      :
+      std::make_shared<TypeFunc>(return_type, args_types);
 
   // get body of method
   auto body_block =
@@ -255,7 +279,9 @@ std::shared_ptr<Entity> Parser::parseBlock(BlockKind blockKind) {
         if (peek()->kind == TOKEN_DOT) part = parseExpression();
 
         // a := a.set(...)
-        if (peek()->kind == TOKEN_ASSIGNMENT) part = parseAssignment();
+        else if (peek()->kind == TOKEN_ASSIGNMENT) part = parseAssignment();
+
+        else part = parseExpression();
       } break;
       case TOKEN_IF: {
         part = parseIfStatement();
@@ -305,6 +331,8 @@ std::shared_ptr<Entity> Parser::parseConstructorDecl() {
   if (token == nullptr || token->kind != TOKEN_SELFREF) return nullptr;
   token = next(); // eat 'this'
 
+  lastDeclaredScopeParent.emplace());
+
   // read parameters
   // @TODO name constructor
   auto constr = std::make_shared<ConstrDecl>("This");
@@ -312,9 +340,30 @@ std::shared_ptr<Entity> Parser::parseConstructorDecl() {
   // read params
   parseParameters(constr);
 
+  std::vector<std::shared_ptr<Type>> args_types;
+  if (!constr->isDefault) {
+    for (const auto &param : constr->args) {
+      auto param_decl =
+        std::dynamic_pointer_cast<ParameterDecl>(param);
+      args_types.push_back(param_decl->type);
+    }
+  }
+
+  // get return type ???? no return type in constructorts lol
+  // token = next();
+  // auto return_type =
+  //   globalTypeTable.getType(moduleName, std::get<std::string>(token->value));
+
+  // build signature
+  auto signature =
+    constr->isDefault ?
+      std::make_shared<TypeFunc>()
+      :
+      std::make_shared<TypeFunc>(args_types);
+
   // read constr body
   auto body_block
-  = std::dynamic_pointer_cast<Block>(parseBlock(BLOCK_IN_METHOD));
+    = std::dynamic_pointer_cast<Block>(parseBlock(BLOCK_IN_METHOD));
 
   constr->body = body_block;
 
@@ -656,6 +705,11 @@ void Parser::parseParameters(const std::shared_ptr<FuncDecl>& funcDecl) {
     token = peek();
     if (token == nullptr) return;
   }
+
+  if (funcDecl->args[0] == nullptr) {
+    funcDecl->isVoided = true;
+    funcDecl->args.clear();
+  }
 }
 
 void Parser::parseParameters(const std::shared_ptr<MethodDecl>& funcDecl) {
@@ -676,6 +730,11 @@ void Parser::parseParameters(const std::shared_ptr<MethodDecl>& funcDecl) {
     token = peek();
     if (token == nullptr) return;
   }
+
+  if (funcDecl->args[0] == nullptr) {
+    funcDecl->isVoided = true;
+    funcDecl->args.clear();
+  }
 }
 
 void Parser::parseParameters(const std::shared_ptr<ConstrDecl>& constrDecl) {
@@ -695,6 +754,15 @@ void Parser::parseParameters(const std::shared_ptr<ConstrDecl>& constrDecl) {
 
     token = peek();
     if (token == nullptr) return;
+  }
+
+  token = peek();
+  if (token == nullptr || token->kind != TOKEN_RBRACKET) return;
+  token = next();
+
+  if (constrDecl->args[0] == nullptr) {
+    constrDecl->isDefault = true;
+    constrDecl->args.clear();
   }
 }
 
