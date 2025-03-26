@@ -38,7 +38,7 @@ public:
   virtual ~Type() = default;
 
   explicit Type(TypeKind kind, std::string name)
-      : kind(kind), name((name)) {}
+      : kind(kind), name(std::move((name))) {}
 };
 
 class TypeBuiltin : public Type {
@@ -145,7 +145,7 @@ public:
   uint32_t size;
 
   TypeArray(uint32_t size, std::shared_ptr<Type> el_type)
-      : Type(TYPE_ARRAY, "Array"), el_type(el_type), size(size) {}
+      : Type(TYPE_ARRAY, "Array"), el_type(std::move(el_type)), size(size) {}
 
   // for when we dont know the parameters yet
   TypeArray() : Type(TYPE_ARRAY, "Array"), el_type(nullptr), size(0) {}
@@ -163,8 +163,8 @@ public:
 
   TypeFunc(std::shared_ptr<Type> return_type,
            std::vector<std::shared_ptr<Type>> args)
-      : Type(TYPE_FUNC, "Function"), return_type((return_type)),
-        args((args)) {}
+      : Type(TYPE_FUNC, "Function"), return_type(std::move((return_type))),
+        args(std::move((args))) {}
 };
 
 // class "signature"
@@ -182,10 +182,10 @@ public:
   TypeClass(const std::string &name,
             std::vector<std::shared_ptr<Type>> fields_types,
             std::vector<std::shared_ptr<TypeFunc>> methods_types)
-      : Type(TYPE_CLASS, name), fields_types(fields_types),
-        methods_types((methods_types)) {}
+      : Type(TYPE_CLASS, name), fields_types(std::move(fields_types)),
+        methods_types(std::move((methods_types))) {}
 
-  void addBaseClass(std::shared_ptr<TypeClass> base) {
+  void addBaseClass(const std::shared_ptr<TypeClass>& base) {
     base_class.push_back(base);
   }
 };
@@ -195,7 +195,7 @@ public:
   std::shared_ptr<Type> el_type;
 
   TypeList(std::shared_ptr<Type> el_type)
-      : Type(TYPE_LIST, "List"), el_type((el_type)) {}
+      : Type(TYPE_LIST, "List"), el_type(std::move((el_type))) {}
 
   TypeList() : Type(TYPE_LIST, "List"), el_type(nullptr) {}
 };

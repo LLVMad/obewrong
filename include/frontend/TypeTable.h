@@ -1,7 +1,7 @@
 #ifndef TYPE_TABLE_H
 #define TYPE_TABLE_H
 
-#include "frontend/types/Types.h"
+#include "types/Types.h"
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -77,6 +77,25 @@ public:
   }
 
   bool exists(const std::string &name) const { return types.contains(name); }
+};
+
+class GlobalTypeTable {
+public:
+  // GlobalTypeTable() {}
+
+  std::unordered_map<std::string, TypeTable> types;
+
+  void addType(const std::string &moduleName, const std::string &typeName, std::shared_ptr<Type> type) {
+    types[moduleName].addType(typeName, type);
+  }
+
+  std::shared_ptr<Type> getType(const std::string &moduleName, const std::string &typeName) {
+    auto it = types.find(moduleName);
+    if (it == types.end()) {
+      return nullptr;
+    }
+    return it->second.getType(typeName);
+  }
 };
 
 #endif

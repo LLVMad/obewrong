@@ -1,5 +1,5 @@
-#include "frontend/parser/SymbolTable.h"
-#include "frontend/parser/TypeTable.h"
+#include "../../include/frontend/SymbolTable.h"
+#include "../../include/frontend/TypeTable.h"
 #include <cassert>
 #include <gtest/gtest.h>
 #include <iostream>

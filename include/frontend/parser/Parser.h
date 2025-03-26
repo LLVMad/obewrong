@@ -1,43 +1,47 @@
 #ifndef OBW_PARSER_H
 #define OBW_PARSER_H
 
+#include <utility>
 #include <vector>
 
+#include "../SymbolTable.h"
+#include "../TypeTable.h"
 #include "Entity.h"
 #include "frontend/lexer/Lexer.h"
-#include "frontend/parser/SymbolTable.h"
-#include "frontend/parser/TypeTable.h"
 #include "frontend/types/Decl.h"
+
+#include <stack>
 #include <stdexcept>
 
 class Parser {
-  SymbolTable symbolTable;
-  TypeTable typeTable;
+  // SymbolTable symbolTable;
+  GlobalSymbolTable globalSymbolTable;
+  GlobalTypeTable globalTypeTable;
 
   void initBuiltinTypes() {
-    typeTable.addType("Integer", std::make_unique<TypeInt>());
-    typeTable.addType("Real", std::make_unique<TypeReal>());
-    typeTable.addType("Bool", std::make_unique<TypeBool>());
-    typeTable.addType("String", std::make_unique<TypeString>());
+    globalTypeTable.addType(moduleName,"Integer", std::make_unique<TypeInt>());
+    globalTypeTable.addType(moduleName, "Real", std::make_unique<TypeReal>());
+    globalTypeTable.addType(moduleName, "Bool", std::make_unique<TypeBool>());
+    globalTypeTable.addType(moduleName, "String", std::make_unique<TypeString>());
   }
 
 public:
-  Parser(std::vector<std::unique_ptr<Token>> tokens)
-      : tokens(std::move(tokens)), tokenPos(-1) {
+  Parser(std::vector<std::unique_ptr<Token>> tokens, std::string moduleName)
+      : tokens(std::move(tokens)), tokenPos(-1), moduleName(std::move(moduleName)) {
     initBuiltinTypes();
-    symbolTable.enterScope();
+    // symbolTable.enterScope();
   }
 
   /**
    * @brief Main function for parsing a program
    * @return pointer to a root of an AAST tree
    */
-  std::unique_ptr<Entity> parseProgram();
+  std::shared_ptr<Entity> parseProgram();
 
 private:
   std::vector<std::unique_ptr<Token>> tokens;
 
-  std::unique_ptr<Entity> current_scope;
+  std::shared_ptr<Entity> current_scope;
 
   /**
    * @brief eats current token
@@ -56,30 +60,30 @@ private:
 
   // void parseProgramDecls();
 
-  std::unique_ptr<Entity> parseIfStatement();
+  std::shared_ptr<Entity> parseIfStatement();
 
-  std::unique_ptr<Entity> parseReturnStatement();
+  std::shared_ptr<Entity> parseReturnStatement();
 
-  std::unique_ptr<Entity> parseSwitch();
+  std::shared_ptr<Entity> parseSwitch();
 
-  std::unique_ptr<Entity> parseCase();
+  std::shared_ptr<Entity> parseCase();
 
-  std::unique_ptr<Entity> parseVarDecl();
+  std::shared_ptr<Entity> parseVarDecl();
 
-  std::unique_ptr<Entity> parseMethodDecl();
+  std::shared_ptr<Entity> parseMethodDecl();
 
-  std::unique_ptr<Entity> parseFunctionDecl();
+  std::shared_ptr<Entity> parseFunctionDecl();
 
-  std::unique_ptr<Entity> parseClassDecl();
+  std::shared_ptr<Entity> parseClassDecl();
 
-  std::unique_ptr<Entity> parseFieldDecl();
+  std::shared_ptr<Entity> parseFieldDecl();
 
   /**
    * @note WhileLoop ::= \n
    * "while" Expression "loop" Body "end"
    *
    */
-  std::unique_ptr<Entity> parseWhileStatement();
+  std::shared_ptr<Entity> parseWhileStatement();
 
   /**
     * @note ForLoop ::=\n
@@ -87,9 +91,9 @@ private:
       Body\n
       "end"
    */
-  std::unique_ptr<Entity> parseForStatement();
+  std::shared_ptr<Entity> parseForStatement();
 
-  std::unique_ptr<Entity> parseAssignment();
+  std::shared_ptr<Entity> parseAssignment();
 
   /**
    * @note Block \n
@@ -98,7 +102,7 @@ private:
    *  parse WHATEVER construct is between is and end
    *  could be ANYTHING!!!
    */
-  std::unique_ptr<Entity> parseBlock(BlockKind blockKind);
+  std::shared_ptr<Entity> parseBlock(BlockKind blockKind);
 
   /**
    * @note Expression \n
@@ -106,26 +110,26 @@ private:
    *
    * @note also parses functioncalls and compund expressions
    */
-  std::unique_ptr<Entity> parseExpression();
+  std::shared_ptr<Entity> parseExpression();
 
   /**
    *
    */
-  std::unique_ptr<ParameterDecl> parseParameterDecl();
+  std::shared_ptr<ParameterDecl> parseParameterDecl();
 
   /**
    *
    */
-  void parseParameters(const std::unique_ptr<FuncDecl>& funcDecl);
+  void parseParameters(const std::shared_ptr<FuncDecl>& funcDecl);
 
-  void parseParameters(const std::unique_ptr<MethodDecl>& funcDecl);
+  void parseParameters(const std::shared_ptr<MethodDecl>& funcDecl);
 
   /**
    * @brief Parses arguments in a method call
    * @param method_name name of a method, that we read arguments for, that will
    * be called
    */
-  void parseArguments(const std::unique_ptr<MethodCallEXP> &method_name);
+  void parseArguments(const std::shared_ptr<MethodCallEXP> &method_name);
 
   /**
    * @brief Parses arguments in a function call
@@ -133,7 +137,7 @@ private:
    * @param function_name name of a func, that we read arguments for, that will
    * be called
    */
-  void parseArguments(const std::unique_ptr<FuncCallEXP> &function_name);
+  void parseArguments(const std::shared_ptr<FuncCallEXP> &function_name);
 
   /**
    * @brief this is the last point
@@ -148,14 +152,18 @@ private:
     | ClassName \n
     | Identifier \n
    */
-  std::unique_ptr<Entity> parsePrimary();
+  std::shared_ptr<Entity> parsePrimary();
 
   // variables to keep track
   // of declared important constructs
   // and their scope
-  std::unique_ptr<ClassDecl> lastDeclaredClass;
-  std::unique_ptr<MethodDecl> lastDeclaredMethod;
-  std::unique_ptr<FuncDecl> lastDeclaredFunction;
+  std::string lastDeclaredClass;
+  std::string lastDeclaredMethod;
+  std::string lastDeclaredFunction;
+
+  std::stack<std::string> lastDeclaredScopeParent;
+
+  std::string moduleName;
 };
 
 #endif

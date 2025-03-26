@@ -80,7 +80,7 @@ public:
   //
   // var a : Integer := 0
   //                 ^^^^
-  std::unique_ptr<Expression> initializer;
+  std::shared_ptr<Expression> initializer;
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
@@ -97,7 +97,7 @@ public:
 class ParameterDecl : public Decl {
 public:
   explicit ParameterDecl(const std::string &name, std::shared_ptr<Type> type)
-      : Decl(E_Parameter_Decl, name), type(type) {}
+      : Decl(E_Parameter_Decl, name), type(std::move(type)) {}
 
   std::shared_ptr<Type> type;
 
@@ -116,19 +116,21 @@ public:
  */
 class MethodDecl : public Decl {
 public:
+  MethodDecl(const std::string &name)
+    : Decl(E_Method_Decl, name) {}
   explicit MethodDecl(const std::string &name,
                     std::shared_ptr<TypeFunc> signature,
-                    std::vector<std::unique_ptr<Decl>> args,
-                    std::unique_ptr<Block> body)
-      : Decl(E_Method_Decl, name), signature(signature),
+                    std::vector<std::shared_ptr<Decl>> args,
+                    std::shared_ptr<Block> body)
+      : Decl(E_Method_Decl, name), signature(std::move(signature)),
         args(std::move(args)), body(std::move(body)) {}
 
   std::shared_ptr<TypeFunc> signature;
-  std::vector<std::unique_ptr<Decl>> args;
+  std::vector<std::shared_ptr<Decl>> args;
 
   bool isForward;
   bool isShort;
-  std::unique_ptr<Block> body;
+  std::shared_ptr<Block> body;
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
@@ -139,17 +141,17 @@ class FuncDecl : public Decl {
 public:
   explicit FuncDecl(const std::string &name,
                     std::shared_ptr<TypeFunc> signature,
-                    std::vector<std::unique_ptr<ParameterDecl>> args,
-                    std::unique_ptr<Block> body)
-      : Decl(E_Function_Decl, name), signature(signature),
+                    std::vector<std::shared_ptr<ParameterDecl>> args,
+                    std::shared_ptr<Block> body)
+      : Decl(E_Function_Decl, name), signature(std::move(signature)),
         args(std::move(args)), body(std::move(body)) {}
 
   std::shared_ptr<TypeFunc> signature;
-  std::vector<std::unique_ptr<ParameterDecl>> args;
+  std::vector<std::shared_ptr<ParameterDecl>> args;
 
   bool isForward;
   bool isShort;
-  std::unique_ptr<Block> body;
+  std::shared_ptr<Block> body;
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
@@ -172,25 +174,25 @@ public:
   ClassDecl(
     const std::string &name, std::shared_ptr<TypeClass> type,
     std::vector<std::shared_ptr<ClassDecl>> base_class,
-    std::vector<std::unique_ptr<FieldDecl>> fields,
-    std::vector<std::unique_ptr<FuncDecl>> methods,
-    std::vector<std::unique_ptr<FuncDecl>> constructors
-  ) : Decl(E_Class_Decl, name), type(type), base_classes(std::move(base_class)),
+    std::vector<std::shared_ptr<FieldDecl>> fields,
+    std::vector<std::shared_ptr<MethodDecl>> methods,
+    std::vector<std::shared_ptr<MethodDecl>> constructors
+  ) : Decl(E_Class_Decl, name), type(std::move(type)), base_classes(std::move(base_class)),
       fields(std::move(fields)), methods(std::move(methods)), constructors(std::move(constructors)) {}
 
   ClassDecl(
     const std::string &name, std::shared_ptr<TypeClass> type,
-    std::vector<std::unique_ptr<FieldDecl>> fields,
-    std::vector<std::unique_ptr<FuncDecl>> methods,
-    std::vector<std::unique_ptr<FuncDecl>> constructors
-  ) : Decl(E_Class_Decl, name), type(type),
+    std::vector<std::shared_ptr<FieldDecl>> fields,
+    std::vector<std::shared_ptr<MethodDecl>> methods,
+    std::vector<std::shared_ptr<MethodDecl>> constructors
+  ) : Decl(E_Class_Decl, name), type(std::move(type)),
   fields(std::move(fields)), methods(std::move(methods)), constructors(std::move(constructors)) {}
 
   std::shared_ptr<TypeClass> type;
   std::vector<std::shared_ptr<ClassDecl>> base_classes;
-  std::vector<std::unique_ptr<FieldDecl>> fields;
-  std::vector<std::unique_ptr<FuncDecl>> methods;
-  std::vector<std::unique_ptr<FuncDecl>> constructors;
+  std::vector<std::shared_ptr<FieldDecl>> fields;
+  std::vector<std::shared_ptr<MethodDecl>> methods;
+  std::vector<std::shared_ptr<MethodDecl>> constructors;
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
@@ -199,8 +201,8 @@ public:
 
 class ArrayDecl : public Decl {
 public:
-  ArrayDecl(const std::string &name, std::shared_ptr<TypeArray> type, std::unique_ptr<ArrayLiteralExpr> initz)
-    : Decl(E_Array_Decl, name), type(type), initializer(std::move(initz)) {}
+  ArrayDecl(const std::string &name, std::shared_ptr<TypeArray> type, std::shared_ptr<ArrayLiteralExpr> initz)
+    : Decl(E_Array_Decl, name), type(std::move(type)), initializer(std::move(initz)) {}
 
   std::shared_ptr<TypeArray> type;
 
@@ -209,7 +211,7 @@ public:
   //
   // var a : Array[Integer] := [1, 2, 3]
   //                           ^^^^^^^^^
-  std::unique_ptr<ArrayLiteralExpr> initializer;
+  std::shared_ptr<ArrayLiteralExpr> initializer;
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
@@ -218,7 +220,7 @@ public:
 
 class ListDecl : public Decl {
 public:
-  ListDecl(const std::string &name, std::shared_ptr<TypeList> type, std::unique_ptr<ArrayLiteralExpr> initz)
+  ListDecl(const std::string &name, std::shared_ptr<TypeList> type, std::shared_ptr<ArrayLiteralExpr> initz)
     : Decl(E_List_Decl, name), type(std::move(type)), initializer(std::move(initz)) {}
 
   std::shared_ptr<TypeList> type;
@@ -228,7 +230,7 @@ public:
   //
   // var a : List[Integer] := [1, 2, 3]
   //                          ^^^^^^^^^
-  std::unique_ptr<ArrayLiteralExpr> initializer;
+  std::shared_ptr<ArrayLiteralExpr> initializer;
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 

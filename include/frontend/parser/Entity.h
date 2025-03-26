@@ -1,7 +1,7 @@
 #ifndef OBW_EINFO_H
 #define OBW_EINFO_H
 
-#include "TypeTable.h"
+#include "../TypeTable.h"
 
 #include <memory>
 #include <ostream>
@@ -118,10 +118,10 @@ enum BlockKind {
 
 class Block : public Entity {
 public:
-  Block(std::vector<std::unique_ptr<Entity>> parts, BlockKind kind)
+  Block(std::vector<std::shared_ptr<Entity>> parts, BlockKind kind)
     : Entity(E_Block), parts(std::move(parts)), kind(kind) {};
 
-  std::vector<std::unique_ptr<Entity>> parts;
+  std::vector<std::shared_ptr<Entity>> parts;
   BlockKind kind;
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override {

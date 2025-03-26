@@ -86,11 +86,11 @@ private:
  */
 class ArrayLiteralExpr : public Expression {
 public:
-  ArrayLiteralExpr(std::vector<std::unique_ptr<Expression>> elements)
+  ArrayLiteralExpr(std::vector<std::shared_ptr<Expression>> elements)
     : Expression(E_Array_Literal), elements(std::move(elements)) {};
 
   // children should be
-  std::vector<std::unique_ptr<Expression>> elements;
+  std::vector<std::shared_ptr<Expression>> elements;
 
   // void addElement(std::shared_ptr<Expression> expr) {
   //
@@ -159,7 +159,7 @@ public:
  */
 class MethodCallEXP : public Expression {
 public:
-  MethodCallEXP(std::string method_name, std::unique_ptr<Expression> left, std::vector<std::unique_ptr<Expression>> arguments)
+  MethodCallEXP(std::string method_name, std::shared_ptr<Expression> left, std::vector<std::shared_ptr<Expression>> arguments)
       : Expression(E_Method_Call), method_name(std::move(method_name)), left(std::move(left)), arguments(std::move(arguments)) {};
 
   MethodCallEXP() : Expression(E_Method_Call) {}
@@ -167,8 +167,8 @@ public:
   std::string method_name;
 
   // children should be
-  std::unique_ptr<Expression> left;
-  std::vector<std::unique_ptr<Expression>> arguments;
+  std::shared_ptr<Expression> left;
+  std::vector<std::shared_ptr<Expression>> arguments;
 
   // void addLhs(const std::shared_ptr<Expression> &lhs) {
   //   this->children.push_back(lhs);
@@ -184,7 +184,7 @@ public:
 
 class FuncCallEXP : public Expression {
 public:
-  FuncCallEXP(std::string method_name, std::vector<std::unique_ptr<Expression>> arguments)
+  FuncCallEXP(std::string method_name, std::vector<std::shared_ptr<Expression>> arguments)
       : Expression(E_Function_Call),
         func_name(std::move(method_name)), arguments(std::move(arguments)) {};
 
@@ -193,7 +193,7 @@ public:
   std::string func_name;
 
   // children should be
-  std::vector<std::unique_ptr<Expression>> arguments;
+  std::vector<std::shared_ptr<Expression>> arguments;
 
   // void addArgument(const std::shared_ptr<Expression> &arg) {
   //   this->children.push_back(arg);
@@ -244,12 +244,12 @@ private:
  */
 class ConstructorCallEXP : public Expression {
 public:
-  ConstructorCallEXP(std::unique_ptr<ClassNameEXP> left, std::vector<std::unique_ptr<Expression>> arguments)
+  ConstructorCallEXP(std::shared_ptr<ClassNameEXP> left, std::vector<std::shared_ptr<Expression>> arguments)
       : Expression(E_Function), left(std::move(left)), arguments(std::move(arguments)) {};
 
   // children should be
-  std::unique_ptr<ClassNameEXP> left;
-  std::vector<std::unique_ptr<Expression>> arguments;
+  std::shared_ptr<ClassNameEXP> left;
+  std::vector<std::shared_ptr<Expression>> arguments;
 
   // void addLhs(const std::shared_ptr<ClassNameEXP> &lhs) {
   //   this->children.push_back(lhs);
@@ -271,11 +271,11 @@ public:
  */
 class FieldAccessEXP : public Expression {
 public:
-  FieldAccessEXP(std::string name, std::unique_ptr<Expression> left)
+  FieldAccessEXP(std::string name, std::shared_ptr<Expression> left)
       : Expression(E_Field_Reference), left(std::move(left)), field_name(std::move(name)) {};
 
   // children should be
-  std::unique_ptr<Expression> left;
+  std::shared_ptr<Expression> left;
   std::string field_name;
 
   // void addLhs(const std::shared_ptr<Expression> &lhs) {
@@ -298,10 +298,10 @@ public:
       : Expression(E_Chained_Functions) {}
 
   // children should be
-  std::vector<std::unique_ptr<Expression>> parts;
+  std::vector<std::shared_ptr<Expression>> parts;
 
   // moves the pointer
-  void addExpression(std::unique_ptr<Expression> expr) {
+  void addExpression(std::shared_ptr<Expression> expr) {
     this->parts.push_back(std::move(expr));
   }
 
