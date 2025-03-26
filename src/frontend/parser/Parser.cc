@@ -481,7 +481,7 @@ std::shared_ptr<Entity> Parser::parseFieldDecl() {
   token = next();
 
   // read type
-  if (peek()->kind != TOKEN_IDENTIFIER) return nullptr;
+  if (!isTypeName(peek()->kind)) return nullptr;
   token = next();
   auto var_type = globalTypeTable.types[moduleName].getType(std::get<std::string>(token->value));
 
@@ -705,7 +705,7 @@ std::shared_ptr<ParameterDecl> Parser::parseParameterDecl() {
 
   // read type
   token = peek();
-  if (token->kind != TOKEN_IDENTIFIER) return nullptr;
+  if (!isTypeName(token->kind)) return nullptr;
   token = next();
   auto param_type = std::get<std::string>(token->value);
 

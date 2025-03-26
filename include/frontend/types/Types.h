@@ -160,11 +160,22 @@ public:
   // so just return type and arg types
   std::shared_ptr<Type> return_type;
   std::vector<std::shared_ptr<Type>> args;
+  bool isVoided; // no parameters
 
   TypeFunc(std::shared_ptr<Type> return_type,
            std::vector<std::shared_ptr<Type>> args)
       : Type(TYPE_FUNC, "Function"), return_type(std::move((return_type))),
-        args(std::move((args))) {}
+        args(std::move((args))), isVoided(false) {}
+
+  TypeFunc(const std::shared_ptr<Type> &return_type)
+    : Type(TYPE_FUNC, "Function"), return_type(return_type), isVoided(false) {}
+
+  // default constructor
+  TypeFunc()
+    : Type(TYPE_FUNC, "Function"), return_type(nullptr), isVoided(true) {}
+
+  TypeFunc(std::vector<std::shared_ptr<Type>> args)
+  : Type(TYPE_FUNC, "Function"), return_type(nullptr), args(std::move(args)), isVoided(false) {}
 };
 
 // class "signature"

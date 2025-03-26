@@ -123,13 +123,21 @@ public:
                     std::vector<std::shared_ptr<Decl>> args,
                     std::shared_ptr<Block> body)
       : Decl(E_Method_Decl, name), signature(std::move(signature)),
-        args(std::move(args)), body(std::move(body)) {}
+        args(std::move(args)), isVoid(false), body(std::move(body)) {}
+
+  explicit MethodDecl(const std::string &name,
+                    std::shared_ptr<TypeFunc> signature,
+                    std::shared_ptr<Block> body)
+      : Decl(E_Method_Decl, name), signature(std::move(signature)),
+        args(), isVoid(true), body(std::move(body)) {}
 
   std::shared_ptr<TypeFunc> signature;
   std::vector<std::shared_ptr<Decl>> args;
 
   bool isForward;
   bool isShort;
+  bool isVoided; // no parameters
+  bool isVoid;
   std::shared_ptr<Block> body;
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
@@ -151,6 +159,7 @@ public:
 
   bool isForward;
   bool isShort;
+  bool isVoided; // no parameters
   std::shared_ptr<Block> body;
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
@@ -262,6 +271,9 @@ public:
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
   bool validate() override;
+
+  // no parameters
+  bool isDefault;
 };
 
 #endif
