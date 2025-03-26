@@ -5,6 +5,29 @@
 #include "frontend/parser/Expression.h"
 #include "frontend/parser/Statement.h"
 
+bool isTypeName(TokenKind kind) {
+  switch (kind) {
+  case TOKEN_TYPE_STRING:
+  case TOKEN_TYPE_INT32:
+  case TOKEN_TYPE_INT64:
+  case TOKEN_TYPE_INT16:
+  case TOKEN_TYPE_U32:
+  case TOKEN_TYPE_U16:
+  case TOKEN_TYPE_U64:
+  case TOKEN_TYPE_REAL:
+  case TOKEN_TYPE_F64:
+  case TOKEN_TYPE_BOOL:
+  case TOKEN_TYPE_LIST:
+  case TOKEN_TYPE_ARRAY:
+  case TOKEN_TYPE_ANYVAL:
+  case TOKEN_TYPE_ANYREF:
+  case TOKEN_TYPE_TYPE:
+      return true;
+  default:
+    return false;
+  }
+}
+
 std::unique_ptr<Token> Parser::next() {
   if (tokens[tokenPos + 1]->kind != TOKEN_EOF) {
     return std::make_unique<Token>(*tokens[++tokenPos]);
@@ -33,7 +56,11 @@ std::shared_ptr<Entity> Parser::parseProgram() {
   token = next();
 
   std::shared_ptr<Entity> root = std::make_shared<ModuleDecl>(std::get<std::string>(token->value));
+  moduleName = std::get<std::string>(token->value);
   lastDeclaredScopeParent.emplace("Global");
+
+  // auto printl = std::make_shared<FuncDecl>()
+  // globalSymbolTable.addToGlobalScope(moduleName, "Global", )
 
   token = peek();
   while (token->kind != TOKEN_EOF) {
@@ -86,7 +113,7 @@ std::shared_ptr<Entity> Parser::parseMethodDecl() {
 
   // get return type
   token = peek();
-  if (token == nullptr || token->kind != TOKEN_IDENTIFIER) {
+  if (isTypeName(token->kind)) {
     // no return type
     // build signature
     auto signature = std::make_shared<TypeFunc>(args_types);
@@ -331,7 +358,8 @@ std::shared_ptr<Entity> Parser::parseConstructorDecl() {
   if (token == nullptr || token->kind != TOKEN_SELFREF) return nullptr;
   token = next(); // eat 'this'
 
-  lastDeclaredScopeParent.emplace());
+  // ????
+  // lastDeclaredScopeParent.emplace());
 
   // read parameters
   // @TODO name constructor
