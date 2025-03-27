@@ -8,22 +8,8 @@
 #include <vector>
 
 class TypeTable {
-  std::unordered_map<std::string, std::shared_ptr<Type>> types;
-
 public:
-  // Инициализация встроенных типов
-  void initBuiltinTypes() {
-    addType("Integer", std::make_shared<TypeInt>());
-    addType("Int16", std::make_shared<TypeInt16>());
-    addType("Int64", std::make_shared<TypeInt64>());
-    addType("Uint16", std::make_shared<TypeUint16>());
-    addType("Uint32", std::make_shared<TypeUint32>());
-    addType("Uint64", std::make_shared<TypeUint64>());
-    addType("Real", std::make_shared<TypeReal>());
-    addType("Float64", std::make_shared<TypeFloat64>());
-    addType("Bool", std::make_shared<TypeBool>());
-    addType("String", std::make_shared<TypeString>());
-  }
+  std::unordered_map<std::string, std::shared_ptr<Type>> types;
 
   // Добавление пользовательского типа
   bool addClassType(const std::string &className) {
@@ -73,29 +59,59 @@ public:
 
   std::shared_ptr<Type> getType(const std::string &name) {
     auto it = types.find(name);
-    return std::shared_ptr<Type>((it != types.end()) ? it->second.get() : nullptr);
+    return ((it != types.end()) ? it->second : nullptr);
   }
 
   bool exists(const std::string &name) const { return types.contains(name); }
+
+  // ~TypeTable() = default;
+  // ~TypeTable() {
+  //   for (auto it = types.begin(); it != types.end(); ++it) {
+  //     it->second.reset();
+  //   }
+  // };
 };
 
 class GlobalTypeTable {
 public:
   // GlobalTypeTable() {}
 
+  // Инициализация встроенных типов
+  void initBuiltinTypes() {
+    builtinTypes.addType("Integer", std::make_shared<TypeInt>());
+    builtinTypes.addType("Int16", std::make_shared<TypeInt16>());
+    builtinTypes.addType("Int64", std::make_shared<TypeInt64>());
+    builtinTypes.addType("Uint16", std::make_shared<TypeUint16>());
+    builtinTypes.addType("Uint32", std::make_shared<TypeUint32>());
+    builtinTypes.addType("Uint64", std::make_shared<TypeUint64>());
+    builtinTypes.addType("Real", std::make_shared<TypeReal>());
+    builtinTypes.addType("Float64", std::make_shared<TypeFloat64>());
+    builtinTypes.addType("Bool", std::make_shared<TypeBool>());
+    builtinTypes.addType("String", std::make_shared<TypeString>());
+  }
+
   std::unordered_map<std::string, TypeTable> types;
+  TypeTable builtinTypes;
 
   void addType(const std::string &moduleName, const std::string &typeName, std::shared_ptr<Type> type) {
     types[moduleName].addType(typeName, type);
   }
 
   std::shared_ptr<Type> getType(const std::string &moduleName, const std::string &typeName) {
-    auto it = types.find(moduleName);
-    if (it == types.end()) {
-      return nullptr;
+    // first search through builtins
+    auto it_bins = builtinTypes.getType(typeName);
+    if (it_bins == nullptr) {
+      auto it = types.find(moduleName);
+      if (it == types.end()) {
+        return nullptr;
+      }
+      return it->second.getType(typeName);
     }
-    return it->second.getType(typeName);
+
+    return it_bins;
   }
+
+  // ~GlobalTypeTable() = default;
 };
 
 #endif

@@ -44,9 +44,12 @@ int main(int argc, char *argv[]) {
   //   else std::cout << "nullptr" << std::endl;
   // }
 
-  Parser parser(std::move(tokens));
+  auto globalSymbolTable = std::make_shared<GlobalSymbolTable>();
+  auto globalTypeTable = std::make_shared<GlobalTypeTable>();
+
+  Parser parser(std::move(tokens), globalSymbolTable, globalTypeTable);
 
   std::shared_ptr<Entity> parseTree = parser.parseProgram();
 
   std::cout << parseTree->getKind() << std::endl;
-}
+};

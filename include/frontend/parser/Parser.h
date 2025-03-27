@@ -15,21 +15,22 @@
 
 class Parser {
   // SymbolTable symbolTable;
-  GlobalSymbolTable globalSymbolTable;
-  GlobalTypeTable globalTypeTable;
-
-  void initBuiltinTypes() {
-    globalTypeTable.addType(moduleName,"Integer", std::make_unique<TypeInt>());
-    globalTypeTable.addType(moduleName, "Real", std::make_unique<TypeReal>());
-    globalTypeTable.addType(moduleName, "Bool", std::make_unique<TypeBool>());
-    globalTypeTable.addType(moduleName, "String", std::make_unique<TypeString>());
-  }
+  std::shared_ptr<GlobalSymbolTable> globalSymbolTable;
+  std::shared_ptr<GlobalTypeTable> globalTypeTable;
 
 public:
-  Parser(std::vector<std::unique_ptr<Token>> tokens)
-      : tokens(std::move(tokens)), tokenPos(-1) {
-
+  Parser(std::vector<std::unique_ptr<Token>> tokens,
+         const std::shared_ptr<GlobalSymbolTable> &globalSymbolTable,
+         const std::shared_ptr<GlobalTypeTable> &globalTypeTable)
+      : globalSymbolTable(globalSymbolTable), globalTypeTable(globalTypeTable), tokens(std::move(tokens)), tokenPos(-1) {
+    lastDeclaredScopeParent.emplace("Global");
+    globalTypeTable->initBuiltinTypes();
     // symbolTable.enterScope();
+  }
+
+  ~Parser() {
+    // globalSymbolTable.moduleSymbolTables.clear();
+    // globalTypeTable.types.clear();
   }
 
   /**

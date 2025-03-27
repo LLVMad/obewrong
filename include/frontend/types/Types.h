@@ -48,6 +48,8 @@ public:
 
   uint8_t bitsize; // can be added
   uint8_t bytesize;
+
+  ~TypeBuiltin() override = default;
 };
 
 class TypeInt : public TypeBuiltin {
@@ -65,6 +67,8 @@ public:
    */
 
   TypeInt() : TypeBuiltin(TYPE_INT, "Integer", 32) {}
+
+  ~TypeInt() override = default;
 };
 
 class TypeInt16 : public TypeBuiltin {
@@ -73,6 +77,8 @@ public:
   int16_t min = std::numeric_limits<int16_t>::min();
 
   TypeInt16() : TypeBuiltin(TYPE_I16, "Int16", 16) {}
+
+  ~TypeInt16() override = default;
 };
 
 class TypeInt64 : public TypeBuiltin {
@@ -81,6 +87,8 @@ public:
   int64_t min = std::numeric_limits<int64_t>::min();
 
   TypeInt64() : TypeBuiltin(TYPE_I64, "Int64", 64) {}
+
+  ~TypeInt64() override = default;
 };
 
 class TypeUint16 : public TypeBuiltin {
@@ -89,6 +97,8 @@ public:
   uint16_t min = std::numeric_limits<uint16_t>::min();
 
   TypeUint16() : TypeBuiltin(TYPE_U16, "Uint16", 16) {}
+
+  ~TypeUint16() override = default;
 };
 
 class TypeUint32 : public TypeBuiltin {
@@ -97,6 +107,8 @@ public:
   uint32_t min = std::numeric_limits<uint32_t>::min();
 
   TypeUint32() : TypeBuiltin(TYPE_U32, "Uint32", 32) {}
+
+  ~TypeUint32() override = default;
 };
 
 class TypeUint64 : public TypeBuiltin {
@@ -105,6 +117,8 @@ public:
   uint64_t min = std::numeric_limits<uint64_t>::min();
 
   TypeUint64() : TypeBuiltin(TYPE_U64, "Uint64", 64) {}
+
+  ~TypeUint64() override = default;
 };
 
 class TypeFloat64 : public TypeBuiltin {
@@ -114,6 +128,8 @@ public:
   double eps = std::numeric_limits<double>::epsilon();
 
   TypeFloat64() : TypeBuiltin(TYPE_F64, "Float64", 64) {}
+
+  ~TypeFloat64() override = default;
 };
 
 // f32
@@ -124,6 +140,8 @@ public:
   float eps = std::numeric_limits<float>::epsilon();
 
   TypeReal() : TypeBuiltin(TYPE_FLOAT, "Real", 32) {}
+
+  ~TypeReal() override = default;
 };
 
 class TypeString : public TypeBuiltin {
@@ -137,6 +155,8 @@ public:
 class TypeBool : public TypeBuiltin {
 public:
   TypeBool() : TypeBuiltin(TYPE_BOOL, "Bool", 1) {}
+
+  ~TypeBool() override = default;
 };
 
 class TypeArray : public Type {
@@ -149,6 +169,8 @@ public:
 
   // for when we dont know the parameters yet
   TypeArray() : Type(TYPE_ARRAY, "Array"), el_type(nullptr), size(0) {}
+
+  ~TypeArray() override = default;
 };
 
 // signature of a function
@@ -161,21 +183,24 @@ public:
   std::shared_ptr<Type> return_type;
   std::vector<std::shared_ptr<Type>> args;
   bool isVoided; // no parameters
+  bool isVoid; // no return type
 
   TypeFunc(std::shared_ptr<Type> return_type,
            std::vector<std::shared_ptr<Type>> args)
       : Type(TYPE_FUNC, "Function"), return_type(std::move((return_type))),
-        args(std::move((args))), isVoided(false) {}
+        args(std::move((args))), isVoided(false), isVoid(false) {}
 
   TypeFunc(const std::shared_ptr<Type> &return_type)
-    : Type(TYPE_FUNC, "Function"), return_type(return_type), isVoided(false) {}
+    : Type(TYPE_FUNC, "Function"), return_type(return_type), isVoided(true), isVoid(false) {}
 
   // default constructor
   TypeFunc()
-    : Type(TYPE_FUNC, "Function"), return_type(nullptr), isVoided(true) {}
+    : Type(TYPE_FUNC, "Function"), return_type(nullptr), isVoided(true), isVoid(true) {}
 
   TypeFunc(std::vector<std::shared_ptr<Type>> args)
-  : Type(TYPE_FUNC, "Function"), return_type(nullptr), args(std::move(args)), isVoided(false) {}
+  : Type(TYPE_FUNC, "Function"), return_type(nullptr), args(std::move(args)), isVoided(false), isVoid(true) {}
+
+  ~TypeFunc() override = default;
 };
 
 // class "signature"
@@ -199,6 +224,8 @@ public:
   void addBaseClass(const std::shared_ptr<TypeClass>& base) {
     base_class.push_back(base);
   }
+
+  ~TypeClass() override = default;
 };
 
 class TypeList : public Type {
@@ -209,6 +236,8 @@ public:
       : Type(TYPE_LIST, "List"), el_type(std::move((el_type))) {}
 
   TypeList() : Type(TYPE_LIST, "List"), el_type(nullptr) {}
+
+  ~TypeList() override = default;
 };
 
 #endif

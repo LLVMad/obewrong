@@ -56,6 +56,8 @@ public:
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
   bool validate() override;
+
+  ~FieldDecl() override = default;
 };
 
 /**
@@ -85,6 +87,8 @@ public:
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
   bool validate() override;
+
+  ~VarDecl() override = default;
 };
 
 /**
@@ -104,6 +108,8 @@ public:
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
   bool validate() override;
+
+  ~ParameterDecl() override = default;
 };
 
 /**
@@ -143,6 +149,8 @@ public:
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
   bool validate() override;
+
+  ~MethodDecl() override = default;
 };
 
 class FuncDecl : public Decl {
@@ -165,6 +173,8 @@ public:
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
   bool validate() override;
+
+  ~FuncDecl() override = default;
 };
 
 /**
@@ -206,6 +216,8 @@ public:
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
   bool validate() override;
+
+  ~ClassDecl() override = default;
 };
 
 class ArrayDecl : public Decl {
@@ -225,6 +237,8 @@ public:
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
   bool validate() override;
+
+  ~ArrayDecl() override = default;
 };
 
 class ListDecl : public Decl {
@@ -244,6 +258,8 @@ public:
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
   bool validate() override;
+
+  ~ListDecl() override = default;
 };
 
 class ModuleDecl: public Decl {
@@ -274,6 +290,8 @@ public:
 
   // no parameters
   bool isDefault;
+
+  ~ConstrDecl() override = default;
 };
 
 #endif

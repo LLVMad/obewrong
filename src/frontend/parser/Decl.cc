@@ -1,8 +1,6 @@
 #include "frontend/types/Decl.h"
 
-Decl::~Decl() {
-
-}
+Decl::~Decl() = default;
 
 std::shared_ptr<Type> Decl::resolveType(TypeTable typeTable) {
   // @TODO

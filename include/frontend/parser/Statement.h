@@ -34,6 +34,8 @@ public:
   // children are
   std::shared_ptr<VarRefEXP> variable;
   std::shared_ptr<Expression> expression;
+
+  ~AssignmentSTMT() override = default;
   // void addVariable(std::shared_ptr<VarRefEXP> variable) {
   //   this->children.push_back(std::move(variable));
   // }
@@ -51,6 +53,7 @@ public:
 
   // children are
   std::shared_ptr<Expression> expr;
+  ~ReturnSTMT() override = default;
   // void addExpression(std::shared_ptr<Expression> expression) {
   //   this->children.push_back(std::move(expression));
   // }
@@ -80,6 +83,8 @@ public:
   std::shared_ptr<Block> ifTrue;
   std::shared_ptr<Block> ifFalse;
   bool isElsed;
+
+  ~IfSTMT() override = default;
   // void addCondition(std::shared_ptr<Expression> condition) {
   //   this->children.push_back(std::move(condition));
   // }
@@ -101,6 +106,8 @@ public:
 
   std::shared_ptr<Expression> condition_literal;
   std::shared_ptr<Block> body;
+
+  ~CaseSTMT() override = default;
 };
 
 class SwitchSTMT : public Statement {
@@ -115,6 +122,8 @@ public:
 
   std::shared_ptr<Expression> condition;
   std::vector<std::shared_ptr<CaseSTMT>> cases;
+
+  ~SwitchSTMT() override = default;
 
   // void addCase(std::shared_ptr<Expression> condition,
   //              std::shared_ptr<Block> body) {
@@ -147,6 +156,8 @@ public:
 
   std::shared_ptr<Expression> condition;
   std::shared_ptr<Block> body;
+
+  ~WhileSTMT() override = default;
 };
 
 class ForSTMT : public Statement {
@@ -163,6 +174,8 @@ public:
   std::shared_ptr<Expression> condition;
   std::shared_ptr<Expression> post;
   std::shared_ptr<Block> body;
+
+  ~ForSTMT() override = default;
 };
 
 #endif

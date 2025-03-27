@@ -134,6 +134,8 @@ public:
   bool validate() override {
     return false;
   }
+
+  ~Block() override = default;
 };
 
 /**
