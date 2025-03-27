@@ -7,35 +7,47 @@
 
 #include "frontend/lexer/Lexer.h"
 
-#define TOTAL_KEYWORDS 47
+#define TOTAL_KEYWORDS 48
 #define MIN_WORD_LENGTH 2
 #define MAX_WORD_LENGTH 8
 #define MIN_HASH_VALUE 2
-#define MAX_HASH_VALUE 78
+#define MAX_HASH_VALUE 83
 
 /*
  * Hash function for fast check if an input word is a keyword
  */
 inline unsigned int Lexer::hash(const char *str, size_t len) {
-  static unsigned char asso_values[] = {
-      79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
-      79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
-      79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 10, 79, 5,  79,
-      50, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 5,  0,  0,  79, 79, 79, 79,
-      79, 0,  79, 79, 45, 79, 79, 79, 79, 79, 20, 15, 79, 79, 79, 79, 79, 79,
-      79, 79, 79, 79, 79, 79, 79, 15, 15, 10, 35, 5,  15, 25, 15, 0,  79, 79,
-      20, 0,  55, 79, 10, 79, 30, 0,  0,  25, 30, 0,  79, 10, 79, 79, 79, 79,
-      79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
-      79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
-      79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
-      79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
-      79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
-      79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
-      79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
-      79, 79, 79, 79};
+  static unsigned char asso_values[] =
+   {
+    84, 84, 84, 84, 84, 84, 84, 84, 84, 84,
+    84, 84, 84, 84, 84, 84, 84, 84, 84, 84,
+    84, 84, 84, 84, 84, 84, 84, 84, 84, 84,
+    84, 84, 84, 84, 84, 84, 84, 84, 84, 84,
+    84, 84, 84, 84, 84, 84, 84, 84, 84, 84,
+    10, 84,  5, 84, 55, 84, 84, 84, 84, 84,
+    84, 84, 84, 84, 84,  5,  0, 15, 84, 84,
+    84, 84, 84,  0, 84, 84, 50, 84, 84, 84,
+    84, 84, 15,  5, 84, 84, 84, 84, 84, 84,
+    84, 84, 84, 84, 84, 84, 84,  0, 10, 10,
+    40,  5, 15, 25, 15,  0, 84, 84, 30,  0,
+    20, 84,  5, 84, 25,  0,  0, 25, 35, 30,
+    84,  0, 84, 84, 84, 84, 84, 84, 84, 84,
+    84, 84, 84, 84, 84, 84, 84, 84, 84, 84,
+    84, 84, 84, 84, 84, 84, 84, 84, 84, 84,
+    84, 84, 84, 84, 84, 84, 84, 84, 84, 84,
+    84, 84, 84, 84, 84, 84, 84, 84, 84, 84,
+    84, 84, 84, 84, 84, 84, 84, 84, 84, 84,
+    84, 84, 84, 84, 84, 84, 84, 84, 84, 84,
+    84, 84, 84, 84, 84, 84, 84, 84, 84, 84,
+    84, 84, 84, 84, 84, 84, 84, 84, 84, 84,
+    84, 84, 84, 84, 84, 84, 84, 84, 84, 84,
+    84, 84, 84, 84, 84, 84, 84, 84, 84, 84,
+    84, 84, 84, 84, 84, 84, 84, 84, 84, 84,
+    84, 84, 84, 84, 84, 84, 84, 84, 84, 84,
+    84, 84, 84, 84, 84, 84
+  };
 
-  return len + asso_values[(unsigned char)str[len - 1]] +
-         asso_values[(unsigned char)str[0]];
+  return len + asso_values[(unsigned char)str[len - 1]] + asso_values[(unsigned char)str[0]];
 }
 
 /*
@@ -43,42 +55,175 @@ inline unsigned int Lexer::hash(const char *str, size_t len) {
  */
 std::pair<const char *, TokenKind> Lexer::in_word_set(const char *str,
                                                       size_t len) {
-  static const char *wordlist[] = {
-      "",         "",        "is",      "int",    "this",   "Class",
-      "import",   "",        "i64",     "true",   "while",  "module",
-      "extends",  "i32",     "else",    "class",  "static", "if",
-      "AnyValue", "case",    "Array",   "switch", "",       "f64",
-      "list",     "false",   "AnyRef",  "",       "f32",    "func",
-      "array",    "string",  "",        "u64",    "loop",   "",
-      "printl",   "Integer", "u32",     "bool",   "",       "method",
-      "default",  "end",     "Real",    "",       "String", "",
-      "for",      "List",    "",        "",       "",       "i16",
-      "real",     "",        "",        "",       "new",    "then",
-      "",         "",        "Boolean", "var",    "",       "",
-      "",         "",        "",        "",       "",       "",
-      "",         "",        "",        "",       "",       "",
-      "u16"};
+  static const char * wordlist[] =
+    {
+    "", "",
+    "is",
+    "int",
+    "this",
+    "array",
+    "import",
+    "",
+    "i64",
+    "true",
+    "Array",
+    "module",
+    "extends",
+    "i32",
+    "else",
+    "class",
+    "static",
+    "if",
+    "AnyValue",
+    "case",
+    "Class",
+    "switch",
+    "",
+    "f64",
+    "then",
+    "false",
+    "AnyRef",
+    "Boolean",
+    "f32",
+    "func",
+    "",
+    "string",
+    "Integer",
+    "u64",
+    "list",
+    "",
+    "String",
+    "",
+    "u32",
+    "loop",
+    "while",
+    "printl",
+    "",
+    "for",
+    "bool",
+    "",
+    "method",
+    "default",
+    "end",
+    "Real",
+    "",
+    "return",
+    "",
+    "new",
+    "List",
+    "", "", "",
+    "i16",
+    "real",
+    "", "", "",
+    "var",
+    "", "", "", "", "", "", "", "", "",
+    "", "", "", "", "", "", "", "", "",
+    "",
+    "u16"
+  };
 
   static const TokenKind keytokenlist[] = {
-      TOKEN_UNKNOWN,    TOKEN_UNKNOWN,    TOKEN_BBEGIN,      TOKEN_TYPE_INT32,
-      TOKEN_SELFREF,    TOKEN_CLASS,      TOKEN_MODULE_IMP,  TOKEN_UNKNOWN,
-      TOKEN_TYPE_INT64, TOKEN_BOOL_TRUE,  TOKEN_WHILE,       TOKEN_MODULE_DECL,
-      TOKEN_EXTENDS,    TOKEN_TYPE_INT32, TOKEN_ELSE,        TOKEN_CLASS,
-      TOKEN_STATIC,     TOKEN_IF,         TOKEN_TYPE_ANYVAL, TOKEN_CASE,
-      TOKEN_TYPE_ARRAY, TOKEN_SWITCH,     TOKEN_UNKNOWN,     TOKEN_TYPE_F64,
-      TOKEN_TYPE_LIST,  TOKEN_BOOL_FALSE, TOKEN_TYPE_ANYREF, TOKEN_UNKNOWN,
-      TOKEN_TYPE_REAL,  TOKEN_FUNC,       TOKEN_TYPE_ARRAY,  TOKEN_TYPE_STRING,
-      TOKEN_UNKNOWN,    TOKEN_TYPE_U64,   TOKEN_LOOP,        TOKEN_UNKNOWN,
-      TOKEN_PRINT,      TOKEN_TYPE_INT32, TOKEN_TYPE_U32,    TOKEN_TYPE_BOOL,
-      TOKEN_UNKNOWN,    TOKEN_METHOD,     TOKEN_DEFAULT,     TOKEN_BEND,
-      TOKEN_TYPE_REAL,  TOKEN_UNKNOWN,    TOKEN_TYPE_STRING, TOKEN_UNKNOWN,
-      TOKEN_FOR,        TOKEN_TYPE_LIST,  TOKEN_UNKNOWN,     TOKEN_UNKNOWN,
-      TOKEN_UNKNOWN,    TOKEN_TYPE_INT16, TOKEN_TYPE_REAL,   TOKEN_UNKNOWN,
-      TOKEN_UNKNOWN,    TOKEN_UNKNOWN,    TOKEN_NEW,         TOKEN_THEN,
-      TOKEN_UNKNOWN,    TOKEN_UNKNOWN,    TOKEN_TYPE_BOOL,   TOKEN_VAR_DECL,
-      TOKEN_UNKNOWN,    TOKEN_UNKNOWN,    TOKEN_UNKNOWN,     TOKEN_UNKNOWN,
-      TOKEN_UNKNOWN,    TOKEN_UNKNOWN,    TOKEN_UNKNOWN,     TOKEN_UNKNOWN,
-      TOKEN_UNKNOWN,    TOKEN_UNKNOWN,    TOKEN_TYPE_U16};
+    // Index 0-1: Empty strings
+    TOKEN_UNKNOWN,    TOKEN_UNKNOWN,
+
+    // Index 2-6
+    TOKEN_BBEGIN,      // "is"
+    TOKEN_TYPE_INT32,  // "int"
+    TOKEN_SELFREF,     // "this"
+    TOKEN_TYPE_ARRAY,  // "array"
+    TOKEN_MODULE_IMP,  // "import"
+
+    // Index 7-11
+    TOKEN_UNKNOWN,     // empty
+    TOKEN_TYPE_INT64,  // "i64"
+    TOKEN_BOOL_TRUE,   // "true"
+    TOKEN_TYPE_ARRAY,  // "Array"
+    TOKEN_MODULE_DECL, // "module"
+
+    // Index 12-16
+    TOKEN_EXTENDS,     // "extends"
+    TOKEN_TYPE_INT32,  // "i32"
+    TOKEN_ELSE,        // "else"
+    TOKEN_CLASS,       // "class"
+    TOKEN_STATIC,      // "static"
+
+    // Index 17-21
+    TOKEN_IF,          // "if"
+    TOKEN_TYPE_ANYVAL, // "AnyValue"
+    TOKEN_CASE,        // "case"
+    TOKEN_CLASS,       // "Class" (assuming this is a typo and should match "class")
+    TOKEN_SWITCH,      // "switch"
+
+    // Index 22-26
+    TOKEN_UNKNOWN,     // empty
+    TOKEN_TYPE_F64,    // "f64"
+    TOKEN_THEN,        // "then"
+    TOKEN_BOOL_FALSE,  // "false"
+    TOKEN_TYPE_ANYREF, // "AnyRef"
+
+    // Index 27-31
+    TOKEN_TYPE_BOOL,   // "Boolean"
+    TOKEN_TYPE_REAL,   // "f32"
+    TOKEN_FUNC,        // "func"
+    TOKEN_UNKNOWN,     // empty
+    TOKEN_TYPE_STRING, // "string"
+
+    // Index 32-36
+    TOKEN_TYPE_INT32,  // "Integer"
+    TOKEN_TYPE_U64,    // "u64"
+    TOKEN_TYPE_LIST,   // "list"
+    TOKEN_UNKNOWN,     // empty
+    TOKEN_TYPE_STRING, // "String"
+
+    // Index 37-41
+    TOKEN_UNKNOWN,     // empty
+    TOKEN_TYPE_U32,    // "u32"
+    TOKEN_LOOP,        // "loop"
+    TOKEN_WHILE,       // "while"
+    TOKEN_PRINT,       // "printl"
+
+    // Index 42-46
+    TOKEN_UNKNOWN,     // empty
+    TOKEN_FOR,         // "for"
+    TOKEN_TYPE_BOOL,   // "bool"
+    TOKEN_UNKNOWN,     // empty
+    TOKEN_METHOD,      // "method"
+
+    // Index 47-51
+    TOKEN_DEFAULT,     // "default"
+    TOKEN_BEND,        // "end"
+    TOKEN_TYPE_REAL,   // "Real"
+    TOKEN_UNKNOWN,     // empty
+    TOKEN_RETURN,      // "return"
+
+    // Index 52-56
+    TOKEN_UNKNOWN,     // empty
+    TOKEN_NEW,         // "new"
+    TOKEN_TYPE_LIST,   // "List"
+    TOKEN_UNKNOWN,     // empty
+    TOKEN_UNKNOWN,     // empty
+
+    // Index 57-61
+    TOKEN_UNKNOWN,     // empty
+    TOKEN_TYPE_INT16,  // "i16"
+    TOKEN_TYPE_REAL,   // "real"
+    TOKEN_UNKNOWN,     // empty
+    TOKEN_UNKNOWN,
+
+    // Index 62-66
+    TOKEN_UNKNOWN,     // empty
+    TOKEN_VAR_DECL,    // "var"
+    TOKEN_UNKNOWN,     // empty
+    TOKEN_UNKNOWN,     // empty
+    TOKEN_UNKNOWN,
+
+    // Index 67-76 (remaining empty slots)
+    TOKEN_UNKNOWN, TOKEN_UNKNOWN, TOKEN_UNKNOWN, TOKEN_UNKNOWN, TOKEN_UNKNOWN,
+    TOKEN_UNKNOWN, TOKEN_UNKNOWN, TOKEN_UNKNOWN, TOKEN_UNKNOWN, TOKEN_UNKNOWN,
+
+    // Final entry
+    TOKEN_TYPE_U16     // "u16"
+};
 
   if (len <= MAX_WORD_LENGTH && len >= MIN_WORD_LENGTH) {
     unsigned int key = hash(str, len);
@@ -307,7 +452,7 @@ std::unique_ptr<Token> Lexer::next() {
         curr_state = STATE_START;
         auto [word, wtype] = in_word_set(token.c_str(), strlen(token.c_str()));
         if (word) {
-          return std::make_unique<Token>(wtype, curr_line,
+          return std::make_unique<Token>(wtype, word, curr_line,
                                          curr_column - token.length() + 1);
         }
         return std::make_unique<Token>(TOKEN_IDENTIFIER, token, curr_line,

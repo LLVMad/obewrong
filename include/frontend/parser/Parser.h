@@ -28,7 +28,7 @@ class Parser {
 public:
   Parser(std::vector<std::unique_ptr<Token>> tokens)
       : tokens(std::move(tokens)), tokenPos(-1) {
-    initBuiltinTypes();
+
     // symbolTable.enterScope();
   }
 

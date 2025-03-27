@@ -295,7 +295,7 @@ public:
 class CompoundEXP : public Expression {
 public:
   CompoundEXP()
-      : Expression(E_Chained_Functions) {}
+      : Expression(E_Chained_Functions), parts() {}
 
   // children should be
   std::vector<std::shared_ptr<Expression>> parts;

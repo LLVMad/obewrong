@@ -1,8 +1,6 @@
 #include "frontend/parser/Statement.h"
 
-Statement::~Statement() {
-
-}
+Statement::~Statement() = default;
 
 std::shared_ptr<Type> Statement::resolveType(TypeTable typeTable) {
   (void)typeTable;
