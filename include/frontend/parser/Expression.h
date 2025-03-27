@@ -160,7 +160,7 @@ public:
 class MethodCallEXP : public Expression {
 public:
   MethodCallEXP(std::string method_name, std::shared_ptr<Expression> left, std::vector<std::shared_ptr<Expression>> arguments)
-      : Expression(E_Method_Call), method_name(std::move(method_name)), left(std::move(left)), arguments(std::move(arguments)) {};
+      : Expression(E_Method_Call), method_name(std::move(method_name)), left(left), arguments(arguments) {};
 
   MethodCallEXP() : Expression(E_Method_Call) {}
 

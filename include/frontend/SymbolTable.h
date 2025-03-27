@@ -8,27 +8,28 @@
 #include <vector>
 
 struct Scope {
-  std::unordered_map<std::string, Decl*> symbols;
+  std::unordered_map<std::string, std::shared_ptr<Decl>> symbols;
+  Scope() : symbols() {}
 };
 
 // SymbolTable for some declaration
 // for example for a class
 // @NOTE not global
 class SymbolTable {
-  std::vector<Scope*> scopes;
-
 public:
+  std::unordered_map<std::string, std::shared_ptr<Scope>> scopes;
+
   SymbolTable();
 
-  void enterScope();
+  // void enterScope();
+  //
+  // void exitScope();
 
-  void exitScope();
+  bool addSymbol(const std::string &scopeParent, const std::string &name, std::shared_ptr<Decl> decl);
 
-  bool addSymbol(const std::string &name, Decl* decl);
+  std::shared_ptr<Decl> lookup(const std::string &scopeParent, const std::string &name);
 
-  Decl* lookup(const std::string &name);
-
-  bool isGlobalScope() const;
+  // bool isGlobalScope() const;
 };
 
 class ModuleSymbolTable {
@@ -53,7 +54,7 @@ public:
    */
   void addToLocalScope(const std::string &moduleName, const std::string &parentDeclName, Decl* decl);
 
-  Decl* lookup(const std::string &name);
+  std::shared_ptr<Decl> lookup(const std::string &name);
 };
 
 class GlobalSymbolTable {
@@ -61,13 +62,18 @@ public:
 
   GlobalSymbolTable() : moduleSymbolTables() {}
 
-  std::unordered_map<std::string, ModuleSymbolTable> moduleSymbolTables;
+  std::unordered_map<std::string, SymbolTable> moduleSymbolTables;
+  SymbolTable builtinSymbols;
+
+  void initBuiltinFuncs(const std::shared_ptr<GlobalTypeTable> &typeTable);
 
   void addToGlobalScope(const std::string &moduleName,
                         const std::string &parentDeclName,
-                        Decl* decl);
+                        std::shared_ptr<Decl> decl);
 
-  Decl* lookup(std::string moduleName, std::string parentScope, const std::string &name);
+  std::shared_ptr<Decl> lookup(std::string moduleName, std::string parentScope, const std::string &name);
+
+  void copyBuiltinsToModule(const std::string& moduleName);
 };
 
 #endif

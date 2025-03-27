@@ -39,6 +39,7 @@ public:
 
   explicit Type(TypeKind kind, std::string name)
       : kind(kind), name(std::move((name))) {}
+
 };
 
 class TypeBuiltin : public Type {
@@ -65,6 +66,7 @@ public:
    * might as well go here
    * so all methods, etc.
    */
+
 
   TypeInt() : TypeBuiltin(TYPE_INT, "Integer", 32) {}
 

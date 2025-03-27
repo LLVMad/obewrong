@@ -25,6 +25,7 @@ public:
       : globalSymbolTable(globalSymbolTable), globalTypeTable(globalTypeTable), tokens(std::move(tokens)), tokenPos(-1) {
     lastDeclaredScopeParent.emplace("Global");
     globalTypeTable->initBuiltinTypes();
+    globalSymbolTable->initBuiltinFuncs(globalTypeTable);
     // symbolTable.enterScope();
   }
 

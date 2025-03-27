@@ -63,6 +63,7 @@ std::shared_ptr<Entity> Parser::parseProgram() {
     globalTypeTable->addType(moduleName, name, type);
   }
 
+  globalSymbolTable->copyBuiltinsToModule(moduleName);
 
   // auto printl = std::make_shared<FuncDecl>()
   // globalSymbolTable->addToGlobalScope(moduleName, "Global", )
@@ -121,7 +122,8 @@ std::shared_ptr<Entity> Parser::parseMethodDecl() {
 
   // get return type
   token = peek();
-  if (!isTypeName(token->kind)) {
+
+  if (token->kind != TOKEN_COLON /*!isTypeName(token->kind)*/) {
     // no return type
     // build signature
     auto signature = std::make_shared<TypeFunc>(args_types);
@@ -141,6 +143,7 @@ std::shared_ptr<Entity> Parser::parseMethodDecl() {
   };
 
   token = next();
+  token = next();
   auto return_type =
     globalTypeTable->getType(moduleName, std::get<std::string>(token->value));
 
@@ -153,7 +156,7 @@ std::shared_ptr<Entity> Parser::parseMethodDecl() {
 
   // get body of method
   auto body_block =
-    std::dynamic_pointer_cast<Block>(parseBlock(BLOCK_IN_CLASS));
+    std::dynamic_pointer_cast<Block>(parseBlock(BLOCK_IN_METHOD));
 
   method->body = body_block;
   method->signature = signature;
@@ -258,7 +261,7 @@ std::shared_ptr<Entity> Parser::parseVarDecl() {
 
   // read initializer
   if (peek()->kind != TOKEN_ASSIGNMENT) {
-    this->globalSymbolTable->addToGlobalScope(moduleName, lastDeclaredScopeParent.top(), var.get());
+    this->globalSymbolTable->addToGlobalScope(moduleName, lastDeclaredScopeParent.top(), var);
     return var;
   }
 
@@ -266,7 +269,7 @@ std::shared_ptr<Entity> Parser::parseVarDecl() {
   auto initializer =
     std::shared_ptr<Expression>(dynamic_cast<Expression *>(parseExpression().get()));
   var->initializer = initializer;
-  this->globalSymbolTable->addToGlobalScope(moduleName, lastDeclaredScopeParent.top(), var.get());
+  this->globalSymbolTable->addToGlobalScope(moduleName, lastDeclaredScopeParent.top(), var);
 
 
   return var;
@@ -479,7 +482,7 @@ std::shared_ptr<Entity> Parser::parseClassDecl() {
 
   auto class_stmt =
     std::make_shared<ClassDecl>(class_name, class_new_type, fields, methods, constructors);
-  globalSymbolTable->addToGlobalScope(moduleName, "Global", class_stmt.get());
+  globalSymbolTable->addToGlobalScope(moduleName, "Global", class_stmt);
 
   return class_stmt;
 }
@@ -506,7 +509,7 @@ std::shared_ptr<Entity> Parser::parseFieldDecl() {
   auto ass = std::make_shared<FieldDecl>(var_name, var_type);
 
   this->globalSymbolTable
-    -> addToGlobalScope(this->moduleName, this->lastDeclaredClass, ass.get());
+    -> addToGlobalScope(this->moduleName, this->lastDeclaredClass, ass);
   // this->symbolTable.addSymbol()
 
   return ass;
@@ -652,7 +655,7 @@ std::shared_ptr<Entity> Parser::parseExpression() {
     // here we construct a tree
     // of expression(-s)
 
-    token = next();
+    token = next(); // eat '.'
 
     // should be an identifier
     std::shared_ptr<Entity> after_dot = parsePrimary();
@@ -667,7 +670,7 @@ std::shared_ptr<Entity> Parser::parseExpression() {
       auto method_call = std::make_shared<MethodCallEXP>();
       parseArguments(method_call);
 
-      auto method_call_to_exp = std::shared_ptr<Expression>(method_call.get());
+      auto method_call_to_exp = std::dynamic_pointer_cast<Expression>(method_call);
       comp->addExpression(method_call_to_exp);
 
       token = peek();
@@ -684,7 +687,9 @@ std::shared_ptr<Entity> Parser::parseExpression() {
       // std::shared_ptr<Entity> field = parsePrimary();
       // auto left = std::shared_ptr<Expression>(dynamic_cast<Expression*>(node.get()));
       auto field_access = std::make_shared<FieldRefEXP>(std::get<std::string>(next()->value));
-      auto field_access_to_exp = std::shared_ptr<Expression>(field_access.get());
+      auto field_access_to_exp =
+        std::dynamic_pointer_cast<Expression>(field_access);
+        // std::shared_ptr<Expression>(field_access.get());
       comp->addExpression(field_access_to_exp);
     }
 
@@ -705,14 +710,17 @@ std::shared_ptr<Entity> Parser::parseExpression() {
       case E_Method_Call: {
       auto left = std::move(comp->parts[0]);
         std::shared_ptr<MethodCallEXP> method_call =
-          std::shared_ptr<MethodCallEXP>(
-              dynamic_cast<MethodCallEXP *>(comp->parts[1].get()));
+          std::dynamic_pointer_cast<MethodCallEXP>(comp->parts[1]);
+          // std::shared_ptr<MethodCallEXP>(
+          //     dynamic_cast<MethodCallEXP *>(comp->parts[1].get()));
         return method_call;
       }
       case E_Field_Reference: {
         std::shared_ptr<FieldAccessEXP> field_access;
         auto left = std::move(comp->parts[0]);
-        auto field_ref = std::shared_ptr<FieldAccessEXP>(dynamic_cast<FieldAccessEXP *>(comp->parts[1].get()));
+        auto field_ref =
+          std::dynamic_pointer_cast<FieldRefEXP>(comp->parts[1]);
+          // std::shared_ptr<FieldAccessEXP>(dynamic_cast<FieldAccessEXP *>(comp->parts[1].get()));
         field_access->left = std::move(left);
         field_access->field_name = field_ref->field_name;
         return field_access;
@@ -746,7 +754,7 @@ std::shared_ptr<ParameterDecl> Parser::parseParameterDecl() {
 
   // create paramdecl
   auto paramDecl = std::make_shared<ParameterDecl>(param_name, globalTypeTable->types[moduleName].getType(param_type));
-  globalSymbolTable->addToGlobalScope(moduleName, lastDeclaredScopeParent.top(), paramDecl.get());
+  globalSymbolTable->addToGlobalScope(moduleName, lastDeclaredScopeParent.top(), paramDecl);
   return paramDecl;
 }
 
@@ -840,7 +848,9 @@ void Parser::parseParameters(const std::shared_ptr<ConstrDecl>& constrDecl) {
 
 void Parser::parseArguments(const std::shared_ptr<MethodCallEXP> &method_name) {
   auto node = parseExpression();
-  auto expr = std::shared_ptr<Expression>(dynamic_cast<Expression*>(node.get()));
+  auto expr =
+    std::dynamic_pointer_cast<Expression>(node);
+    // std::shared_ptr<Expression>(dynamic_cast<Expression*>(node.get()));
   method_name->arguments.push_back(expr);
 
   std::unique_ptr<Token> token = peek();
@@ -852,7 +862,9 @@ void Parser::parseArguments(const std::shared_ptr<MethodCallEXP> &method_name) {
     token = next();
 
     std::shared_ptr<Entity> after_comma = parseExpression();
-    auto uexpr = std::shared_ptr<Expression>(dynamic_cast<Expression*>(after_comma.get()));
+    auto uexpr =
+      std::dynamic_pointer_cast<Expression>(after_comma);
+      // std::shared_ptr<Expression>(dynamic_cast<Expression*>(after_comma.get()));
     method_name->arguments.push_back(uexpr);
 
     token = peek();
@@ -862,7 +874,9 @@ void Parser::parseArguments(const std::shared_ptr<MethodCallEXP> &method_name) {
 
 void Parser::parseArguments(const std::shared_ptr<ConstructorCallEXP> &constr_name) {
   auto node = parseExpression();
-  auto expr = std::shared_ptr<Expression>(dynamic_cast<Expression*>(node.get()));
+  auto expr =
+    std::dynamic_pointer_cast<Expression>(node);
+    // std::shared_ptr<Expression>(dynamic_cast<Expression*>(node.get()));
   constr_name->arguments.push_back(expr);
 
   std::unique_ptr<Token> token = peek();
@@ -874,7 +888,9 @@ void Parser::parseArguments(const std::shared_ptr<ConstructorCallEXP> &constr_na
     token = next();
 
     std::shared_ptr<Entity> after_comma = parseExpression();
-    auto uexpr = std::shared_ptr<Expression>(dynamic_cast<Expression*>(after_comma.get()));
+    auto uexpr =
+      std::dynamic_pointer_cast<Expression>(after_comma);
+      // std::shared_ptr<Expression>(dynamic_cast<Expression*>(after_comma.get()));
     constr_name->arguments.push_back(uexpr);
 
     token = peek();
@@ -884,7 +900,9 @@ void Parser::parseArguments(const std::shared_ptr<ConstructorCallEXP> &constr_na
 
 void Parser::parseArguments(const std::shared_ptr<FuncCallEXP> &function_name) {
   auto node = parseExpression();
-  auto expr = std::shared_ptr<Expression>(dynamic_cast<Expression*>(node.get()));
+  auto expr =
+    std::dynamic_pointer_cast<Expression>(node);
+    // std::shared_ptr<Expression>(dynamic_cast<Expression*>(node.get()));
   function_name->arguments.push_back(expr);
 
   std::unique_ptr<Token> token = peek();
@@ -896,7 +914,9 @@ void Parser::parseArguments(const std::shared_ptr<FuncCallEXP> &function_name) {
     token = next();
 
     std::shared_ptr<Entity> after_comma = parseExpression();
-    auto uexpr = std::shared_ptr<Expression>(dynamic_cast<Expression*>(after_comma.get()));
+    auto uexpr =
+      std::dynamic_pointer_cast<Expression>(after_comma);
+      // std::shared_ptr<Expression>(dynamic_cast<Expression*>(after_comma.get()));
     function_name->arguments.push_back(uexpr);
 
     token = peek();
