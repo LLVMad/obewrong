@@ -274,6 +274,8 @@ class ModuleDecl: public Decl {
 public:
   ModuleDecl(const std::string &moduleNmae)
     : Decl(E_Module_Decl, moduleNmae) {}
+
+  std::vector<std::shared_ptr<Entity>> children;
 };
 
 class ConstrDecl : public Decl {

@@ -55,7 +55,7 @@ std::shared_ptr<Entity> Parser::parseProgram() {
   if (token == nullptr || token->kind != TOKEN_IDENTIFIER) return nullptr;
   token = next();
 
-  std::shared_ptr<Entity> root = std::make_shared<ModuleDecl>(std::get<std::string>(token->value));
+ auto root = std::make_shared<ModuleDecl>(std::get<std::string>(token->value));
   moduleName = std::get<std::string>(token->value);
   // initBuiltinTypes();
   // lastDeclaredScopeParent.emplace("Global");
@@ -69,12 +69,13 @@ std::shared_ptr<Entity> Parser::parseProgram() {
   // globalSymbolTable->addToGlobalScope(moduleName, "Global", )
 
   token = peek();
+  std::shared_ptr<Entity> child;
   while (token->kind != TOKEN_EOF) {
     // in global scope we can wait for class or function
     switch (token->kind) {
       case TOKEN_CLASS: {
         // token = next();
-        root->next = parseClassDecl();
+        child = parseClassDecl();
       } break;
       // case TOKEN_FUNC: {
       //   root->next = parseFunctionDecl();
@@ -82,6 +83,7 @@ std::shared_ptr<Entity> Parser::parseProgram() {
       default: break;
     }
 
+    root->children.push_back(child);
     token = peek();
   }
 
