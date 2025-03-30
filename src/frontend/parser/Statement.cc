@@ -12,4 +12,3 @@ bool Statement::validate() {
   // @TODO
   return false;
 }
-

@@ -7,9 +7,7 @@ std::shared_ptr<Type> Decl::resolveType(TypeTable typeTable) {
   return nullptr;
 }
 
-bool Decl::validate() {
-  return false;
-}
+bool Decl::validate() { return false; }
 
 std::shared_ptr<Type> FieldDecl::resolveType(TypeTable typeTable) {
   (void)typeTable;

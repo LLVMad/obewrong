@@ -16,9 +16,7 @@ public:
     return nullptr;
   }
   // add evaluate method
-  bool validate() override {
-    return false;
-  };
+  bool validate() override { return false; };
 
   ~Expression() override;
 };
@@ -87,7 +85,7 @@ private:
 class ArrayLiteralExpr : public Expression {
 public:
   ArrayLiteralExpr(std::vector<std::shared_ptr<Expression>> elements)
-    : Expression(E_Array_Literal), elements(std::move(elements)) {};
+      : Expression(E_Array_Literal), elements(std::move(elements)){};
 
   // children should be
   std::vector<std::shared_ptr<Expression>> elements;
@@ -138,7 +136,7 @@ public:
 class VarRefEXP : public Expression {
 public:
   VarRefEXP(const std::string &name)
-      : Expression(E_Var_Reference), var_name(name) {};
+      : Expression(E_Var_Reference), var_name(name){};
 
   std::string var_name;
 
@@ -159,8 +157,10 @@ public:
  */
 class MethodCallEXP : public Expression {
 public:
-  MethodCallEXP(std::string method_name, std::shared_ptr<Expression> left, std::vector<std::shared_ptr<Expression>> arguments)
-      : Expression(E_Method_Call), method_name(std::move(method_name)), left(left), arguments(arguments) {};
+  MethodCallEXP(std::string method_name, std::shared_ptr<Expression> left,
+                std::vector<std::shared_ptr<Expression>> arguments)
+      : Expression(E_Method_Call), method_name(std::move(method_name)),
+        left(left), arguments(arguments){};
 
   MethodCallEXP() : Expression(E_Method_Call) {}
 
@@ -184,9 +184,10 @@ public:
 
 class FuncCallEXP : public Expression {
 public:
-  FuncCallEXP(std::string method_name, std::vector<std::shared_ptr<Expression>> arguments)
-      : Expression(E_Function_Call),
-        func_name(std::move(method_name)), arguments(std::move(arguments)) {};
+  FuncCallEXP(std::string method_name,
+              std::vector<std::shared_ptr<Expression>> arguments)
+      : Expression(E_Function_Call), func_name(std::move(method_name)),
+        arguments(std::move(arguments)){};
 
   FuncCallEXP() : Expression(E_Function_Call) {}
 
@@ -244,8 +245,10 @@ private:
  */
 class ConstructorCallEXP : public Expression {
 public:
-  ConstructorCallEXP(std::shared_ptr<ClassNameEXP> left, std::vector<std::shared_ptr<Expression>> arguments)
-      : Expression(E_Function), left(std::move(left)), arguments(std::move(arguments)) {};
+  ConstructorCallEXP(std::shared_ptr<ClassNameEXP> left,
+                     std::vector<std::shared_ptr<Expression>> arguments)
+      : Expression(E_Function), left(std::move(left)),
+        arguments(std::move(arguments)){};
 
   // children should be
   std::shared_ptr<ClassNameEXP> left;
@@ -272,7 +275,8 @@ public:
 class FieldAccessEXP : public Expression {
 public:
   FieldAccessEXP(std::string name, std::shared_ptr<Expression> left)
-      : Expression(E_Field_Reference), left(std::move(left)), field_name(std::move(name)) {};
+      : Expression(E_Field_Reference), left(std::move(left)),
+        field_name(std::move(name)){};
 
   // children should be
   std::shared_ptr<Expression> left;
@@ -294,8 +298,7 @@ public:
  */
 class CompoundEXP : public Expression {
 public:
-  CompoundEXP()
-      : Expression(E_Chained_Functions), parts() {}
+  CompoundEXP() : Expression(E_Chained_Functions), parts() {}
 
   // children should be
   std::vector<std::shared_ptr<Expression>> parts;

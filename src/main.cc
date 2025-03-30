@@ -1,5 +1,5 @@
-#include <stdio.h>
 #include <iostream>
+#include <stdio.h>
 #include <vector>
 
 #include "frontend/SourceManager.h"
@@ -7,7 +7,8 @@
 #include "frontend/parser/Parser.h"
 
 int main(int argc, char *argv[]) {
-  if (argc != 3) {}
+  if (argc != 3) {
+  }
 
   SourceManager sm;
   auto buff = std::make_shared<SourceBuffer>(sm.readSource(argv[1]));

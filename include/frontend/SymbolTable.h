@@ -25,16 +25,19 @@ public:
   //
   // void exitScope();
 
-  bool addSymbol(const std::string &scopeParent, const std::string &name, std::shared_ptr<Decl> decl);
+  bool addSymbol(const std::string &scopeParent, const std::string &name,
+                 std::shared_ptr<Decl> decl);
 
-  std::shared_ptr<Decl> lookup(const std::string &scopeParent, const std::string &name);
+  std::shared_ptr<Decl> lookup(const std::string &scopeParent,
+                               const std::string &name);
 
   // bool isGlobalScope() const;
 };
 
 class ModuleSymbolTable {
 public:
-  ModuleSymbolTable(const std::string &moduleName) : moduleName(moduleName), symbolTables() {};
+  ModuleSymbolTable(const std::string &moduleName)
+      : moduleName(moduleName), symbolTables(){};
 
   std::string moduleName;
   std::unordered_map<std::string, SymbolTable> symbolTables;
@@ -43,7 +46,7 @@ public:
    * Adds a declaration to a scope of this module
    * @param decl module scope declaration to add
    */
-  void addToModuleScope(Decl* decl);
+  void addToModuleScope(Decl *decl);
 
   /**
    * Adds a declaration to a "local" scope
@@ -52,14 +55,14 @@ public:
    * @param parentDeclName name of a "parent" scope in which decl appears
    * @param decl local declaration to add
    */
-  void addToLocalScope(const std::string &moduleName, const std::string &parentDeclName, Decl* decl);
+  void addToLocalScope(const std::string &moduleName,
+                       const std::string &parentDeclName, Decl *decl);
 
   std::shared_ptr<Decl> lookup(const std::string &name);
 };
 
 class GlobalSymbolTable {
 public:
-
   GlobalSymbolTable() : moduleSymbolTables() {}
 
   std::unordered_map<std::string, SymbolTable> moduleSymbolTables;
@@ -71,9 +74,10 @@ public:
                         const std::string &parentDeclName,
                         std::shared_ptr<Decl> decl);
 
-  std::shared_ptr<Decl> lookup(std::string moduleName, std::string parentScope, const std::string &name);
+  std::shared_ptr<Decl> lookup(std::string moduleName, std::string parentScope,
+                               const std::string &name);
 
-  void copyBuiltinsToModule(const std::string& moduleName);
+  void copyBuiltinsToModule(const std::string &moduleName);
 };
 
 #endif

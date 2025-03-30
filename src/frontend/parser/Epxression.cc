@@ -1,8 +1,6 @@
 #include "frontend/parser/Expression.h"
 
-Expression::~Expression() {
-
-}
+Expression::~Expression() {}
 
 std::shared_ptr<Type> IntLiteralEXP::resolveType(TypeTable typeTable) {
   // auto type = std::make_unique<TypeBuiltin>(TYPE_INT, "Integer", 32);

@@ -22,7 +22,8 @@ public:
   Parser(std::vector<std::unique_ptr<Token>> tokens,
          const std::shared_ptr<GlobalSymbolTable> &globalSymbolTable,
          const std::shared_ptr<GlobalTypeTable> &globalTypeTable)
-      : globalSymbolTable(globalSymbolTable), globalTypeTable(globalTypeTable), tokens(std::move(tokens)), tokenPos(-1) {
+      : globalSymbolTable(globalSymbolTable), globalTypeTable(globalTypeTable),
+        tokens(std::move(tokens)), tokenPos(-1) {
     lastDeclaredScopeParent.emplace("Global");
     globalTypeTable->initBuiltinTypes();
     globalSymbolTable->initBuiltinFuncs(globalTypeTable);
@@ -124,9 +125,9 @@ private:
   /**
    *
    */
-  void parseParameters(const std::shared_ptr<FuncDecl>& funcDecl);
-  void parseParameters(const std::shared_ptr<ConstrDecl>& constrDecl);
-  void parseParameters(const std::shared_ptr<MethodDecl>& funcDecl);
+  void parseParameters(const std::shared_ptr<FuncDecl> &funcDecl);
+  void parseParameters(const std::shared_ptr<ConstrDecl> &constrDecl);
+  void parseParameters(const std::shared_ptr<MethodDecl> &funcDecl);
 
   /**
    * @brief Parses arguments in a method call

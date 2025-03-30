@@ -49,7 +49,7 @@ public:
 class FieldDecl : public Decl {
 public:
   explicit FieldDecl(const std::string &name, std::shared_ptr<Type> type)
-    : Decl(E_Field_Decl, name), type(std::move(type)) {}
+      : Decl(E_Field_Decl, name), type(std::move(type)) {}
 
   std::shared_ptr<Type> type;
 
@@ -122,27 +122,28 @@ public:
  */
 class MethodDecl : public Decl {
 public:
-  MethodDecl(const std::string &name)
-    : Decl(E_Method_Decl, name) {}
+  MethodDecl(const std::string &name) : Decl(E_Method_Decl, name) {}
   explicit MethodDecl(const std::string &name,
-                    std::shared_ptr<TypeFunc> signature,
-                    std::vector<std::shared_ptr<Decl>> args,
-                    std::shared_ptr<Block> body)
+                      std::shared_ptr<TypeFunc> signature,
+                      std::vector<std::shared_ptr<Decl>> args,
+                      std::shared_ptr<Block> body)
       : Decl(E_Method_Decl, name), signature(std::move(signature)),
-        args(std::move(args)), isVoided(false), isVoid(signature->isVoid), body(std::move(body)) {}
+        args(std::move(args)), isVoided(false), isVoid(signature->isVoid),
+        body(std::move(body)) {}
 
   explicit MethodDecl(const std::string &name,
-                    std::shared_ptr<TypeFunc> signature,
-                    std::shared_ptr<Block> body)
-      : Decl(E_Method_Decl, name), signature(std::move(signature)),
-        args(), isVoided(true), isVoid(signature->isVoid), body(std::move(body)) {}
+                      std::shared_ptr<TypeFunc> signature,
+                      std::shared_ptr<Block> body)
+      : Decl(E_Method_Decl, name), signature(std::move(signature)), args(),
+        isVoided(true), isVoid(signature->isVoid), body(std::move(body)) {}
 
   explicit MethodDecl(const std::string &name,
                       const std::shared_ptr<TypeFunc> &signature,
                       const std::vector<std::shared_ptr<Decl>> &args,
-                  bool isBuiltin)
-    : Decl(E_Method_Decl, name), signature(signature),
-      args(args), isVoided(false), isVoid(signature->isVoid), isBuiltin(isBuiltin), body() {}
+                      bool isBuiltin)
+      : Decl(E_Method_Decl, name), signature(signature), args(args),
+        isVoided(false), isVoid(signature->isVoid), isBuiltin(isBuiltin),
+        body() {}
 
   std::shared_ptr<TypeFunc> signature;
   std::vector<std::shared_ptr<Decl>> args;
@@ -198,22 +199,22 @@ public:
  */
 class ClassDecl : public Decl {
 public:
-  ClassDecl(
-    const std::string &name, std::shared_ptr<TypeClass> type,
-    std::vector<std::shared_ptr<ClassDecl>> base_class,
-    std::vector<std::shared_ptr<FieldDecl>> fields,
-    std::vector<std::shared_ptr<MethodDecl>> methods,
-    std::vector<std::shared_ptr<MethodDecl>> constructors
-  ) : Decl(E_Class_Decl, name), type(std::move(type)), base_classes(std::move(base_class)),
-      fields(std::move(fields)), methods(std::move(methods)), constructors(std::move(constructors)) {}
+  ClassDecl(const std::string &name, std::shared_ptr<TypeClass> type,
+            std::vector<std::shared_ptr<ClassDecl>> base_class,
+            std::vector<std::shared_ptr<FieldDecl>> fields,
+            std::vector<std::shared_ptr<MethodDecl>> methods,
+            std::vector<std::shared_ptr<MethodDecl>> constructors)
+      : Decl(E_Class_Decl, name), type(std::move(type)),
+        base_classes(std::move(base_class)), fields(std::move(fields)),
+        methods(std::move(methods)), constructors(std::move(constructors)) {}
 
-  ClassDecl(
-    const std::string &name, std::shared_ptr<TypeClass> type,
-    std::vector<std::shared_ptr<FieldDecl>> fields,
-    std::vector<std::shared_ptr<MethodDecl>> methods,
-    std::vector<std::shared_ptr<MethodDecl>> constructors
-  ) : Decl(E_Class_Decl, name), type(std::move(type)),
-  fields(std::move(fields)), methods(std::move(methods)), constructors(std::move(constructors)) {}
+  ClassDecl(const std::string &name, std::shared_ptr<TypeClass> type,
+            std::vector<std::shared_ptr<FieldDecl>> fields,
+            std::vector<std::shared_ptr<MethodDecl>> methods,
+            std::vector<std::shared_ptr<MethodDecl>> constructors)
+      : Decl(E_Class_Decl, name), type(std::move(type)),
+        fields(std::move(fields)), methods(std::move(methods)),
+        constructors(std::move(constructors)) {}
 
   std::shared_ptr<TypeClass> type;
   std::vector<std::shared_ptr<ClassDecl>> base_classes;
@@ -230,8 +231,10 @@ public:
 
 class ArrayDecl : public Decl {
 public:
-  ArrayDecl(const std::string &name, std::shared_ptr<TypeArray> type, std::shared_ptr<ArrayLiteralExpr> initz)
-    : Decl(E_Array_Decl, name), type(std::move(type)), initializer(std::move(initz)) {}
+  ArrayDecl(const std::string &name, std::shared_ptr<TypeArray> type,
+            std::shared_ptr<ArrayLiteralExpr> initz)
+      : Decl(E_Array_Decl, name), type(std::move(type)),
+        initializer(std::move(initz)) {}
 
   std::shared_ptr<TypeArray> type;
 
@@ -251,8 +254,10 @@ public:
 
 class ListDecl : public Decl {
 public:
-  ListDecl(const std::string &name, std::shared_ptr<TypeList> type, std::shared_ptr<ArrayLiteralExpr> initz)
-    : Decl(E_List_Decl, name), type(std::move(type)), initializer(std::move(initz)) {}
+  ListDecl(const std::string &name, std::shared_ptr<TypeList> type,
+           std::shared_ptr<ArrayLiteralExpr> initz)
+      : Decl(E_List_Decl, name), type(std::move(type)),
+        initializer(std::move(initz)) {}
 
   std::shared_ptr<TypeList> type;
 
@@ -270,22 +275,20 @@ public:
   ~ListDecl() override = default;
 };
 
-class ModuleDecl: public Decl {
+class ModuleDecl : public Decl {
 public:
-  ModuleDecl(const std::string &moduleNmae)
-    : Decl(E_Module_Decl, moduleNmae) {}
+  ModuleDecl(const std::string &moduleNmae) : Decl(E_Module_Decl, moduleNmae) {}
 
   std::vector<std::shared_ptr<Entity>> children;
 };
 
 class ConstrDecl : public Decl {
 public:
-  ConstrDecl(const std::string &name)
-    : Decl(E_Constructor_Decl, name) {}
+  ConstrDecl(const std::string &name) : Decl(E_Constructor_Decl, name) {}
   explicit ConstrDecl(const std::string &name,
-                    std::shared_ptr<TypeFunc> signature,
-                    std::vector<std::shared_ptr<Decl>> args,
-                    std::shared_ptr<Block> body)
+                      std::shared_ptr<TypeFunc> signature,
+                      std::vector<std::shared_ptr<Decl>> args,
+                      std::shared_ptr<Block> body)
       : Decl(E_Method_Decl, name), signature(std::move(signature)),
         args(std::move(args)), body(std::move(body)) {}
 
