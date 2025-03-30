@@ -49,7 +49,8 @@ public:
     if (exists(name)) {
       return false;
     }
-    addType(name, std::make_shared<TypeFunc>(std::move(returnType), std::move(args)));
+    addType(name,
+            std::make_shared<TypeFunc>(std::move(returnType), std::move(args)));
     return true;
   }
 
@@ -93,11 +94,13 @@ public:
   std::unordered_map<std::string, TypeTable> types;
   TypeTable builtinTypes;
 
-  void addType(const std::string &moduleName, const std::string &typeName, std::shared_ptr<Type> type) {
+  void addType(const std::string &moduleName, const std::string &typeName,
+               std::shared_ptr<Type> type) {
     types[moduleName].addType(typeName, type);
   }
 
-  std::shared_ptr<Type> getType(const std::string &moduleName, const std::string &typeName) {
+  std::shared_ptr<Type> getType(const std::string &moduleName,
+                                const std::string &typeName) {
     // first search through builtins
     auto it_bins = builtinTypes.getType(typeName);
     if (it_bins == nullptr) {

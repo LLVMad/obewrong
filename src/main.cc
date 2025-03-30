@@ -1,5 +1,5 @@
-#include <stdio.h>
 #include <iostream>
+#include <stdio.h>
 #include <vector>
 
 #include "frontend/SourceManager.h"
@@ -7,7 +7,8 @@
 #include "frontend/parser/Parser.h"
 
 int main(int argc, char *argv[]) {
-  if (argc != 3) {}
+  if (argc != 3) {
+  }
 
   SourceManager sm;
   auto buff = std::make_shared<SourceBuffer>(sm.readSource(argv[1]));
@@ -16,7 +17,7 @@ int main(int argc, char *argv[]) {
 
   std::vector<std::unique_ptr<Token>> tokens = lexer.lex();
 
-  auto globalSymbolTable = std::make_shared<GlobalSymbolTable>();
+  auto globalSymbolTable = std::make_shared<SymbolTable>();
   auto globalTypeTable = std::make_shared<GlobalTypeTable>();
 
   Parser parser(std::move(tokens), globalSymbolTable, globalTypeTable);

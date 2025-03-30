@@ -39,7 +39,6 @@ public:
 
   explicit Type(TypeKind kind, std::string name)
       : kind(kind), name(std::move((name))) {}
-
 };
 
 class TypeBuiltin : public Type {
@@ -66,7 +65,6 @@ public:
    * might as well go here
    * so all methods, etc.
    */
-
 
   TypeInt() : TypeBuiltin(TYPE_INT, "Integer", 32) {}
 
@@ -185,7 +183,7 @@ public:
   std::shared_ptr<Type> return_type;
   std::vector<std::shared_ptr<Type>> args;
   bool isVoided; // no parameters
-  bool isVoid; // no return type
+  bool isVoid;   // no return type
 
   TypeFunc(std::shared_ptr<Type> return_type,
            std::vector<std::shared_ptr<Type>> args)
@@ -193,14 +191,17 @@ public:
         args(std::move((args))), isVoided(false), isVoid(false) {}
 
   TypeFunc(const std::shared_ptr<Type> &return_type)
-    : Type(TYPE_FUNC, "Function"), return_type(return_type), isVoided(true), isVoid(false) {}
+      : Type(TYPE_FUNC, "Function"), return_type(return_type), isVoided(true),
+        isVoid(false) {}
 
   // default constructor
   TypeFunc()
-    : Type(TYPE_FUNC, "Function"), return_type(nullptr), isVoided(true), isVoid(true) {}
+      : Type(TYPE_FUNC, "Function"), return_type(nullptr), isVoided(true),
+        isVoid(true) {}
 
   TypeFunc(std::vector<std::shared_ptr<Type>> args)
-  : Type(TYPE_FUNC, "Function"), return_type(nullptr), args(std::move(args)), isVoided(false), isVoid(true) {}
+      : Type(TYPE_FUNC, "Function"), return_type(nullptr),
+        args(std::move(args)), isVoided(false), isVoid(true) {}
 
   ~TypeFunc() override = default;
 };
@@ -223,7 +224,7 @@ public:
       : Type(TYPE_CLASS, name), fields_types(std::move(fields_types)),
         methods_types(std::move((methods_types))) {}
 
-  void addBaseClass(const std::shared_ptr<TypeClass>& base) {
+  void addBaseClass(const std::shared_ptr<TypeClass> &base) {
     base_class.push_back(base);
   }
 

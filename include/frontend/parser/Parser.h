@@ -10,22 +10,24 @@
 #include "frontend/lexer/Lexer.h"
 #include "frontend/types/Decl.h"
 
+#include <optional>
 #include <stack>
 #include <stdexcept>
 
 class Parser {
   // SymbolTable symbolTable;
-  std::shared_ptr<GlobalSymbolTable> globalSymbolTable;
+  std::shared_ptr<SymbolTable> globalSymbolTable;
   std::shared_ptr<GlobalTypeTable> globalTypeTable;
 
 public:
   Parser(std::vector<std::unique_ptr<Token>> tokens,
-         const std::shared_ptr<GlobalSymbolTable> &globalSymbolTable,
+         const std::shared_ptr<SymbolTable> &globalSymbolTable,
          const std::shared_ptr<GlobalTypeTable> &globalTypeTable)
-      : globalSymbolTable(globalSymbolTable), globalTypeTable(globalTypeTable), tokens(std::move(tokens)), tokenPos(-1) {
-    lastDeclaredScopeParent.emplace("Global");
+      : globalSymbolTable(globalSymbolTable), globalTypeTable(globalTypeTable),
+        tokens(std::move(tokens)), tokenPos(-1) {
+    // lastDeclaredScopeParent.emplace("Global");
     globalTypeTable->initBuiltinTypes();
-    globalSymbolTable->initBuiltinFuncs(globalTypeTable);
+    globalSymbolTable->initBuiltinFunctions(globalTypeTable);
     // symbolTable.enterScope();
   }
 
@@ -58,36 +60,50 @@ private:
    */
   std::unique_ptr<Token> peek();
 
+  /**
+   * Peek into token stream i times
+   * @param i tokens to skip
+   * @return found token
+   */
+  std::unique_ptr<Token> peek(size_t i);
+
+  /**
+   * Check if current token is of type that we need
+   * @param expectedToken token kind to expect on current place
+   * @return true if current tokens kind is == to expected
+   */
+  bool expect(TokenKind expectedToken);
+
   int tokenPos;
 
   // void parseProgramDecls();
 
-  std::shared_ptr<Entity> parseIfStatement();
+  std::shared_ptr<IfSTMT> parseIfStatement();
 
-  std::shared_ptr<Entity> parseReturnStatement();
+  std::shared_ptr<ReturnSTMT> parseReturnStatement();
 
-  std::shared_ptr<Entity> parseSwitch();
+  std::shared_ptr<SwitchSTMT> parseSwitch();
 
-  std::shared_ptr<Entity> parseCase();
+  std::shared_ptr<CaseSTMT> parseCase();
 
-  std::shared_ptr<Entity> parseVarDecl();
+  std::shared_ptr<VarDecl> parseVarDecl();
 
-  std::shared_ptr<Entity> parseConstructorDecl();
+  std::shared_ptr<ConstrDecl> parseConstructorDecl();
 
-  std::shared_ptr<Entity> parseMethodDecl();
+  std::shared_ptr<MethodDecl> parseMethodDecl();
 
-  std::shared_ptr<Entity> parseFunctionDecl();
+  std::shared_ptr<FuncDecl> parseFunctionDecl();
 
-  std::shared_ptr<Entity> parseClassDecl();
+  std::shared_ptr<ClassDecl> parseClassDecl();
 
-  std::shared_ptr<Entity> parseFieldDecl();
+  std::shared_ptr<FieldDecl> parseFieldDecl();
 
   /**
    * @note WhileLoop ::= \n
    * "while" Expression "loop" Body "end"
    *
    */
-  std::shared_ptr<Entity> parseWhileStatement();
+  std::shared_ptr<WhileSTMT> parseWhileStatement();
 
   /**
     * @note ForLoop ::=\n
@@ -95,9 +111,9 @@ private:
       Body\n
       "end"
    */
-  std::shared_ptr<Entity> parseForStatement();
+  std::shared_ptr<ForSTMT> parseForStatement();
 
-  std::shared_ptr<Entity> parseAssignment();
+  std::shared_ptr<AssignmentSTMT> parseAssignment();
 
   /**
    * @note Block \n
@@ -106,7 +122,7 @@ private:
    *  parse WHATEVER construct is between is and end
    *  could be ANYTHING!!!
    */
-  std::shared_ptr<Entity> parseBlock(BlockKind blockKind);
+  std::shared_ptr<Block> parseBlock(BlockKind blockKind);
 
   /**
    * @note Expression \n
@@ -114,7 +130,7 @@ private:
    *
    * @note also parses functioncalls and compund expressions
    */
-  std::shared_ptr<Entity> parseExpression();
+  std::shared_ptr<Expression> parseExpression();
 
   /**
    *
@@ -124,9 +140,9 @@ private:
   /**
    *
    */
-  void parseParameters(const std::shared_ptr<FuncDecl>& funcDecl);
-  void parseParameters(const std::shared_ptr<ConstrDecl>& constrDecl);
-  void parseParameters(const std::shared_ptr<MethodDecl>& funcDecl);
+  void parseParameters(const std::shared_ptr<FuncDecl> &funcDecl);
+  void parseParameters(const std::shared_ptr<ConstrDecl> &constrDecl);
+  void parseParameters(const std::shared_ptr<MethodDecl> &funcDecl);
 
   /**
    * @brief Parses arguments in a method call
@@ -158,16 +174,14 @@ private:
     | ClassName \n
     | Identifier \n
    */
-  std::shared_ptr<Entity> parsePrimary();
+  std::shared_ptr<Expression> parsePrimary();
 
   // variables to keep track
   // of declared important constructs
   // and their scope
-  std::string lastDeclaredClass;
-  std::string lastDeclaredMethod;
-  std::string lastDeclaredFunction;
+  // std::string lastDeclaredClass;
 
-  std::stack<std::string> lastDeclaredScopeParent;
+  // std::stack<std::string> lastDeclaredScopeParent;
 
   std::string moduleName;
 };

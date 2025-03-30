@@ -8,6 +8,8 @@
 
 #include "frontend/types/Types.h"
 
+#include <functional>
+
 struct Loc {
   size_t line;
   size_t col;
@@ -121,7 +123,7 @@ enum BlockKind {
 class Block : public Entity {
 public:
   Block(std::vector<std::shared_ptr<Entity>> parts, BlockKind kind)
-    : Entity(E_Block), parts(std::move(parts)), kind(kind) {};
+      : Entity(E_Block), parts(std::move(parts)), kind(kind) {};
 
   std::vector<std::shared_ptr<Entity>> parts;
   BlockKind kind;
@@ -131,9 +133,7 @@ public:
     return nullptr;
   }
 
-  bool validate() override {
-    return false;
-  }
+  bool validate() override { return false; }
 
   ~Block() override = default;
 };
