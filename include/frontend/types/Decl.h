@@ -162,6 +162,31 @@ public:
   ~MethodDecl() override = default;
 };
 
+class ConstrDecl : public Decl {
+public:
+  ConstrDecl(const std::string &name) : Decl(E_Constructor_Decl, name) {}
+  explicit ConstrDecl(const std::string &name,
+                      std::shared_ptr<TypeFunc> signature,
+                      std::vector<std::shared_ptr<Decl>> args,
+                      std::shared_ptr<Block> body)
+      : Decl(E_Method_Decl, name), signature(std::move(signature)),
+        args(std::move(args)), body(std::move(body)) {}
+
+  std::shared_ptr<TypeFunc> signature;
+  std::vector<std::shared_ptr<Decl>> args;
+
+  std::shared_ptr<Block> body;
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+
+  bool validate() override;
+
+  // no parameters
+  bool isDefault;
+
+  ~ConstrDecl() override = default;
+};
+
 class FuncDecl : public Decl {
 public:
   explicit FuncDecl(const std::string &name,
@@ -203,7 +228,7 @@ public:
             std::vector<std::shared_ptr<ClassDecl>> base_class,
             std::vector<std::shared_ptr<FieldDecl>> fields,
             std::vector<std::shared_ptr<MethodDecl>> methods,
-            std::vector<std::shared_ptr<MethodDecl>> constructors)
+            std::vector<std::shared_ptr<ConstrDecl>> constructors)
       : Decl(E_Class_Decl, name), type(std::move(type)),
         base_classes(std::move(base_class)), fields(std::move(fields)),
         methods(std::move(methods)), constructors(std::move(constructors)) {}
@@ -211,7 +236,7 @@ public:
   ClassDecl(const std::string &name, std::shared_ptr<TypeClass> type,
             std::vector<std::shared_ptr<FieldDecl>> fields,
             std::vector<std::shared_ptr<MethodDecl>> methods,
-            std::vector<std::shared_ptr<MethodDecl>> constructors)
+            std::vector<std::shared_ptr<ConstrDecl>> constructors)
       : Decl(E_Class_Decl, name), type(std::move(type)),
         fields(std::move(fields)), methods(std::move(methods)),
         constructors(std::move(constructors)) {}
@@ -220,7 +245,7 @@ public:
   std::vector<std::shared_ptr<ClassDecl>> base_classes;
   std::vector<std::shared_ptr<FieldDecl>> fields;
   std::vector<std::shared_ptr<MethodDecl>> methods;
-  std::vector<std::shared_ptr<MethodDecl>> constructors;
+  std::vector<std::shared_ptr<ConstrDecl>> constructors;
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
@@ -280,31 +305,6 @@ public:
   ModuleDecl(const std::string &moduleNmae) : Decl(E_Module_Decl, moduleNmae) {}
 
   std::vector<std::shared_ptr<Entity>> children;
-};
-
-class ConstrDecl : public Decl {
-public:
-  ConstrDecl(const std::string &name) : Decl(E_Constructor_Decl, name) {}
-  explicit ConstrDecl(const std::string &name,
-                      std::shared_ptr<TypeFunc> signature,
-                      std::vector<std::shared_ptr<Decl>> args,
-                      std::shared_ptr<Block> body)
-      : Decl(E_Method_Decl, name), signature(std::move(signature)),
-        args(std::move(args)), body(std::move(body)) {}
-
-  std::shared_ptr<TypeFunc> signature;
-  std::vector<std::shared_ptr<Decl>> args;
-
-  std::shared_ptr<Block> body;
-
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
-
-  bool validate() override;
-
-  // no parameters
-  bool isDefault;
-
-  ~ConstrDecl() override = default;
 };
 
 #endif

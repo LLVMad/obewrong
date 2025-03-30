@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
 
   std::vector<std::unique_ptr<Token>> tokens = lexer.lex();
 
-  auto globalSymbolTable = std::make_shared<GlobalSymbolTable>();
+  auto globalSymbolTable = std::make_shared<SymbolTable>();
   auto globalTypeTable = std::make_shared<GlobalTypeTable>();
 
   Parser parser(std::move(tokens), globalSymbolTable, globalTypeTable);
