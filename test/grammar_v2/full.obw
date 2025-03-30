@@ -1,0 +1,56 @@
+import std.io 
+
+class MyInteger is 
+  static var max : int := 999
+  var value : int
+  
+  this(val : int) is 
+    this.value := value 
+  end
+
+  method isEven() : bool is 
+    return (value % 2 == 0)
+  end
+
+  method to_u32() : u32 is 
+    return value
+  end
+end
+
+class Stack<T> is 
+  var elements : List[T]
+
+  this() is 
+    elements()
+  end
+
+  method pop() : T is 
+    T head = elements.head()
+    elements := elements.tail()
+    return head
+  end
+
+  method push(el: T) is
+    elements.emplace(0, el)
+  end 
+end
+
+func main() is 
+  var m : MyInteger
+  
+  printl(m.isEven())
+
+  var st : Stack<MyInteger>
+
+  printl(st.pop())
+
+  var u : u32 := m.to_u32()
+
+  if u > m.max then 
+    printl("Too long")
+  else 
+    printl("Nice and simple")
+  end
+
+  printl(u)
+end

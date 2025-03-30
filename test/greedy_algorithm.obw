@@ -1,20 +1,20 @@
 class CoinChange is
     this() is end
 
-    method minCoins(amount: Integer) : Array[Integer] is
-        var coins : Array := Array(Integer(5))
-        coins.set(Integer(0), Integer(50))
-        coins.set(Integer(1), Integer(25))
-        coins.set(Integer(2), Integer(10))
-        coins.set(Integer(3), Integer(5))
-        coins.set(Integer(4), Integer(1))
+    method minCoins(amount: Integer) : List[Integer] is
+        var coins : Array[Integer] := Array[Integer](5)
+        coins.set(0, 50)
+        coins.set(1, 25)
+        coins.set(2, 10)
+        coins.set(3, 5)
+        coins.set(4, 1)
 
-        var result : Array := Array(Integer(0))
-        var i : Integer := Integer(0)
+        var result : List[Integer] 
+        var i : Integer := 0
 
-        while amount.Greater(Integer(0)) loop
+        while amount.Greater(0) loop
             if amount.GreaterEqual(coins.get(i)) then
-                result := result.Append(coins.get(i))
+                result.append(coins.get(i))
                 amount := amount.Minus(coins.get(i))
             else
                 i := i.Plus(1)
@@ -27,10 +27,10 @@ end
 
 class TestCoinChange is
     this() is
-        var changer : CoinChange := CoinChange()
-        var testAmount : Integer := Integer(87)
-        var result : Array[Integer] := changer.minCoins(testAmount)
+        var changer : CoinChange 
+        var testAmount : Integer := 87
+        var result : List[Integer] := changer.minCoins(testAmount)
 
-        Console.print("Coins for ".Concat(testAmount.ToString()).Concat(": ").Concat(result.ToString()))
+        Print("Coins for ".Concat(testAmount.toString()).Concat(": ").Concat(result.toString()))
     end
 end

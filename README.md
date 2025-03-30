@@ -96,7 +96,7 @@ class methods (or from methods of derived classes).
 
 ```
 VariableDeclaration
-: var Identifier : Expression
+: [static] var Identifier : Expression
 ```
 Each entity in the program should be declared. The relative order of declaration of a
 variable and its use is described below. The syntax and semantics of variable
@@ -109,7 +109,7 @@ determined from the type of the initializing expression.
 MethodDeclaration
 : MethodHeader [ MethodBody ]
 MethodHeader
-: method Identifier [ Parameters ] [ : Identifier ]
+: [static] method Identifier [ Parameters ] [ : Identifier ]
 MethodBody
 : is Body end
 | => Expression
@@ -220,6 +220,7 @@ Primary
 : IntegerLiteral
 | RealLiteral
 | BooleanLiteral
+| CharLiteral
 | this
 | ClassName
 ```
@@ -253,6 +254,7 @@ class AnyValue extends Class is ... end
 class Integer extends AnyValue is ... end
 class Real extends AnyValue is ... end
 class Boolean extends AnyValue is ... end
+class Char extends AnyValue is ... end
 class AnyRef extends Class is ... end
 class Array extends AnyRef is ... end
 class List extends AnyRef is ... end

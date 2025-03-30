@@ -5,7 +5,7 @@ class MyClass is
         value := p
     end
 
-    method getValue : Integer is
+    method getValue() : Integer is
         return value
     end
 end
