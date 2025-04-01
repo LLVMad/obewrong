@@ -169,6 +169,8 @@ public:
 
   MethodCallEXP() : Expression(E_Method_Call) {}
 
+  MethodCallEXP(const std::string &name) : Expression(E_Method_Call), method_name(name) {};
+
   std::string method_name;
 
   // children should be

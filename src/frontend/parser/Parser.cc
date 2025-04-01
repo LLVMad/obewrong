@@ -431,7 +431,7 @@ std::shared_ptr<AssignmentSTMT> Parser::parseAssignment() {
   token = next();
 
   // check if its a fieldref
-  token = peek();
+  // token = peek();
   if (peek()->kind == TOKEN_DOT) {
     token = next();
 
@@ -1365,9 +1365,9 @@ std::shared_ptr<Expression> Parser::parsePrimary() {
     case E_Function_Decl: {
       return std::make_shared<FuncCallEXP>(std::get<std::string>(token->value));
     }
-    // case E_Method_Decl: {
-    //   return std::make_shared<MethodCallEXP>(std::get<std::string>(token->value))
-    // }
+    case E_Method_Decl: {
+      return std::make_shared<MethodCallEXP>(std::get<std::string>(token->value));
+    }
     default:
       return nullptr;
     }
