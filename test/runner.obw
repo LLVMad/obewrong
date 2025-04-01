@@ -1,0 +1,27 @@
+module numberstore
+
+class NumberStore is
+    var value : Integer
+  
+    this(b : Integer) is 
+      this.value := b
+    end
+
+    this() is 
+      this.value := 0
+    end 
+ 
+    method Get() : Integer is
+      return this.value
+    end
+
+    method Set(x : Integer) is
+      this.value := x
+    end
+end
+  
+class Main is 
+  this() is 
+    var ns : NumberStore := NumberStore()
+  end
+end
