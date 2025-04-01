@@ -1,16 +1,27 @@
 #include "frontend/SymbolTable.h"
 
-void SymbolTable::initBuiltinFunctions(const std::shared_ptr<GlobalTypeTable>& typeTable) {
+void SymbolTable::
+initBuiltinFunctions(const std::shared_ptr<GlobalTypeTable>& typeTable) {
   // auto global = getGlobalScope();
 
-  // For integer
+  //=============== GENERAL ===============
+  // - printl
+  bool isVoid = true;
+  // @TODO body??? args??? AnyRef ???
+  auto printDecl =
+      std::make_shared<FuncDecl>("printl");
+
+  global_scope->addSymbol("printl", printDecl);
+
+  //========================================
+
+  //========== INTEGER BUILTIN METHODS ==========
   // - Plus
   auto intPlusTypeReturnType = typeTable->getType("", "Integer");
   auto intPlusTypeParamType = typeTable->getType("", "Integer");
-  std::vector<std::shared_ptr<Type>> paramTypes = {intPlusTypeParamType};
+  std::vector paramTypes = {intPlusTypeParamType};
   auto intPlusType =
       std::make_shared<TypeFunc>(intPlusTypeReturnType, paramTypes);
-  // auto intPlusBody = std::make_shared<Block>(std::vec)
   auto intPlusParamDecl =
       std::make_shared<ParameterDecl>("x", intPlusTypeParamType);
   std::vector<std::shared_ptr<Decl>> params = {intPlusParamDecl};
@@ -19,6 +30,20 @@ void SymbolTable::initBuiltinFunctions(const std::shared_ptr<GlobalTypeTable>& t
 
   global_scope->addSymbol("Plus", intPlusDecl);
 
+  // - Minus
+  auto intMinusTypeReturnType = typeTable->getType("", "Integer");
+  auto intMinusTypeParamType = typeTable->getType("", "Integer");
+  paramTypes = {intMinusTypeParamType};
+  auto intMinusType =
+      std::make_shared<TypeFunc>(intMinusTypeReturnType, paramTypes);
+  auto intMinusParamDecl =
+      std::make_shared<ParameterDecl>("x", intMinusTypeParamType);
+  params = {intPlusParamDecl};
+  auto intMinusDecl =
+      std::make_shared<MethodDecl>("Minus", intMinusType, params, true);
+
+  global_scope->addSymbol("Minus", intMinusDecl);
+  //========================================
   // ... other built-in functions ...
 }
 

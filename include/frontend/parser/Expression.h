@@ -104,30 +104,6 @@ public:
  *
  * can/should be translate to other Decl, STMT or EXPR
  *
- * class A is
- *   var a : Integer
- * end
- *
- * var c : Integer := a.Plus(2)
- *                    ^
- */
-class FieldRefEXP : public Expression {
-public:
-  FieldRefEXP(std::string name)
-      : Expression(E_Field_Reference), field_name(std::move(name)) {};
-
-  std::string field_name;
-
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
-  bool validate() override;
-};
-
-/**
- * For when we refer to a "value" by
- * referencing associated variable name
- *
- * can/should be translate to other Decl, STMT or EXPR
- *
  * var a : Integer := 2
  * var c : Integer := a.Plus(2)
  *                    ^
@@ -138,11 +114,41 @@ public:
       : Expression(E_Var_Reference), var_name(name) {};
 
   std::string var_name;
-
   // no children, link to a VarDecl probably
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
+  bool validate() override;
+};
+
+/**
+ * For when we refer to a "value" by
+ * referencing associated variable name
+ *
+ * can/should be translate to other Decl, STMT or EXPR
+ *
+ * class A is
+ *   var a : Integer
+ * end
+ *
+ * var cl : A
+ * var c : Integer := cl.a
+ *                    ^^^^
+ */
+class FieldRefEXP : public Expression {
+public:
+  FieldRefEXP(std::string name, std::shared_ptr<VarRefEXP> obj)
+      : Expression(E_Field_Reference), field_name(std::move(name)),
+        obj(obj) {};
+
+  FieldRefEXP(std::string name)
+      : Expression(E_Field_Reference), field_name(std::move(name)),
+        obj(nullptr) {};
+
+  std::string field_name;
+  std::shared_ptr<VarRefEXP> obj; // object which field is referenced
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
   bool validate() override;
 };
 
@@ -186,7 +192,11 @@ public:
   FuncCallEXP(std::string method_name,
               std::vector<std::shared_ptr<Expression>> arguments)
       : Expression(E_Function_Call), func_name(std::move(method_name)),
-        arguments(std::move(arguments)) {};
+        arguments(std::move(arguments)), isVoided(false) {};
+
+  FuncCallEXP(std::string method_name)
+      : Expression(E_Function_Call), func_name(std::move(method_name)),
+        isVoided(true) {};
 
   FuncCallEXP() : Expression(E_Function_Call) {}
 
@@ -194,6 +204,7 @@ public:
 
   // children should be
   std::vector<std::shared_ptr<Expression>> arguments;
+  bool isVoided;
 
   // void addArgument(const std::shared_ptr<Expression> &arg) {
   //   this->children.push_back(arg);
@@ -247,11 +258,17 @@ public:
   ConstructorCallEXP(std::shared_ptr<ClassNameEXP> left,
                      std::vector<std::shared_ptr<Expression>> arguments)
       : Expression(E_Function), left(std::move(left)),
-        arguments(std::move(arguments)) {};
+        arguments(std::move(arguments)), isDefault(false) {};
+
+  // Default constr
+  ConstructorCallEXP(std::shared_ptr<ClassNameEXP> left)
+    : Expression(E_Function), left(std::move(left)),
+      arguments(), isDefault(true) {};
 
   // children should be
   std::shared_ptr<ClassNameEXP> left;
   std::vector<std::shared_ptr<Expression>> arguments;
+  bool isDefault;
 
   // void addLhs(const std::shared_ptr<ClassNameEXP> &lhs) {
   //   this->children.push_back(lhs);
@@ -271,24 +288,24 @@ public:
  *
  * Adder.x, MyPair.first, LuxMeter.coeffA
  */
-class FieldAccessEXP : public Expression {
-public:
-  FieldAccessEXP(std::string name, std::shared_ptr<Expression> left)
-      : Expression(E_Field_Reference), left(std::move(left)),
-        field_name(std::move(name)) {};
-
-  // children should be
-  std::shared_ptr<Expression> left;
-  std::string field_name;
-
-  // void addLhs(const std::shared_ptr<Expression> &lhs) {
-  //   this->children.push_back(lhs);
-  // }
-
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
-
-  bool validate() override;
-};
+// class FieldAccessEXP : public Expression {
+// public:
+//   FieldAccessEXP(std::string name, std::shared_ptr<Expression> left)
+//       : Expression(E_Field_Reference), left(std::move(left)),
+//         field_name(std::move(name)) {};
+//
+//   // children should be
+//   std::shared_ptr<Expression> left;
+//   std::string field_name;
+//
+//   // void addLhs(const std::shared_ptr<Expression> &lhs) {
+//   //   this->children.push_back(lhs);
+//   // }
+//
+//   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+//
+//   bool validate() override;
+// };
 
 /**
  * Represents chained method calls
@@ -318,10 +335,67 @@ public:
   ThisEXP() : Expression(E_This) {}
 
   // no children, just a link to ???
+  // @TODO add link to idk what
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
   bool validate() override;
+};
+
+// TOKEN_EQUAL,           // * ==
+// TOKEN_NOT_EQUAL,       // * !=
+// TOKEN_WRONG_ASSIGN,    // =
+// TOKEN_MORE,            // >, illigel again
+// TOKEN_LESS,            // * <
+// TOKEN_MORE_EQUAL,      // * >=
+// TOKEN_LESS_EQUAL,      // * <=
+// TOKEN_BIT_AND,         // * &
+// TOKEN_BIT_OR,          // * |
+// TOKEN_BIT_XOR,         // * ^
+// TOKEN_BIT_INV,         // * ~
+// TOKEN_LOGIC_NOT,       // * !
+// TOKEN_LOGIC_AND,       // * &&
+// TOKEN_LOGIC_OR,        // * ||
+// TOKEN_BIT_SHIFT_LEFT,  // * <<
+// TOKEN_BIT_SHIFT_RIGHT, // * >>
+// TOKEN_PLUS,            // * +
+// TOKEN_MINUS,           // * -
+// TOKEN_STAR,            // * *
+// TOKEN_SLASH,           // * /
+// TOKEN_PERCENT,         // * %
+
+enum OperatorKind {
+  OP_EQUAL,
+  OP_NOT_EQUAL,
+  OP_GREATER,
+  OP_GREATER_EQUAL,
+  OP_LESS,
+  OP_LESS_EQUAL,
+  OP_NOT,
+  OP_BIT_AND,
+  OP_LOGIC_AND,
+  OP_BIT_OR,
+  OP_LOGIC_OR,
+  OP_BIT_XOR,
+  OP_BIT_NOT,
+  OP_BIT_LSHIFT,
+  OP_BIT_RSHIFT,
+  OP_PLUS,
+  OP_MINUS,
+  OP_MULTIPLY,
+  OP_DIVIDE,
+  OP_MODULUS,
+};
+
+class BinaryOpEXP : public Expression {
+public:
+  BinaryOpEXP(OperatorKind op, std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
+      : Expression(E_Binary_Operator), left(std::move(left)),
+        right(std::move(right)), op(op) {};
+
+  std::shared_ptr<Expression> left;
+  std::shared_ptr<Expression> right;
+  OperatorKind op;
 };
 
 #endif

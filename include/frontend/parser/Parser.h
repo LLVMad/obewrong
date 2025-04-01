@@ -124,6 +124,8 @@ private:
    */
   std::shared_ptr<Block> parseBlock(BlockKind blockKind);
 
+  std::shared_ptr<BinaryOpEXP> parseBinaryOp(std::shared_ptr<Expression> firstOperand);
+
   /**
    * @note Expression \n
    * : Primary { . Identifier [ Arguments ] }

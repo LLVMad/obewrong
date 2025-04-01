@@ -55,6 +55,8 @@ public:
   const auto& getChildren() const { return children; }
   std::weak_ptr<Scope> getParent() const { return parent; }
 
+  void setName(const std::string& name) { this->name = name; }
+  void appendToName(const std::string& name) { this->name += name; }
 private:
   ScopeKind kind;
   std::string name;

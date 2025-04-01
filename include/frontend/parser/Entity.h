@@ -73,6 +73,7 @@ enum Ekind {
   E_Function_Call,
   E_Method_Call,
   E_Array_Literal,
+  E_Binary_Operator
 };
 
 /**

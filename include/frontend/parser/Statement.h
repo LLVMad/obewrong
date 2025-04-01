@@ -31,10 +31,16 @@ public:
   AssignmentSTMT(std::shared_ptr<VarRefEXP> lhs,
                  std::shared_ptr<Expression> rhs)
       : Statement(E_Assignment), variable(std::move(lhs)),
-        expression(std::move(rhs)) {}
+        field(nullptr), expression(std::move(rhs)) {}
+
+  AssignmentSTMT(std::shared_ptr<FieldRefEXP> lhs,
+                 std::shared_ptr<Expression> rhs)
+      : Statement(E_Assignment), variable(nullptr),
+        field(std::move(lhs)), expression(std::move(rhs)) {}
 
   // children are
   std::shared_ptr<VarRefEXP> variable;
+  std::shared_ptr<FieldRefEXP> field;
   std::shared_ptr<Expression> expression;
 
   ~AssignmentSTMT() override = default;

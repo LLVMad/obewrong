@@ -2,10 +2,22 @@
 #define TYPE_TABLE_H
 
 #include "types/Types.h"
+
+#include <algorithm>
+#include <bits/ranges_algo.h>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+inline std::string str_tolower(std::string s)
+{
+  std::ranges::transform(
+      s, s.begin(),
+                 [](unsigned char c){ return std::tolower(c); } // correct
+                );
+  return s;
+}
 
 class TypeTable {
 public:
@@ -59,7 +71,7 @@ public:
   }
 
   std::shared_ptr<Type> getType(const std::string &name) {
-    auto it = types.find(name);
+    auto it = types.find(str_tolower(name));
     return ((it != types.end()) ? it->second : nullptr);
   }
 
@@ -96,19 +108,21 @@ public:
 
   void addType(const std::string &moduleName, const std::string &typeName,
                std::shared_ptr<Type> type) {
-    types[moduleName].addType(typeName, type);
+    auto tName = str_tolower(typeName);
+    types[moduleName].addType(tName, type);
   }
 
   std::shared_ptr<Type> getType(const std::string &moduleName,
                                 const std::string &typeName) {
     // first search through builtins
-    auto it_bins = builtinTypes.getType(typeName);
+    auto tName = str_tolower(typeName);
+    auto it_bins = builtinTypes.getType(tName);
     if (it_bins == nullptr) {
       auto it = types.find(moduleName);
       if (it == types.end()) {
         return nullptr;
       }
-      return it->second.getType(typeName);
+      return it->second.getType(tName);
     }
 
     return it_bins;
