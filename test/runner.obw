@@ -23,5 +23,8 @@ end
 class Main is 
   this() is 
     var ns : NumberStore := NumberStore()
+    printl("%d\n", ns.value)
+    printl("%d\n", ns.Get())
+    ns.Set(3)
   end
 end

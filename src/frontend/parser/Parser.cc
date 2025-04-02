@@ -266,6 +266,8 @@ std::shared_ptr<MethodDecl> Parser::parseMethodDecl() {
     // lastDeclaredScopeParent.pop();
     globalSymbolTable->exitScope();
 
+    globalSymbolTable->getCurrentScope()->addSymbol(method->name, method);
+
     return method;
   };
 
@@ -289,6 +291,8 @@ std::shared_ptr<MethodDecl> Parser::parseMethodDecl() {
   // quit scope
   // lastDeclaredScopeParent.pop();
   globalSymbolTable->exitScope();
+
+  globalSymbolTable->getCurrentScope()->addSymbol(method->name, method);
 
   return method;
 }
@@ -950,7 +954,7 @@ std::shared_ptr<Expression> Parser::parseExpression() {
       if (token == nullptr)
         return nullptr;
       // eat closing bracket after func read
-      token = next();
+      if (token->kind == TOKEN_RBRACKET) token = next();
 
       return func_call;
     // }
@@ -970,8 +974,24 @@ std::shared_ptr<Expression> Parser::parseExpression() {
 
     token = next(); // eat '.'
 
-    // should be an identifier
-    std::shared_ptr<Expression> after_dot = parsePrimary();
+    // // should be an identifier
+
+    std::shared_ptr<Expression> after_dot;
+    if (comp->parts.back()->getKind() == E_Var_Reference) {
+      auto leftAsVar =
+        std::static_pointer_cast<VarRefEXP>(comp->parts.back())->var_name;
+      auto calleeType =
+        std::static_pointer_cast<ClassDecl>(globalSymbolTable->getCurrentScope()->lookup(leftAsVar))->type->name;
+      if (calleeType.empty()) {
+        after_dot = parsePrimary();
+      }
+      else {
+        after_dot = parsePrimary(calleeType);/* parsePrimary() */;
+      }
+    } else {
+      after_dot = parsePrimary();
+    }
+
     // @TODO throw error if after_dot is not an Identifier
 
     // then we decide if our identifier is a fieldaccess or a methodcall
@@ -980,10 +1000,12 @@ std::shared_ptr<Expression> Parser::parseExpression() {
       token = next();
 
       // after_dot then is a method_name in a method call
-      auto method_call = std::make_shared<MethodCallEXP>();
-      method_call->method_name =
-        // ???? костыль жёсткий слишком это вообще не рев фар это имя метода
-        std::static_pointer_cast<VarRefEXP>(after_dot)->var_name;
+      auto method_call =
+        std::static_pointer_cast<MethodCallEXP>(after_dot);
+      // auto method_call = std::make_shared<MethodCallEXP>();
+      // method_call->method_name =
+      //   // ???? костыль жёсткий слишком это вообще не рев фар это имя метода
+      //   std::static_pointer_cast<VarRefEXP>(after_dot)->var_name;
       parseArguments(method_call);
 
       auto method_call_to_exp =
@@ -1044,6 +1066,7 @@ std::shared_ptr<Expression> Parser::parseExpression() {
       auto left = std::move(comp->parts[0]);
       std::shared_ptr<MethodCallEXP> method_call =
           std::dynamic_pointer_cast<MethodCallEXP>(comp->parts[1]);
+      method_call->left = left;
       // std::shared_ptr<MethodCallEXP>(
       //     dynamic_cast<MethodCallEXP *>(comp->parts[1].get()));
       return method_call;
@@ -1347,6 +1370,68 @@ std::shared_ptr<Expression> Parser::parsePrimary() {
     if (!var) {
         throw std::runtime_error("Undefined variable: " +
                                  std::get<std::string>(token->value));
+    }
+    switch (var->getKind()) {
+    case E_Field_Decl: {
+      // we return it as a var to construct
+      // a legit FieldRefEXP on parseExpression
+      // return std::make_shared<FieldRefEXP>(std::get<std::string>(token->value), );
+      return std::make_shared<VarRefEXP>(std::get<std::string>(token->value));
+    }
+    case E_Variable_Decl:
+    case E_Parameter_Decl: {
+      return std::make_shared<VarRefEXP>(std::get<std::string>(token->value));
+    }
+    case E_Class_Decl: {
+      return std::make_shared<ClassNameEXP>(std::get<std::string>(token->value));
+    }
+    case E_Function_Decl: {
+      return std::make_shared<FuncCallEXP>(std::get<std::string>(token->value));
+    }
+    case E_Method_Decl: {
+      return std::make_shared<MethodCallEXP>(std::get<std::string>(token->value));
+    }
+    default:
+      return nullptr;
+    }
+  }
+  default:
+    return nullptr;
+  }
+}
+
+std::shared_ptr<Expression> Parser::parsePrimary(const std::string &classNameToSearchIn) {
+  std::unique_ptr<Token> token = peek();
+  if (token == nullptr)
+    return nullptr;
+
+  token = next();
+  switch (token->kind) {
+  case TOKEN_INT_NUMBER: {
+    return std::make_shared<IntLiteralEXP>(std::get<int>(token->value));
+  }
+  case TOKEN_REAL_NUMBER: {
+    return std::make_shared<RealLiteralEXP>(std::get<double>(token->value));
+  }
+  case TOKEN_BOOL_TRUE: {
+    return std::make_shared<BoolLiteralEXP>(true);
+  }
+  case TOKEN_BOOL_FALSE: {
+    return std::make_shared<BoolLiteralEXP>(false);
+  }
+  case TOKEN_STRING: {
+    return std::make_shared<StringLiteralEXP>(
+        std::get<std::string>(token->value));
+  }
+  case TOKEN_SELFREF: {
+    return std::make_shared<ThisEXP>();
+  }
+  case TOKEN_IDENTIFIER: case TOKEN_PRINT: {
+    auto var =
+      globalSymbolTable->getGlobalScope()->lookupInClass(std::get<std::string>(token->value), classNameToSearchIn);
+    if (!var) {
+      throw std::runtime_error("Undefined variable: " +
+                               std::get<std::string>(token->value));
     }
     switch (var->getKind()) {
     case E_Field_Decl: {

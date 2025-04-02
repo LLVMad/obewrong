@@ -38,10 +38,48 @@ public:
 
     // Recursively check parent scopes
     if (auto parent_ptr = parent.lock()) {
+      // if (
+      //
+      //   (parent_ptr->kind == ScopeKind::SCOPE_CLASS
+      //     || parent_ptr->kind == ScopeKind::SCOPE_METHOD)) {
+      //   for (const auto child : parent_ptr->children) {
+      //     return child->lookup(name);
+      //   }
+      // }
       return parent_ptr->lookup(name);
     }
 
     return nullptr;
+  }
+
+  std::shared_ptr<Decl> lookupInClass(const std::string& name, const std::string &className) const {
+    // idk need to think about this
+    if (this->name == className) {
+      if (auto it = symbols.find(name); it != symbols.end()) {
+        return it->second;
+      }
+    }
+
+    for (const auto &child : children) {
+      if (child->kind == SCOPE_CLASS && child->name == className) {
+        auto result = child->lookup(name);
+        if (result) return result;
+        return nullptr;
+      }
+    }
+    return nullptr;
+    // Recursively check parent scopes
+    // if (auto parent_ptr = parent.lock()) {
+    //   for (const auto &child : parent_ptr->children) {
+    //     if (child->kind == SCOPE_CLASS && child->name == className) {
+    //       auto decl = child->lookupInClass(child->name, className);
+    //       if (decl) return decl;
+    //     }
+    //   }
+    //   return parent_ptr->lookup(name);
+    // }
+    //
+    // return nullptr;
   }
 
   std::shared_ptr<Scope> createChild(ScopeKind kind, std::string name) {

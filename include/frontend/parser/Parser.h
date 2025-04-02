@@ -163,6 +163,18 @@ private:
    */
   void parseArguments(const std::shared_ptr<FuncCallEXP> &function_name);
 
+  // std::shared_ptr<> parseFielOrMethodRef(std::shared_ptr<VarRefEXP> callee);
+
+  /**
+   * Overload that enables search in symbol table
+   * for a symbol in some class scope
+   * i.e. field or method
+   *
+   * @param classToSearchIn
+   * @return
+   */
+  std::shared_ptr<Expression> parsePrimary(const std::string &classToSearchIn);
+
   /**
    * @brief this is the last point
    * in a chain of top-down parsing
