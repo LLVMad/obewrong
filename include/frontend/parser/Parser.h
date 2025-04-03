@@ -124,7 +124,7 @@ private:
    */
   std::shared_ptr<Block> parseBlock(BlockKind blockKind);
 
-  std::shared_ptr<BinaryOpEXP> parseBinaryOp(std::shared_ptr<Expression> firstOperand);
+  std::shared_ptr<Expression> parseBinaryOp(std::shared_ptr<Expression> firstOperand);
 
   /**
    * @note Expression \n
@@ -198,6 +198,8 @@ private:
   // std::stack<std::string> lastDeclaredScopeParent;
 
   std::string moduleName;
+
+  OperatorKind tokenToOperator(TokenKind kind);
 };
 
 #endif

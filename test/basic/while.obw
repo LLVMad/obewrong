@@ -1,0 +1,11 @@
+module whilecheck
+
+func main() is 
+  var i : Integer(10)
+
+  while i != 0 loop
+    i := i - 1
+  end
+
+  printl("res = %d\n", i)
+end

@@ -33,6 +33,7 @@ enum Ekind {
   E_Array_Decl,
   E_List_Decl,
   E_Module_Decl,
+  E_Enum_Decl,
 
   // Type-related entities
   E_Integer_Literal,
@@ -73,7 +74,8 @@ enum Ekind {
   E_Function_Call,
   E_Method_Call,
   E_Array_Literal,
-  E_Binary_Operator
+  E_Binary_Operator,
+  E_Unary_Operator,
 };
 
 /**

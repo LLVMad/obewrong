@@ -72,7 +72,9 @@ enum TokenKind {
   TOKEN_BIT_SHIFT_LEFT,  // * <<
   TOKEN_BIT_SHIFT_RIGHT, // * >>
   TOKEN_PLUS,            // * +
+  TOKEN_INCREMENT,       // * ++
   TOKEN_MINUS,           // * -
+  TOKEN_DECREMENT,       // * --
   TOKEN_STAR,            // * *
   TOKEN_SLASH,           // * /
   TOKEN_PERCENT,         // * %
@@ -93,6 +95,9 @@ enum TokenKind {
   TOKEN_TYPE_ANYREF,
   TOKEN_TYPE_TYPE, // * for generics ?
   TOKEN_NEW,
+  TOKEN_OVERRIDE,       // * override
+  TOKEN_VIRTUAL,        // * virtual
+  TOKEN_ENUM,           // * enum
   TOKEN_UNKNOWN
 };
 

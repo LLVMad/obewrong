@@ -85,39 +85,32 @@ public:
         ifTrue(std::move(ifTrue)), ifFalse(nullptr), isElsed(false) {}
 
   IfSTMT(std::shared_ptr<Expression> condition, std::shared_ptr<Block> ifTrue,
-         std::shared_ptr<Block> ifFalse)
+         std::shared_ptr<Entity> ifFalse)
       : Statement(E_If_Statement), condition(std::move(condition)),
         ifTrue(std::move(ifTrue)), ifFalse(std::move(ifFalse)), isElsed(true) {}
 
   // children are
   std::shared_ptr<Expression> condition;
   std::shared_ptr<Block> ifTrue;
-  std::shared_ptr<Block> ifFalse;
+  std::shared_ptr<Entity> ifFalse;
   bool isElsed;
 
   ~IfSTMT() override = default;
-  // void addCondition(std::shared_ptr<Expression> condition) {
-  //   this->children.push_back(std::move(condition));
-  // }
-  //
-  // void addIfTrue(std::shared_ptr<Block> ifTrue) {
-  //   this->children.push_back(std::move(ifTrue));
-  // }
-  //
-  // void addIfFalse(std::shared_ptr<Block> ifFalse) {
-  //   isElsed = true;
-  //   this->children.push_back(std::move(ifFalse));
-  // }
 };
 
 class CaseSTMT : public Statement {
 public:
   CaseSTMT(std::shared_ptr<Expression> condition, std::shared_ptr<Block> body)
       : Statement(E_Case_Statement), condition_literal(std::move(condition)),
-        body(std::move(body)) {}
+        body(std::move(body)), isDefault(false) {}
+
+  CaseSTMT(std::shared_ptr<Block> body)
+      : Statement(E_Case_Statement),
+        body(std::move(body)), isDefault(true) {}
 
   std::shared_ptr<Expression> condition_literal;
   std::shared_ptr<Block> body;
+  bool isDefault;
 
   ~CaseSTMT() override = default;
 };
@@ -176,7 +169,7 @@ class ForSTMT : public Statement {
 public:
   explicit ForSTMT(std::shared_ptr<AssignmentSTMT> varWithAss,
                    std::shared_ptr<Expression> condition,
-                   std::shared_ptr<Expression> post,
+                   std::shared_ptr<AssignmentSTMT> post,
                    std::shared_ptr<Block> body)
       : Statement(E_While_Loop), varWithAss(std::move(varWithAss)),
         condition(std::move(condition)), post(std::move(post)),
@@ -184,7 +177,7 @@ public:
 
   std::shared_ptr<AssignmentSTMT> varWithAss;
   std::shared_ptr<Expression> condition;
-  std::shared_ptr<Expression> post;
+  std::shared_ptr<AssignmentSTMT> post;
   std::shared_ptr<Block> body;
 
   ~ForSTMT() override = default;

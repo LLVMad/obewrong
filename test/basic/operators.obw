@@ -1,0 +1,27 @@
+module operators
+
+func main() is 
+  var a : Integer(4)
+  var b : Integer(2)
+
+  var c : Integer := a + b
+  var d : Integer := a - b
+  var e : Integer := a * b
+  var f : Integer := a / b
+  var g : Integer := a % b
+  var h : Integer := a << 1
+  var i : Integer := a >> 1
+  var j : Integer := a & 1
+  var k : Integer := a | 1
+  
+  var l : Boolean := a > b 
+  var m : Boolean := a < b 
+  var n : Boolean := a <= b 
+  var o : Boolean := a >= b
+  var p : Boolean := a != b 
+  var q : Boolean := a == b
+  var r : Boolean := !q
+
+  var ced : Integer := (a + b) * (a - b) 
+  var cde : Integer := a + b * a - b
+end

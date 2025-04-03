@@ -14,6 +14,8 @@
 #include "frontend/parser/Expression.h"
 #include "frontend/parser/Statement.h"
 
+#include <map>
+
 // enum DeclKind {
 //   DECL_VAR,
 //   DECL_FUNC,
@@ -309,6 +311,19 @@ public:
   ModuleDecl(const std::string &moduleNmae) : Decl(E_Module_Decl, moduleNmae) {}
 
   std::vector<std::shared_ptr<Entity>> children;
+};
+
+class EnumDecl : public Decl {
+public:
+  EnumDecl(const std::string &enumName)
+    : Decl(E_Enum_Decl, enumName), size(0) {}
+
+  void addVal(const std::string &name) {
+    values[name] = size++;
+  };
+
+  size_t size;
+  std::map<std::string, uint32_t> values;
 };
 
 #endif

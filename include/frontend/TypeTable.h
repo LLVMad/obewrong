@@ -99,7 +99,8 @@ public:
     builtinTypes.addType("Uint64", std::make_shared<TypeUint64>());
     builtinTypes.addType("Real", std::make_shared<TypeReal>());
     builtinTypes.addType("Float64", std::make_shared<TypeFloat64>());
-    builtinTypes.addType("Bool", std::make_shared<TypeBool>());
+    // builtinTypes.addType("Bool", std::make_shared<TypeBool>());
+    builtinTypes.addType("Boolean", std::make_shared<TypeBool>());
     builtinTypes.addType("String", std::make_shared<TypeString>());
   }
 

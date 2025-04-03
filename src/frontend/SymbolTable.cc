@@ -16,6 +16,7 @@ initBuiltinFunctions(const std::shared_ptr<GlobalTypeTable>& typeTable) {
   //========================================
 
   //========== INTEGER BUILTIN METHODS ==========
+  enterScope(SCOPE_CLASS, "Integer");
   // - Plus
   auto intPlusTypeReturnType = typeTable->getType("", "Integer");
   auto intPlusTypeParamType = typeTable->getType("", "Integer");
@@ -43,6 +44,8 @@ initBuiltinFunctions(const std::shared_ptr<GlobalTypeTable>& typeTable) {
       std::make_shared<MethodDecl>("Minus", intMinusType, params, true);
 
   global_scope->addSymbol("Minus", intMinusDecl);
+
+  exitScope();
   //========================================
   // ... other built-in functions ...
 }

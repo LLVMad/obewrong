@@ -20,11 +20,9 @@ class NumberStore is
     end
 end
   
-class Main is 
-  this() is 
+func main() is 
     var ns : NumberStore := NumberStore()
     printl("%d\n", ns.value)
     printl("%d\n", ns.Get())
     ns.Set(3)
-  end
 end

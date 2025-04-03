@@ -369,8 +369,8 @@ public:
 enum OperatorKind {
   OP_EQUAL,
   OP_NOT_EQUAL,
-  OP_GREATER,
-  OP_GREATER_EQUAL,
+  OP_MORE,
+  OP_MORE_EQUAL,
   OP_LESS,
   OP_LESS_EQUAL,
   OP_NOT,
@@ -378,15 +378,21 @@ enum OperatorKind {
   OP_LOGIC_AND,
   OP_BIT_OR,
   OP_LOGIC_OR,
+  OP_LOGIC_NOT,
   OP_BIT_XOR,
   OP_BIT_NOT,
   OP_BIT_LSHIFT,
   OP_BIT_RSHIFT,
   OP_PLUS,
+  OP_INCREMENT,
   OP_MINUS,
+  OP_UNARY_MINUS,
+  OP_DECREMENT,
   OP_MULTIPLY,
   OP_DIVIDE,
   OP_MODULUS,
+  OP_LPAREN,
+  OP_RPAREN
 };
 
 class BinaryOpEXP : public Expression {
@@ -397,6 +403,15 @@ public:
 
   std::shared_ptr<Expression> left;
   std::shared_ptr<Expression> right;
+  OperatorKind op;
+};
+
+class UnaryOpEXP : public Expression {
+public:
+  UnaryOpEXP(OperatorKind op, std::shared_ptr<Expression> operand)
+    : Expression(E_Unary_Operator), operand(std::move(operand)), op(op) {};
+
+  std::shared_ptr<Expression> operand;
   OperatorKind op;
 };
 
