@@ -95,9 +95,9 @@ enum TokenKind {
   TOKEN_TYPE_ANYREF,
   TOKEN_TYPE_TYPE, // * for generics ?
   TOKEN_NEW,
-  TOKEN_OVERRIDE,       // * override
-  TOKEN_VIRTUAL,        // * virtual
-  TOKEN_ENUM,           // * enum
+  TOKEN_OVERRIDE, // * override
+  TOKEN_VIRTUAL,  // * virtual
+  TOKEN_ENUM,     // * enum
   TOKEN_UNKNOWN
 };
 
@@ -191,7 +191,15 @@ private:
 
   void advance() { buffer++; }
   void rewind() { buffer--; }
-  char peek() { return buffer[0]; };
+  char peek() {
+    ++curr_column;
+
+    if (buffer[0] == '\n') {
+      curr_line++;
+      curr_column = 0;
+    }
+    return buffer[0];
+  };
 
   inline static unsigned int hash(const char *str, size_t len);
   static std::pair<const char *, TokenKind> in_word_set(const char *str,

@@ -7,6 +7,7 @@
 #include "../SymbolTable.h"
 #include "../TypeTable.h"
 #include "Entity.h"
+#include "frontend/SourceManager.h"
 #include "frontend/lexer/Lexer.h"
 #include "frontend/types/Decl.h"
 
@@ -20,11 +21,12 @@ class Parser {
   std::shared_ptr<GlobalTypeTable> globalTypeTable;
 
 public:
-  Parser(std::vector<std::unique_ptr<Token>> tokens,
-         const std::shared_ptr<SymbolTable> &globalSymbolTable,
-         const std::shared_ptr<GlobalTypeTable> &globalTypeTable)
+  Parser(SourceManager &sm,
+        std::vector<std::unique_ptr<Token>> tokens,
+        const std::shared_ptr<SymbolTable> &globalSymbolTable,
+        const std::shared_ptr<GlobalTypeTable> &globalTypeTable)
       : globalSymbolTable(globalSymbolTable), globalTypeTable(globalTypeTable),
-        tokens(std::move(tokens)), tokenPos(-1) {
+        tokens(std::move(tokens)), tokenPos(-1), sm(sm) {
     // lastDeclaredScopeParent.emplace("Global");
     globalTypeTable->initBuiltinTypes();
     globalSymbolTable->initBuiltinFunctions(globalTypeTable);
@@ -41,6 +43,7 @@ public:
    * @return pointer to a root of an AAST tree
    */
   std::shared_ptr<Entity> parseProgram();
+
 
 private:
   std::vector<std::unique_ptr<Token>> tokens;
@@ -105,6 +108,8 @@ private:
    */
   std::shared_ptr<WhileSTMT> parseWhileStatement();
 
+  std::shared_ptr<EnumDecl> parseEnumDecl();
+
   /**
     * @note ForLoop ::=\n
       "for" Assignment ";" Expression ";" Expression ";" "is"\n
@@ -124,7 +129,8 @@ private:
    */
   std::shared_ptr<Block> parseBlock(BlockKind blockKind);
 
-  std::shared_ptr<Expression> parseBinaryOp(std::shared_ptr<Expression> firstOperand);
+  std::shared_ptr<Expression>
+  parseBinaryOp(std::shared_ptr<Expression> firstOperand);
 
   /**
    * @note Expression \n
@@ -200,6 +206,8 @@ private:
   std::string moduleName;
 
   OperatorKind tokenToOperator(TokenKind kind);
+
+  SourceManager &sm;
 };
 
 #endif

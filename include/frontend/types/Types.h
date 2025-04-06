@@ -29,6 +29,7 @@ enum TypeKind {
              // a signature
   TYPE_BOOL,
   TYPE_GENERIC,
+  TYPE_POINTER,
 };
 
 class Type {
@@ -241,6 +242,45 @@ public:
   TypeList() : Type(TYPE_LIST, "List"), el_type(nullptr) {}
 
   ~TypeList() override = default;
+};
+
+/**
+ * The approach i want to take
+ * is essentialy an access types from ADA
+ * but in the form of anonymous access types
+ * from ADA
+ *
+ * Constraints:
+ * - Pointer MUST BE initialized before use
+ *
+ * - Pointers can only point to a variables tht are
+ *   explicitly marked as available to be referenced
+ *   example: `var i : ref Integer`
+ *                     ^^^
+ *
+ * - Pointers cannot escape variables scope
+ *
+ * - No pointer arithmetic
+ *
+ * - Pointers cannot be null if not explicitly marked
+ *   example: `var pi : access null Integer`
+ *
+ * - this attributes for pointer types are allowed:
+ *    - `limited` - ownership is moved when pointer is copied
+ *    - `general` - shared ownership
+ */
+class TypePointer : public Type {
+public:
+  TypePointer(const std::shared_ptr<Type> &toType, size_t depth,
+              bool allowsNull, bool isLimited, bool isGeneral)
+      : Type(TYPE_POINTER, "Pointer"), toType(toType), depth(depth),
+        allowsNull(allowsNull), isLimited(isLimited), isGeneral(isGeneral) {}
+
+  std::shared_ptr<Type> toType; // type that it points to
+  size_t depth;
+  bool allowsNull;
+  bool isLimited;
+  bool isGeneral;
 };
 
 #endif

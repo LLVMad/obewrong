@@ -19,6 +19,8 @@ struct BufferID {
 /*
  * To track current location during
  * compilation process
+ *
+ * @deprecated
  */
 struct SourceLocation {
   // id of a buffer

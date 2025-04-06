@@ -138,8 +138,7 @@ public:
 class FieldRefEXP : public Expression {
 public:
   FieldRefEXP(std::string name, std::shared_ptr<VarRefEXP> obj)
-      : Expression(E_Field_Reference), field_name(std::move(name)),
-        obj(obj) {};
+      : Expression(E_Field_Reference), field_name(std::move(name)), obj(obj) {};
 
   FieldRefEXP(std::string name)
       : Expression(E_Field_Reference), field_name(std::move(name)),
@@ -169,7 +168,8 @@ public:
 
   MethodCallEXP() : Expression(E_Method_Call) {}
 
-  MethodCallEXP(const std::string &name) : Expression(E_Method_Call), method_name(name) {};
+  MethodCallEXP(const std::string &name)
+      : Expression(E_Method_Call), method_name(name) {};
 
   std::string method_name;
 
@@ -264,8 +264,8 @@ public:
 
   // Default constr
   ConstructorCallEXP(std::shared_ptr<ClassNameEXP> left)
-    : Expression(E_Function), left(std::move(left)),
-      arguments(), isDefault(true) {};
+      : Expression(E_Function), left(std::move(left)), arguments(),
+        isDefault(true) {};
 
   // children should be
   std::shared_ptr<ClassNameEXP> left;
@@ -397,7 +397,8 @@ enum OperatorKind {
 
 class BinaryOpEXP : public Expression {
 public:
-  BinaryOpEXP(OperatorKind op, std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
+  BinaryOpEXP(OperatorKind op, std::shared_ptr<Expression> left,
+              std::shared_ptr<Expression> right)
       : Expression(E_Binary_Operator), left(std::move(left)),
         right(std::move(right)), op(op) {};
 
@@ -409,10 +410,18 @@ public:
 class UnaryOpEXP : public Expression {
 public:
   UnaryOpEXP(OperatorKind op, std::shared_ptr<Expression> operand)
-    : Expression(E_Unary_Operator), operand(std::move(operand)), op(op) {};
+      : Expression(E_Unary_Operator), operand(std::move(operand)), op(op) {};
 
   std::shared_ptr<Expression> operand;
   OperatorKind op;
+};
+
+class EnumRefEXP : public Expression {
+public:
+  EnumRefEXP(const std::string &enumName, const std::string &itemName)
+      : Expression(E_Enum_Reference), enumName(enumName), itemName(itemName) {};
+  std::string enumName;
+  std::string itemName;
 };
 
 #endif

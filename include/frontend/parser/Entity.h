@@ -76,6 +76,7 @@ enum Ekind {
   E_Array_Literal,
   E_Binary_Operator,
   E_Unary_Operator,
+  E_Enum_Reference,
 };
 
 /**

@@ -7,11 +7,15 @@
 #include "frontend/parser/Parser.h"
 
 int main(int argc, char *argv[]) {
-  if (argc != 3) {
-  }
-
   SourceManager sm;
-  auto buff = std::make_shared<SourceBuffer>(sm.readSource(argv[1]));
+  std::vector<std::string> args;
+
+  for (int i = 1; i < argc; i++) {
+    args.push_back(argv[i]);
+    sm.addFile(argv[i]);
+    printf("%s.\n", argv[i]);
+  }
+  auto buff = std::make_shared<SourceBuffer>(sm.readSource(args[0]));
 
   Lexer lexer(buff);
 
@@ -20,7 +24,7 @@ int main(int argc, char *argv[]) {
   auto globalSymbolTable = std::make_shared<SymbolTable>();
   auto globalTypeTable = std::make_shared<GlobalTypeTable>();
 
-  Parser parser(std::move(tokens), globalSymbolTable, globalTypeTable);
+  Parser parser(sm, std::move(tokens), globalSymbolTable, globalTypeTable);
 
   std::shared_ptr<Entity> parseTree = parser.parseProgram();
 

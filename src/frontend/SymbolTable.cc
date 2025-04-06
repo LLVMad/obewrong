@@ -1,15 +1,14 @@
 #include "frontend/SymbolTable.h"
 
-void SymbolTable::
-initBuiltinFunctions(const std::shared_ptr<GlobalTypeTable>& typeTable) {
+void SymbolTable::initBuiltinFunctions(
+    const std::shared_ptr<GlobalTypeTable> &typeTable) {
   // auto global = getGlobalScope();
 
   //=============== GENERAL ===============
   // - printl
   bool isVoid = true;
   // @TODO body??? args??? AnyRef ???
-  auto printDecl =
-      std::make_shared<FuncDecl>("printl");
+  auto printDecl = std::make_shared<FuncDecl>("printl");
 
   global_scope->addSymbol("printl", printDecl);
 

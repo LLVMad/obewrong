@@ -14,6 +14,7 @@ enum ScopeKind {
   SCOPE_CLASS,
   SCOPE_METHOD,
   SCOPE_FUNCTION,
+  SCOPE_ENUM,
 };
 
 /**
@@ -25,13 +26,14 @@ public:
   Scope(ScopeKind kind, const std::string &name, std::weak_ptr<Scope> parent)
       : kind(kind), name(name), parent(parent) {}
 
-  bool addSymbol(const std::string& name, std::shared_ptr<Decl> decl) {
-    if (symbols.contains(name)) return false;
+  bool addSymbol(const std::string &name, std::shared_ptr<Decl> decl) {
+    if (symbols.contains(name))
+      return false;
     symbols[name] = decl;
     return true;
   }
 
-  std::shared_ptr<Decl> lookup(const std::string& name) const {
+  std::shared_ptr<Decl> lookup(const std::string &name) const {
     if (auto it = symbols.find(name); it != symbols.end()) {
       return it->second;
     }
@@ -52,7 +54,8 @@ public:
     return nullptr;
   }
 
-  std::shared_ptr<Decl> lookupInClass(const std::string& name, const std::string &className) const {
+  std::shared_ptr<Decl> lookupInClass(const std::string &name,
+                                      const std::string &className) const {
     // idk need to think about this
     if (this->name == className) {
       if (auto it = symbols.find(name); it != symbols.end()) {
@@ -63,7 +66,8 @@ public:
     for (const auto &child : children) {
       if (child->kind == SCOPE_CLASS && child->name == className) {
         auto result = child->lookup(name);
-        if (result) return result;
+        if (result)
+          return result;
         return nullptr;
       }
     }
@@ -89,12 +93,13 @@ public:
   }
 
   ScopeKind getKind() const { return kind; }
-  const std::string& getName() const { return name; }
-  const auto& getChildren() const { return children; }
+  const std::string &getName() const { return name; }
+  const auto &getChildren() const { return children; }
   std::weak_ptr<Scope> getParent() const { return parent; }
 
-  void setName(const std::string& name) { this->name = name; }
-  void appendToName(const std::string& name) { this->name += name; }
+  void setName(const std::string &name) { this->name = name; }
+  void appendToName(const std::string &name) { this->name += name; }
+
 private:
   ScopeKind kind;
   std::string name;
@@ -106,15 +111,12 @@ private:
 class SymbolTable {
 public:
   SymbolTable() {
-    global_scope = std::make_shared<Scope>(
-        SCOPE_GLOBAL,
-        "Global",
-        std::weak_ptr<Scope>()
-    );
+    global_scope =
+        std::make_shared<Scope>(SCOPE_GLOBAL, "Global", std::weak_ptr<Scope>());
     current_scope = global_scope;
   }
 
-  std::shared_ptr<Scope> enterScope(ScopeKind kind, const std::string& name) {
+  std::shared_ptr<Scope> enterScope(ScopeKind kind, const std::string &name) {
     current_scope = current_scope->createChild(kind, name);
     return current_scope;
   }
@@ -125,7 +127,7 @@ public:
     }
   }
 
-  void initBuiltinFunctions(const std::shared_ptr<GlobalTypeTable>& typeTable);
+  void initBuiltinFunctions(const std::shared_ptr<GlobalTypeTable> &typeTable);
 
   std::shared_ptr<Scope> getCurrentScope() const { return current_scope; }
   std::shared_ptr<Scope> getGlobalScope() const { return global_scope; }

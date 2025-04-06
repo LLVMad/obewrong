@@ -10,12 +10,10 @@
 #include <unordered_map>
 #include <vector>
 
-inline std::string str_tolower(std::string s)
-{
+inline std::string str_tolower(std::string s) {
   std::ranges::transform(
-      s, s.begin(),
-                 [](unsigned char c){ return std::tolower(c); } // correct
-                );
+      s, s.begin(), [](unsigned char c) { return std::tolower(c); } // correct
+  );
   return s;
 }
 

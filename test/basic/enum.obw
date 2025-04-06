@@ -10,4 +10,5 @@ end
 
 func main() is 
   printl("%d", CMD::PLUS)
+  printl("%d", CMD::MINUS)
 end

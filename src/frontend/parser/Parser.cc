@@ -1,8 +1,8 @@
 #include "frontend/parser/Parser.h"
 
+#include "Error/Error.h"
 #include "frontend/SymbolTable.h"
 #include "frontend/TypeTable.h"
-#include "Error/Error.h"
 #include "frontend/parser/Expression.h"
 #include "frontend/parser/Statement.h"
 
@@ -31,16 +31,16 @@ bool isTypeName(TokenKind kind) {
 
 bool is_binary_operator(TokenKind kind) {
   switch (kind) {
-  case TOKEN_PLUS:            // +
-  case TOKEN_MINUS:           // -
-  case TOKEN_STAR:            // *
-  case TOKEN_SLASH:           // /
-  case TOKEN_PERCENT:         // %
-  case TOKEN_EQUAL:           // ==
-  case TOKEN_NOT_EQUAL:       // !=
-  case TOKEN_LESS:            // <
-  case TOKEN_LESS_EQUAL:      // <=
-  case TOKEN_MORE_EQUAL:      // >=
+  case TOKEN_PLUS:       // +
+  case TOKEN_MINUS:      // -
+  case TOKEN_STAR:       // *
+  case TOKEN_SLASH:      // /
+  case TOKEN_PERCENT:    // %
+  case TOKEN_EQUAL:      // ==
+  case TOKEN_NOT_EQUAL:  // !=
+  case TOKEN_LESS:       // <
+  case TOKEN_LESS_EQUAL: // <=
+  case TOKEN_MORE_EQUAL: // >=
   case TOKEN_MORE:
   case TOKEN_BIT_AND:         // &
   case TOKEN_BIT_OR:          // |
@@ -49,7 +49,7 @@ bool is_binary_operator(TokenKind kind) {
   case TOKEN_BIT_SHIFT_RIGHT: // >>
   case TOKEN_LOGIC_AND:       // &&
   case TOKEN_LOGIC_OR:        // ||
-      return true;
+    return true;
   default:
     return false;
   }
@@ -57,14 +57,14 @@ bool is_binary_operator(TokenKind kind) {
 
 bool is_unary_operator(TokenKind kind) {
   switch (kind) {
-    case TOKEN_LOGIC_NOT:
-    case TOKEN_BIT_INV:
-    case TOKEN_BIT_XOR:
-    case TOKEN_INCREMENT:
-    case TOKEN_DECREMENT:
-      return true;
-    default:
-      return false;
+  case TOKEN_LOGIC_NOT:
+  case TOKEN_BIT_INV:
+  case TOKEN_BIT_XOR:
+  case TOKEN_INCREMENT:
+  case TOKEN_DECREMENT:
+    return true;
+  default:
+    return false;
   }
 }
 
@@ -116,6 +116,23 @@ std::shared_ptr<Entity> Parser::parseProgram() {
 
   auto root = std::make_shared<ModuleDecl>(std::get<std::string>(token->value));
   moduleName = std::get<std::string>(token->value);
+
+  token = peek();
+  while (token->kind == TOKEN_MODULE_IMP) {
+    token = next();
+
+    auto importedModuleName = std::get<std::string>(next()->value);
+    root->addImport(importedModuleName);
+
+    size_t last_dot = importedModuleName.find_last_of('.');
+    if (last_dot == std::string::npos) last_dot = -1;
+    if (!this->sm.isImportProvided(importedModuleName.substr(last_dot + 1))) {
+      throw std::runtime_error("Module import provided does not exist : " + importedModuleName);
+    }
+
+    token = peek();
+  }
+
   // initBuiltinTypes();
   // lastDeclaredScopeParent.emplace("Global");
   for (const auto &[name, type] : globalTypeTable->builtinTypes.types) {
@@ -136,7 +153,13 @@ std::shared_ptr<Entity> Parser::parseProgram() {
     } break;
     case TOKEN_FUNC: {
       child = parseFunctionDecl();
-    }
+    } break;
+    case TOKEN_ENUM: {
+      child = parseEnumDecl();
+    } break;
+    case TOKEN_VAR_DECL: {
+      child = parseVarDecl();
+    } break;
     default:
       break;
     }
@@ -330,7 +353,7 @@ std::shared_ptr<SwitchSTMT> Parser::parseSwitch() {
 
     // parse case stmt
     auto case_st = parseCase();
-        // std::shared_ptr<CaseSTMT>(dynamic_cast<CaseSTMT *>(parseCase().get()));
+    // std::shared_ptr<CaseSTMT>(dynamic_cast<CaseSTMT *>(parseCase().get()));
     switch_st->addCase(case_st);
 
     token = peek();
@@ -361,10 +384,9 @@ std::shared_ptr<CaseSTMT> Parser::parseCase() {
   token = next(); // eat 'case'
 
   // case literal condition
-  auto cond_lit =
-    parsePrimary();
-    // std::shared_ptr<Expression>(
-    //   dynamic_cast<Expression *>(parsePrimary().get()));
+  auto cond_lit = parsePrimary();
+  // std::shared_ptr<Expression>(
+  //   dynamic_cast<Expression *>(parsePrimary().get()));
 
   token = peek();
   if (token == nullptr || token->kind != TOKEN_THEN)
@@ -373,9 +395,9 @@ std::shared_ptr<CaseSTMT> Parser::parseCase() {
 
   // case body
   auto body_block = parseBlock(BLOCK_IN_SWITCH);
-    // std::dynamic_pointer_cast<Block>(parseB)
-    // std::shared_ptr<Block>(
-    //   dynamic_cast<Block *>(parseBlock(BLOCK_IN_SWITCH).get()));
+  // std::dynamic_pointer_cast<Block>(parseB)
+  // std::shared_ptr<Block>(
+  //   dynamic_cast<Block *>(parseBlock(BLOCK_IN_SWITCH).get()));
 
   return std::make_shared<CaseSTMT>(cond_lit, body_block);
 }
@@ -427,8 +449,8 @@ std::shared_ptr<VarDecl> Parser::parseVarDecl() {
   std::shared_ptr<Type> var_type;
   if (peek(2)->kind == TOKEN_LBRACKET) {
     token = peek(); // get type name but dont eat it
-    var_type
-      =  globalTypeTable->getType(moduleName, std::get<std::string>(token->value));
+    var_type = globalTypeTable->getType(moduleName,
+                                        std::get<std::string>(token->value));
 
     auto var = std::make_shared<VarDecl>(var_name, var_type);
 
@@ -437,7 +459,8 @@ std::shared_ptr<VarDecl> Parser::parseVarDecl() {
     //   dynamic_cast<Expression *>(parseExpression().get()));
     var->initializer = initializer;
 
-    if (peek()->kind == TOKEN_RBRACKET) token = next();
+    if (peek()->kind == TOKEN_RBRACKET)
+      token = next();
 
     globalSymbolTable->getCurrentScope()->addSymbol(var->name, var);
 
@@ -467,20 +490,22 @@ std::shared_ptr<VarDecl> Parser::parseVarDecl() {
   token = next();
 
   auto initializer = parseExpression();
-    // std::shared_ptr<Expression>(
-    //   dynamic_cast<Expression *>(parseExpression().get()));
+  // std::shared_ptr<Expression>(
+  //   dynamic_cast<Expression *>(parseExpression().get()));
   var->initializer = initializer;
 
   globalSymbolTable->getCurrentScope()->addSymbol(var->name, var);
   // this->globalSymbolTable->addToGlobalScope(moduleName,
-  //                                           lastDeclaredScopeParent.top(), var);
+  //                                           lastDeclaredScopeParent.top(),
+  //                                           var);
 
   return var;
 }
 
 std::shared_ptr<AssignmentSTMT> Parser::parseAssignment() {
   std::unique_ptr<Token> token = peek();
-  if (token == nullptr || (token->kind != TOKEN_IDENTIFIER && token->kind != TOKEN_SELFREF))
+  if (token == nullptr ||
+      (token->kind != TOKEN_IDENTIFIER && token->kind != TOKEN_SELFREF))
     return nullptr;
 
   // read lvalue var name
@@ -537,7 +562,8 @@ std::shared_ptr<Block> Parser::parseBlock(BlockKind blockKind) {
   // if (token->kind == TOKEN_ELSE) token = peek(); // costil
   std::vector<std::shared_ptr<Entity>> block_body;
 
-  while (token->kind != TOKEN_BEND /*&& token->kind != TOKEN_ELSE -> questionable but kek*/) {
+  while (token->kind !=
+         TOKEN_BEND /*&& token->kind != TOKEN_ELSE -> questionable but kek*/) {
     std::shared_ptr<Entity> part;
 
     token = peek();
@@ -548,10 +574,11 @@ std::shared_ptr<Block> Parser::parseBlock(BlockKind blockKind) {
       else // in class
         part = parseFieldDecl();
     } break;
-    case TOKEN_IDENTIFIER: case TOKEN_PRINT: {
+    case TOKEN_IDENTIFIER:
+    case TOKEN_PRINT: {
       // @FIX assign can be further than 2 or 4 tokens ahead
-      if (peek(2)->kind == TOKEN_ASSIGNMENT
-        || peek(4)->kind == TOKEN_ASSIGNMENT) {
+      if (peek(2)->kind == TOKEN_ASSIGNMENT ||
+          peek(4)->kind == TOKEN_ASSIGNMENT) {
         // a := a.set(...)
         // a.value := 2
         part = parseAssignment();
@@ -584,16 +611,16 @@ std::shared_ptr<Block> Parser::parseBlock(BlockKind blockKind) {
       } break;
       case BLOCK_IN_METHOD: {
         // @FIX assign can be further than 2 or 4 tokens ahead
-        if (peek(2)->kind == TOKEN_ASSIGNMENT
-          || peek(4)->kind == TOKEN_ASSIGNMENT) {
+        if (peek(2)->kind == TOKEN_ASSIGNMENT ||
+            peek(4)->kind == TOKEN_ASSIGNMENT) {
           // a := a.set(...)
           // a.value := 2
           part = parseAssignment();
-          } else {
-            // a.set(...)
-            // printl(...)
-            part = parseExpression();
-          }
+        } else {
+          // a.set(...)
+          // printl(...)
+          part = parseExpression();
+        }
       } break;
       default:
         break;
@@ -615,7 +642,8 @@ std::shared_ptr<Block> Parser::parseBlock(BlockKind blockKind) {
   }
 
   // eat 'end'
-  if (token->kind == TOKEN_BEND) token = next();
+  if (token->kind == TOKEN_BEND)
+    token = next();
 
   return std::make_shared<Block>(block_body, blockKind);
 }
@@ -694,10 +722,9 @@ std::shared_ptr<ClassDecl> Parser::parseClassDecl() {
     token = next();
 
     token = next();
-    auto base_class =
-      globalSymbolTable->getGlobalScope()->lookup(class_name);
-      // globalSymbolTable->lookup(
-      //   moduleName, "Global", std::get<std::string>(token->value));
+    auto base_class = globalSymbolTable->getGlobalScope()->lookup(class_name);
+    // globalSymbolTable->lookup(
+    //   moduleName, "Global", std::get<std::string>(token->value));
 
     auto base_class_type = globalTypeTable->getType(
         moduleName, std::get<std::string>(token->value));
@@ -748,6 +775,36 @@ std::shared_ptr<ClassDecl> Parser::parseClassDecl() {
   globalSymbolTable->getCurrentScope()->addSymbol(class_name, class_stmt);
 
   return class_stmt;
+}
+
+std::shared_ptr<EnumDecl> Parser::parseEnumDecl() {
+  std::unique_ptr<Token> token = peek();
+  if (token == nullptr || token->kind != TOKEN_ENUM)
+    return nullptr;
+  token = next(); // eat 'enum'
+
+  auto enum_name = std::get<std::string>(token->value);
+
+  globalSymbolTable->enterScope(SCOPE_ENUM, enum_name);
+
+  auto enumDecl = std::make_shared<EnumDecl>(enum_name);
+  token = peek();
+  while (token->kind != TOKEN_BEND) {
+    token = next();
+
+    auto item = std::get<std::string>(token->value);
+    enumDecl->addItem(item);
+
+    token = peek();
+    if (token == nullptr)
+      return nullptr;
+  }
+  token = next(); // eat 'end'
+
+  globalSymbolTable->exitScope();
+  globalSymbolTable->getCurrentScope()->addSymbol(enum_name, enumDecl);
+
+  return enumDecl;
 }
 
 std::shared_ptr<FieldDecl> Parser::parseFieldDecl() {
@@ -851,167 +908,207 @@ int getPrecedence(OperatorKind op) {
   switch (op) {
     // Postfix (highest precedence)
   case OP_INCREMENT:
-  case OP_DECREMENT:       return 1;
+  case OP_DECREMENT:
+    return 1;
 
     // Unary (prefix)
   // case OP_PLUS:            // Unary +
-  case OP_UNARY_MINUS:           // Unary -
-  case OP_LOGIC_NOT:       // !
-  case OP_BIT_NOT:         // ~
-      return 2;
+  case OP_UNARY_MINUS: // Unary -
+  case OP_LOGIC_NOT:   // !
+  case OP_BIT_NOT:     // ~
+    return 2;
 
     // Multiplicative
   case OP_MULTIPLY:
   case OP_DIVIDE:
-  case OP_MODULUS:         return 4;
+  case OP_MODULUS:
+    return 4;
 
     // Additive
-  case OP_PLUS:            // Binary +
-  case OP_MINUS:           // Binary -
-      return 3;
+  case OP_PLUS:  // Binary +
+  case OP_MINUS: // Binary -
+    return 3;
 
     // Shift
   case OP_BIT_LSHIFT:
-  case OP_BIT_RSHIFT:      return 5;
+  case OP_BIT_RSHIFT:
+    return 5;
 
     // Relational
   case OP_LESS:
   case OP_LESS_EQUAL:
   case OP_MORE:
-  case OP_MORE_EQUAL:   return 6;
+  case OP_MORE_EQUAL:
+    return 6;
 
     // Equality
   case OP_EQUAL:
-  case OP_NOT_EQUAL:       return 7;
+  case OP_NOT_EQUAL:
+    return 7;
 
     // Bitwise AND
-  case OP_BIT_AND:         return 8;
+  case OP_BIT_AND:
+    return 8;
 
     // Bitwise XOR
-  case OP_BIT_XOR:         return 9;
+  case OP_BIT_XOR:
+    return 9;
 
     // Bitwise OR
-  case OP_BIT_OR:          return 10;
+  case OP_BIT_OR:
+    return 10;
 
     // Logical AND
-  case OP_LOGIC_AND:       return 11;
+  case OP_LOGIC_AND:
+    return 11;
 
     // Logical OR
-  case OP_LOGIC_OR:        return 12;
+  case OP_LOGIC_OR:
+    return 12;
 
     // Parentheses (special handling)
   case OP_LPAREN:
-  case OP_RPAREN:          return 0;
+  case OP_RPAREN:
+    return 0;
 
-  default:                 return -1;
+  default:
+    return -1;
   }
 }
 
 OperatorKind Parser::tokenToOperator(TokenKind kind) {
-    switch (kind) {
-        case TOKEN_EQUAL:           return OP_EQUAL;
-        case TOKEN_NOT_EQUAL:       return OP_NOT_EQUAL;
-        case TOKEN_LESS:            return OP_LESS;
-        case TOKEN_LESS_EQUAL:      return OP_LESS_EQUAL;
-        case TOKEN_MORE_EQUAL:      return OP_MORE_EQUAL;
-        case TOKEN_BIT_AND:         return OP_BIT_AND;
-        case TOKEN_BIT_OR:          return OP_BIT_OR;
-        case TOKEN_BIT_XOR:         return OP_BIT_XOR;
-        case TOKEN_BIT_SHIFT_LEFT:  return OP_BIT_LSHIFT;
-        case TOKEN_BIT_SHIFT_RIGHT: return OP_BIT_RSHIFT;
-        case TOKEN_PLUS:            return OP_PLUS;
-        case TOKEN_INCREMENT:       return OP_INCREMENT;
-        case TOKEN_DECREMENT:       return OP_DECREMENT;
-        case TOKEN_MINUS: {
-          if (peek(0)->kind != TOKEN_IDENTIFIER) return OP_UNARY_MINUS;
-          return OP_MINUS;
-        }
-        case TOKEN_STAR:            return OP_MULTIPLY;
-        case TOKEN_SLASH:           return OP_DIVIDE;
-        case TOKEN_PERCENT:         return OP_MODULUS;
-        case TOKEN_LOGIC_AND:       return OP_LOGIC_AND;
-        case TOKEN_LOGIC_NOT:       return OP_LOGIC_NOT;
-        case TOKEN_LOGIC_OR:        return OP_LOGIC_OR;
-        case TOKEN_LBRACKET:        return OP_LPAREN;
-        case TOKEN_RBRACKET:        return OP_RPAREN;
-        case TOKEN_MORE: return OP_MORE;
+  switch (kind) {
+  case TOKEN_EQUAL:
+    return OP_EQUAL;
+  case TOKEN_NOT_EQUAL:
+    return OP_NOT_EQUAL;
+  case TOKEN_LESS:
+    return OP_LESS;
+  case TOKEN_LESS_EQUAL:
+    return OP_LESS_EQUAL;
+  case TOKEN_MORE_EQUAL:
+    return OP_MORE_EQUAL;
+  case TOKEN_BIT_AND:
+    return OP_BIT_AND;
+  case TOKEN_BIT_OR:
+    return OP_BIT_OR;
+  case TOKEN_BIT_XOR:
+    return OP_BIT_XOR;
+  case TOKEN_BIT_SHIFT_LEFT:
+    return OP_BIT_LSHIFT;
+  case TOKEN_BIT_SHIFT_RIGHT:
+    return OP_BIT_RSHIFT;
+  case TOKEN_PLUS:
+    return OP_PLUS;
+  case TOKEN_INCREMENT:
+    return OP_INCREMENT;
+  case TOKEN_DECREMENT:
+    return OP_DECREMENT;
+  case TOKEN_MINUS: {
+    if (peek(0)->kind != TOKEN_IDENTIFIER)
+      return OP_UNARY_MINUS;
+    return OP_MINUS;
+  }
+  case TOKEN_STAR:
+    return OP_MULTIPLY;
+  case TOKEN_SLASH:
+    return OP_DIVIDE;
+  case TOKEN_PERCENT:
+    return OP_MODULUS;
+  case TOKEN_LOGIC_AND:
+    return OP_LOGIC_AND;
+  case TOKEN_LOGIC_NOT:
+    return OP_LOGIC_NOT;
+  case TOKEN_LOGIC_OR:
+    return OP_LOGIC_OR;
+  case TOKEN_LBRACKET:
+    return OP_LPAREN;
+  case TOKEN_RBRACKET:
+    return OP_RPAREN;
+  case TOKEN_MORE:
+    return OP_MORE;
 
-        default:                    throw std::runtime_error("Not an operator");
-    }
+  default:
+    throw std::runtime_error("Not an operator");
+  }
 }
 
-std::shared_ptr<Expression> Parser::parseBinaryOp(std::shared_ptr<Expression> firstOperand) {
-    std::stack<OperatorKind> op_stack;
-    std::stack<std::shared_ptr<Expression>> expr_stack;
-    // std::stack<bool> paren_stack;
+std::shared_ptr<Expression>
+Parser::parseBinaryOp(std::shared_ptr<Expression> firstOperand) {
+  std::stack<OperatorKind> op_stack;
+  std::stack<std::shared_ptr<Expression>> expr_stack;
+  // std::stack<bool> paren_stack;
 
-    if (firstOperand) expr_stack.push(firstOperand);
+  if (firstOperand)
+    expr_stack.push(firstOperand);
 
-    while (true) {
-        auto token = peek();
-        if (!token) break;
+  while (true) {
+    auto token = peek();
+    if (!token)
+      break;
 
-        if (is_unary_operator(token->kind)) {
-          OperatorKind op = tokenToOperator(token->kind);
-          next();
-          auto operand = parsePrimary();
-          expr_stack.push(std::make_shared<UnaryOpEXP>(op, operand));
-          continue;
-        }
+    if (is_unary_operator(token->kind)) {
+      OperatorKind op = tokenToOperator(token->kind);
+      next();
+      auto operand = parsePrimary();
+      expr_stack.push(std::make_shared<UnaryOpEXP>(op, operand));
+      continue;
+    }
 
-      if (token->kind == TOKEN_LBRACKET) {
-        next(); // eat '('
+    if (token->kind == TOKEN_LBRACKET) {
+      next(); // eat '('
 
-        // Parse nested expression recursively
-        auto nested_expr = parseExpression();
+      // Parse nested expression recursively
+      auto nested_expr = parseExpression();
 
-        // Look ahead for closing bracket
-        if (!peek() || peek()->kind != TOKEN_RBRACKET) {
-          throw std::runtime_error("Expected closing bracket");
-        }
-        next(); // eat ')'
-
-        expr_stack.push(nested_expr);
-        continue;
+      // Look ahead for closing bracket
+      if (!peek() || peek()->kind != TOKEN_RBRACKET) {
+        throw std::runtime_error("Expected closing bracket");
       }
+      next(); // eat ')'
 
-        if (!is_binary_operator(token->kind)) break;
-
-        OperatorKind curr_op = tokenToOperator(token->kind);
-        next(); // eat op
-
-        while (!op_stack.empty() &&
-               getPrecedence(op_stack.top()) >= getPrecedence(curr_op)) {
-            OperatorKind op = op_stack.top();
-            op_stack.pop();
-
-            auto right = expr_stack.top();
-            expr_stack.pop();
-            auto left = expr_stack.top();
-            expr_stack.pop();
-
-            expr_stack.push(std::make_shared<BinaryOpEXP>(op, left, right));
-        }
-
-        op_stack.push(curr_op);
-
-        auto right = parsePrimary();
-        expr_stack.push(right);
+      expr_stack.push(nested_expr);
+      continue;
     }
 
-    while (!op_stack.empty()) {
-        OperatorKind op = op_stack.top();
-        op_stack.pop();
+    if (!is_binary_operator(token->kind))
+      break;
 
-        auto right = expr_stack.top();
-        expr_stack.pop();
-        auto left = expr_stack.top();
-        expr_stack.pop();
+    OperatorKind curr_op = tokenToOperator(token->kind);
+    next(); // eat op
 
-        expr_stack.push(std::make_shared<BinaryOpEXP>(op, left, right));
+    while (!op_stack.empty() &&
+           getPrecedence(op_stack.top()) >= getPrecedence(curr_op)) {
+      OperatorKind op = op_stack.top();
+      op_stack.pop();
+
+      auto right = expr_stack.top();
+      expr_stack.pop();
+      auto left = expr_stack.top();
+      expr_stack.pop();
+
+      expr_stack.push(std::make_shared<BinaryOpEXP>(op, left, right));
     }
 
-    return expr_stack.top();
+    op_stack.push(curr_op);
+
+    auto right = parsePrimary();
+    expr_stack.push(right);
+  }
+
+  while (!op_stack.empty()) {
+    OperatorKind op = op_stack.top();
+    op_stack.pop();
+
+    auto right = expr_stack.top();
+    expr_stack.pop();
+    auto left = expr_stack.top();
+    expr_stack.pop();
+
+    expr_stack.push(std::make_shared<BinaryOpEXP>(op, left, right));
+  }
+
+  return expr_stack.top();
 }
 
 std::shared_ptr<Expression> Parser::parseExpression() {
@@ -1035,21 +1132,15 @@ std::shared_ptr<Expression> Parser::parseExpression() {
   if (token == nullptr)
     return node;
 
-  // fallback ro assignment
-  // if (token->kind == TOKEN_ASSIGNMENT) {
-  //   token = next();
-  //
-  //   auto var_ref = std::dynamic_pointer_cast<VarRefEXP>(node);
-  //   // read rvalue expression
-  //   // if (peek()->kind != TOKEN_ASSIGNM) return nullptr; // @TODO
-  //   // token = next();
-  //   auto initializer = std::dynamic_pointer_cast<Expression>(parseExpression());
-  //   // var->initializer = std::move(initializer);
-  //
-  //   auto ass = std::make_shared<AssignmentSTMT>(var_ref, initializer);
-  //
-  //   return ass;
-  // };
+  // enum ref
+  if (token->kind == TOKEN_DOUBLE_COLON) {
+    token = next();
+    auto node_as_var = std::static_pointer_cast<VarRefEXP>(comp->parts.back());
+    auto enumName = node_as_var->var_name;
+    auto itemName = std::get<std::string>(next()->value);
+
+    comp->addExpression(std::make_shared<EnumRefEXP>(enumName, itemName));
+  }
 
   if (token->kind == TOKEN_LBRACKET) {
     // its a function call or a constructor call
@@ -1058,37 +1149,37 @@ std::shared_ptr<Expression> Parser::parseExpression() {
     // if (peek()->kind == TOKEN_LBRACKET) {
     // token = next();
     // @FIX NOT A VARREF JUST NEED A NAME
-      auto func_name =
-        std::static_pointer_cast<VarRefEXP>(node)->var_name;
-      auto func_call = std::make_shared<FuncCallEXP>();
-      parseArguments(func_call);
-      func_call->func_name = func_name;
+    auto func_name = std::static_pointer_cast<VarRefEXP>(node)->var_name;
+    auto func_call = std::make_shared<FuncCallEXP>();
+    parseArguments(func_call);
+    func_call->func_name = func_name;
 
-      // check if its a constructor call
-      if (this->globalTypeTable->getType(moduleName, func_name) != nullptr) {
-        auto class_name_expr =
-            std::make_shared<ClassNameEXP>(func_call->func_name);
+    // check if its a constructor call
+    if (this->globalTypeTable->getType(moduleName, func_name) != nullptr) {
+      auto class_name_expr =
+          std::make_shared<ClassNameEXP>(func_call->func_name);
 
-        if (func_call->arguments.empty()) {
-          auto constr_call = std::make_shared<ConstructorCallEXP>(
-            class_name_expr);
-          return constr_call;
-        }
-        auto constr_call = std::make_shared<ConstructorCallEXP>(
-            class_name_expr, func_call->arguments);
+      if (func_call->arguments.empty()) {
+        auto constr_call =
+            std::make_shared<ConstructorCallEXP>(class_name_expr);
         return constr_call;
       }
+      auto constr_call = std::make_shared<ConstructorCallEXP>(
+          class_name_expr, func_call->arguments);
+      return constr_call;
+    }
 
-      // auto func_call_to_exp = std::shared_ptr<Expression>(func_call.get());
-      // comp->addExpression(func_call_to_exp);
+    // auto func_call_to_exp = std::shared_ptr<Expression>(func_call.get());
+    // comp->addExpression(func_call_to_exp);
 
-      token = peek();
-      if (token == nullptr)
-        return nullptr;
-      // eat closing bracket after func read
-      if (token->kind == TOKEN_RBRACKET) token = next();
+    token = peek();
+    if (token == nullptr)
+      return nullptr;
+    // eat closing bracket after func read
+    if (token->kind == TOKEN_RBRACKET)
+      token = next();
 
-      return func_call;
+    return func_call;
     // }
   }
 
@@ -1111,14 +1202,16 @@ std::shared_ptr<Expression> Parser::parseExpression() {
     std::shared_ptr<Expression> after_dot;
     if (comp->parts.back()->getKind() == E_Var_Reference) {
       auto leftAsVar =
-        std::static_pointer_cast<VarRefEXP>(comp->parts.back())->var_name;
+          std::static_pointer_cast<VarRefEXP>(comp->parts.back())->var_name;
       auto calleeType =
-        std::static_pointer_cast<ClassDecl>(globalSymbolTable->getCurrentScope()->lookup(leftAsVar))->type->name;
+          std::static_pointer_cast<ClassDecl>(
+              globalSymbolTable->getCurrentScope()->lookup(leftAsVar))
+              ->type->name;
       if (calleeType.empty()) {
         after_dot = parsePrimary();
-      }
-      else {
-        after_dot = parsePrimary(calleeType);/* parsePrimary() */;
+      } else {
+        after_dot = parsePrimary(calleeType); /* parsePrimary() */
+        ;
       }
     } else {
       after_dot = parsePrimary();
@@ -1132,8 +1225,7 @@ std::shared_ptr<Expression> Parser::parseExpression() {
       token = next();
 
       // after_dot then is a method_name in a method call
-      auto method_call =
-        std::static_pointer_cast<MethodCallEXP>(after_dot);
+      auto method_call = std::static_pointer_cast<MethodCallEXP>(after_dot);
       // auto method_call = std::make_shared<MethodCallEXP>();
       // method_call->method_name =
       //   // ???? костыль жёсткий слишком это вообще не рев фар это имя метода
@@ -1162,12 +1254,10 @@ std::shared_ptr<Expression> Parser::parseExpression() {
       // auto left =
       // std::shared_ptr<Expression>(dynamic_cast<Expression*>(node.get()));
       auto field_name =
-        std::static_pointer_cast<VarRefEXP>(after_dot)->var_name;
-      auto obj_ref =
-        std::static_pointer_cast<VarRefEXP>(node);
-      auto field_access =
-        std::make_shared<FieldRefEXP>(field_name, obj_ref);
-          // std::static_pointer_cast<VarRefEXP>(after_dot);
+          std::static_pointer_cast<VarRefEXP>(after_dot)->var_name;
+      auto obj_ref = std::static_pointer_cast<VarRefEXP>(node);
+      auto field_access = std::make_shared<FieldRefEXP>(field_name, obj_ref);
+      // std::static_pointer_cast<VarRefEXP>(after_dot);
       // auto field_access_to_exp =
       //     std::dynamic_pointer_cast<Expression>(field_access);
       // std::shared_ptr<Expression>(field_access.get());
@@ -1250,7 +1340,8 @@ std::shared_ptr<ParameterDecl> Parser::parseParameterDecl() {
   auto paramDecl = std::make_shared<ParameterDecl>(
       param_name, globalTypeTable->types[moduleName].getType(param_type));
 
-  // globalSymbolTable->addToGlobalScope(moduleName, lastDeclaredScopeParent.top(),
+  // globalSymbolTable->addToGlobalScope(moduleName,
+  // lastDeclaredScopeParent.top(),
   //                                     paramDecl);
 
   globalSymbolTable->getCurrentScope()->addSymbol(param_name, paramDecl);
@@ -1502,18 +1593,20 @@ std::shared_ptr<Expression> Parser::parsePrimary() {
     next(); // eat ')'
     return expr;
   }
-  case TOKEN_IDENTIFIER: case TOKEN_PRINT: {
-    auto var =
-      globalSymbolTable->getCurrentScope()->lookup(std::get<std::string>(token->value));
+  case TOKEN_IDENTIFIER:
+  case TOKEN_PRINT: {
+    auto var = globalSymbolTable->getCurrentScope()->lookup(
+        std::get<std::string>(token->value));
     if (!var) {
-        throw std::runtime_error("Undefined variable: " +
-                                 std::get<std::string>(token->value));
+      throw std::runtime_error("Undefined variable: " +
+                               std::get<std::string>(token->value));
     }
     switch (var->getKind()) {
     case E_Field_Decl: {
       // we return it as a var to construct
       // a legit FieldRefEXP on parseExpression
-      // return std::make_shared<FieldRefEXP>(std::get<std::string>(token->value), );
+      // return
+      // std::make_shared<FieldRefEXP>(std::get<std::string>(token->value), );
       return std::make_shared<VarRefEXP>(std::get<std::string>(token->value));
     }
     case E_Variable_Decl:
@@ -1521,13 +1614,15 @@ std::shared_ptr<Expression> Parser::parsePrimary() {
       return std::make_shared<VarRefEXP>(std::get<std::string>(token->value));
     }
     case E_Class_Decl: {
-      return std::make_shared<ClassNameEXP>(std::get<std::string>(token->value));
+      return std::make_shared<ClassNameEXP>(
+          std::get<std::string>(token->value));
     }
     case E_Function_Decl: {
       return std::make_shared<FuncCallEXP>(std::get<std::string>(token->value));
     }
     case E_Method_Decl: {
-      return std::make_shared<MethodCallEXP>(std::get<std::string>(token->value));
+      return std::make_shared<MethodCallEXP>(
+          std::get<std::string>(token->value));
     }
     default:
       return nullptr;
@@ -1535,12 +1630,14 @@ std::shared_ptr<Expression> Parser::parsePrimary() {
   }
   default:
     if (isTypeName(token->kind)) {
-      return std::make_shared<ClassNameEXP>(std::get<std::string>(token->value));
+      return std::make_shared<ClassNameEXP>(
+          std::get<std::string>(token->value));
     }
   }
 }
 
-std::shared_ptr<Expression> Parser::parsePrimary(const std::string &classNameToSearchIn) {
+std::shared_ptr<Expression>
+Parser::parsePrimary(const std::string &classNameToSearchIn) {
   std::unique_ptr<Token> token = peek();
   if (token == nullptr)
     return nullptr;
@@ -1572,9 +1669,10 @@ std::shared_ptr<Expression> Parser::parsePrimary(const std::string &classNameToS
     next(); // eat ')'
     return expr;
   }
-  case TOKEN_IDENTIFIER: case TOKEN_PRINT: {
-    auto var =
-      globalSymbolTable->getGlobalScope()->lookupInClass(std::get<std::string>(token->value), classNameToSearchIn);
+  case TOKEN_IDENTIFIER:
+  case TOKEN_PRINT: {
+    auto var = globalSymbolTable->getGlobalScope()->lookupInClass(
+        std::get<std::string>(token->value), classNameToSearchIn);
     if (!var) {
       throw std::runtime_error("Undefined variable: " +
                                std::get<std::string>(token->value));
@@ -1583,7 +1681,8 @@ std::shared_ptr<Expression> Parser::parsePrimary(const std::string &classNameToS
     case E_Field_Decl: {
       // we return it as a var to construct
       // a legit FieldRefEXP on parseExpression
-      // return std::make_shared<FieldRefEXP>(std::get<std::string>(token->value), );
+      // return
+      // std::make_shared<FieldRefEXP>(std::get<std::string>(token->value), );
       return std::make_shared<VarRefEXP>(std::get<std::string>(token->value));
     }
     case E_Variable_Decl:
@@ -1591,13 +1690,15 @@ std::shared_ptr<Expression> Parser::parsePrimary(const std::string &classNameToS
       return std::make_shared<VarRefEXP>(std::get<std::string>(token->value));
     }
     case E_Class_Decl: {
-      return std::make_shared<ClassNameEXP>(std::get<std::string>(token->value));
+      return std::make_shared<ClassNameEXP>(
+          std::get<std::string>(token->value));
     }
     case E_Function_Decl: {
       return std::make_shared<FuncCallEXP>(std::get<std::string>(token->value));
     }
     case E_Method_Decl: {
-      return std::make_shared<MethodCallEXP>(std::get<std::string>(token->value));
+      return std::make_shared<MethodCallEXP>(
+          std::get<std::string>(token->value));
     }
     default:
       return nullptr;

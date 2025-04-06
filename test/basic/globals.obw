@@ -1,0 +1,8 @@
+module globals
+
+var i : Integer(5)
+
+func main() is 
+  var b : Integer := i 
+  printl("%d", b)
+end

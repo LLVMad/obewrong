@@ -30,13 +30,13 @@ class AssignmentSTMT : public Statement {
 public:
   AssignmentSTMT(std::shared_ptr<VarRefEXP> lhs,
                  std::shared_ptr<Expression> rhs)
-      : Statement(E_Assignment), variable(std::move(lhs)),
-        field(nullptr), expression(std::move(rhs)) {}
+      : Statement(E_Assignment), variable(std::move(lhs)), field(nullptr),
+        expression(std::move(rhs)) {}
 
   AssignmentSTMT(std::shared_ptr<FieldRefEXP> lhs,
                  std::shared_ptr<Expression> rhs)
-      : Statement(E_Assignment), variable(nullptr),
-        field(std::move(lhs)), expression(std::move(rhs)) {}
+      : Statement(E_Assignment), variable(nullptr), field(std::move(lhs)),
+        expression(std::move(rhs)) {}
 
   // children are
   std::shared_ptr<VarRefEXP> variable;
@@ -105,8 +105,7 @@ public:
         body(std::move(body)), isDefault(false) {}
 
   CaseSTMT(std::shared_ptr<Block> body)
-      : Statement(E_Case_Statement),
-        body(std::move(body)), isDefault(true) {}
+      : Statement(E_Case_Statement), body(std::move(body)), isDefault(true) {}
 
   std::shared_ptr<Expression> condition_literal;
   std::shared_ptr<Block> body;

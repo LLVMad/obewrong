@@ -14,6 +14,7 @@
 #include "frontend/parser/Expression.h"
 #include "frontend/parser/Statement.h"
 
+#include <filesystem>
 #include <map>
 
 // enum DeclKind {
@@ -196,10 +197,11 @@ public:
                     std::vector<std::shared_ptr<ParameterDecl>> args,
                     std::shared_ptr<Block> body)
       : Decl(E_Function_Decl, name), signature(std::move(signature)),
-        args(std::move(args)), isVoided(false), isVoid(signature->isVoid), body(std::move(body)) {}
+        args(std::move(args)), isVoided(false), isVoid(signature->isVoid),
+        body(std::move(body)) {}
 
   FuncDecl(const std::string &name)
-    : Decl(E_Function_Decl, name), signature(), body() {}
+      : Decl(E_Function_Decl, name), signature(), body() {}
 
   std::shared_ptr<TypeFunc> signature;
   std::vector<std::shared_ptr<ParameterDecl>> args;
@@ -310,20 +312,23 @@ class ModuleDecl : public Decl {
 public:
   ModuleDecl(const std::string &moduleNmae) : Decl(E_Module_Decl, moduleNmae) {}
 
+  void addImport(const std::string &importName) {
+    importedModules.push_back(importName);
+  }
+
+  std::vector<std::string> importedModules;
   std::vector<std::shared_ptr<Entity>> children;
 };
 
 class EnumDecl : public Decl {
 public:
   EnumDecl(const std::string &enumName)
-    : Decl(E_Enum_Decl, enumName), size(0) {}
+      : Decl(E_Enum_Decl, enumName), size(0) {}
 
-  void addVal(const std::string &name) {
-    values[name] = size++;
-  };
+  void addItem(const std::string &name) { items[name] = size++; };
 
   size_t size;
-  std::map<std::string, uint32_t> values;
+  std::map<std::string, uint32_t> items;
 };
 
 #endif
