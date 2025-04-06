@@ -10,7 +10,7 @@
  */
 class Expression : public Entity {
 public:
-  explicit Expression(Ekind kind) : Entity(kind) {};
+  explicit Expression(Ekind kind) : Entity(kind){};
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
     (void)typeTable;
     return nullptr;
@@ -30,7 +30,7 @@ public:
  */
 class IntLiteralEXP : public Expression {
 public:
-  IntLiteralEXP(int val) : Expression(E_Integer_Literal), _value(val) {};
+  IntLiteralEXP(int val) : Expression(E_Integer_Literal), _value(val){};
 
   int getValue() { return _value; }
 
@@ -42,7 +42,7 @@ private:
 
 class RealLiteralEXP : public Expression {
 public:
-  RealLiteralEXP(double val) : Expression(E_Real_Literal), _value(val) {};
+  RealLiteralEXP(double val) : Expression(E_Real_Literal), _value(val){};
 
   double getValue() { return _value; }
 
@@ -55,7 +55,7 @@ private:
 class StringLiteralEXP : public Expression {
 public:
   StringLiteralEXP(std::string val)
-      : Expression(E_String_Literal), value(std::move(val)) {};
+      : Expression(E_String_Literal), value(std::move(val)){};
 
   std::string value;
 
@@ -64,7 +64,7 @@ public:
 
 class BoolLiteralEXP : public Expression {
 public:
-  BoolLiteralEXP(bool val) : Expression(E_Boolean_Literal), _value(val) {};
+  BoolLiteralEXP(bool val) : Expression(E_Boolean_Literal), _value(val){};
 
   bool getValue() { return _value; }
 
@@ -84,7 +84,7 @@ private:
 class ArrayLiteralExpr : public Expression {
 public:
   ArrayLiteralExpr(std::vector<std::shared_ptr<Expression>> elements)
-      : Expression(E_Array_Literal), elements(std::move(elements)) {};
+      : Expression(E_Array_Literal), elements(std::move(elements)){};
 
   // children should be
   std::vector<std::shared_ptr<Expression>> elements;
@@ -111,7 +111,7 @@ public:
 class VarRefEXP : public Expression {
 public:
   VarRefEXP(const std::string &name)
-      : Expression(E_Var_Reference), var_name(name) {};
+      : Expression(E_Var_Reference), var_name(name){};
 
   std::string var_name;
   // no children, link to a VarDecl probably
@@ -138,11 +138,11 @@ public:
 class FieldRefEXP : public Expression {
 public:
   FieldRefEXP(std::string name, std::shared_ptr<VarRefEXP> obj)
-      : Expression(E_Field_Reference), field_name(std::move(name)), obj(obj) {};
+      : Expression(E_Field_Reference), field_name(std::move(name)), obj(obj){};
 
   FieldRefEXP(std::string name)
       : Expression(E_Field_Reference), field_name(std::move(name)),
-        obj(nullptr) {};
+        obj(nullptr){};
 
   std::string field_name;
   std::shared_ptr<VarRefEXP> obj; // object which field is referenced
@@ -164,12 +164,12 @@ public:
   MethodCallEXP(std::string method_name, std::shared_ptr<Expression> left,
                 std::vector<std::shared_ptr<Expression>> arguments)
       : Expression(E_Method_Call), method_name(std::move(method_name)),
-        left(left), arguments(arguments) {};
+        left(left), arguments(arguments){};
 
   MethodCallEXP() : Expression(E_Method_Call) {}
 
   MethodCallEXP(const std::string &name)
-      : Expression(E_Method_Call), method_name(name) {};
+      : Expression(E_Method_Call), method_name(name){};
 
   std::string method_name;
 
@@ -194,11 +194,11 @@ public:
   FuncCallEXP(std::string method_name,
               std::vector<std::shared_ptr<Expression>> arguments)
       : Expression(E_Function_Call), func_name(std::move(method_name)),
-        arguments(std::move(arguments)), isVoided(false) {};
+        arguments(std::move(arguments)), isVoided(false){};
 
   FuncCallEXP(std::string method_name)
       : Expression(E_Function_Call), func_name(std::move(method_name)),
-        isVoided(true) {};
+        isVoided(true){};
 
   FuncCallEXP() : Expression(E_Function_Call) {}
 
@@ -233,7 +233,7 @@ public:
 class ClassNameEXP : public Expression {
 public:
   ClassNameEXP(std::string name)
-      : Expression(E_Class_Name), _name(std::move(name)) {};
+      : Expression(E_Class_Name), _name(std::move(name)){};
 
   // В классе ClassNameEXP
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
@@ -260,12 +260,12 @@ public:
   ConstructorCallEXP(std::shared_ptr<ClassNameEXP> left,
                      std::vector<std::shared_ptr<Expression>> arguments)
       : Expression(E_Function), left(std::move(left)),
-        arguments(std::move(arguments)), isDefault(false) {};
+        arguments(std::move(arguments)), isDefault(false){};
 
   // Default constr
   ConstructorCallEXP(std::shared_ptr<ClassNameEXP> left)
       : Expression(E_Function), left(std::move(left)), arguments(),
-        isDefault(true) {};
+        isDefault(true){};
 
   // children should be
   std::shared_ptr<ClassNameEXP> left;
@@ -400,7 +400,7 @@ public:
   BinaryOpEXP(OperatorKind op, std::shared_ptr<Expression> left,
               std::shared_ptr<Expression> right)
       : Expression(E_Binary_Operator), left(std::move(left)),
-        right(std::move(right)), op(op) {};
+        right(std::move(right)), op(op){};
 
   std::shared_ptr<Expression> left;
   std::shared_ptr<Expression> right;
@@ -410,7 +410,7 @@ public:
 class UnaryOpEXP : public Expression {
 public:
   UnaryOpEXP(OperatorKind op, std::shared_ptr<Expression> operand)
-      : Expression(E_Unary_Operator), operand(std::move(operand)), op(op) {};
+      : Expression(E_Unary_Operator), operand(std::move(operand)), op(op){};
 
   std::shared_ptr<Expression> operand;
   OperatorKind op;
@@ -419,7 +419,7 @@ public:
 class EnumRefEXP : public Expression {
 public:
   EnumRefEXP(const std::string &enumName, const std::string &itemName)
-      : Expression(E_Enum_Reference), enumName(enumName), itemName(itemName) {};
+      : Expression(E_Enum_Reference), enumName(enumName), itemName(itemName){};
   std::string enumName;
   std::string itemName;
 };
