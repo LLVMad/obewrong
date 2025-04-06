@@ -46,16 +46,18 @@ void SourceManager::addFile(std::filesystem::path relPath) {
 }
 
 bool SourceManager::isImportProvided(const std::string &importName) {
-  return std::ranges::any_of(
-    files,
-    [&](const FileData &fd) { return fd.name == (importName + ".obw"); });
+  return std::ranges::any_of(files, [&](const FileData &fd) {
+    return fd.name == (importName + ".obw");
+  });
 }
 
-std::string SourceManager::resolveImport(std::string importName, const std::string &fromName) {
+std::string SourceManager::resolveImport(std::string importName,
+                                         const std::string &fromName) {
   // import {dir.}moduleName
-  std::replace( importName.begin(), importName.end(), '.', '/');
-  auto importPath = std::filesystem::path(importName+".obw");
-  if (importPath.empty()) throw std::runtime_error("Could not resolve import: " + importName);
+  std::replace(importName.begin(), importName.end(), '.', '/');
+  auto importPath = std::filesystem::path(importName + ".obw");
+  if (importPath.empty())
+    throw std::runtime_error("Could not resolve import: " + importName);
   // readSource(importPath);
 
   auto source_file = std::ifstream(importPath);

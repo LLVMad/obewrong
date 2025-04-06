@@ -125,13 +125,16 @@ std::shared_ptr<Entity> Parser::parseProgram() {
     root->addImport(importedModuleName);
 
     size_t last_dot = importedModuleName.find_last_of('.');
-    if (last_dot == std::string::npos) last_dot = -1;
+    if (last_dot == std::string::npos)
+      last_dot = -1;
     if (!this->sm.isImportProvided(importedModuleName.substr(last_dot + 1))) {
-      throw std::runtime_error("Module import provided does not exist : " + importedModuleName);
+      throw std::runtime_error("Module import provided does not exist : " +
+                               importedModuleName);
     }
 
     token = peek();
   }
+  // token = next();
 
   // initBuiltinTypes();
   // lastDeclaredScopeParent.emplace("Global");

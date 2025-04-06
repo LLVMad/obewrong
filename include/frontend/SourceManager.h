@@ -12,14 +12,15 @@ struct FileData {
   const std::filesystem::path directory;
   const std::string name;
   std::string content;
-  FileData* includedFrom;
-  std::vector<FileData*> includedFiles;
+  FileData *includedFrom;
+  std::vector<FileData *> includedFiles;
   const std::filesystem::path fullPath;
 
   FileData(std::filesystem::path directory, std::string name, std::string data,
            std::filesystem::path fullPath)
       : directory(std::move(directory)), name(std::move(name)),
-        content(std::move(data)), includedFrom(nullptr), fullPath(std::move(fullPath)) {}
+        content(std::move(data)), includedFrom(nullptr),
+        fullPath(std::move(fullPath)) {}
 };
 
 // struct FileInfo {
@@ -52,7 +53,6 @@ public:
 
   std::string resolveImport(std::string importName,
                             const std::string &fromName);
-
 
 private:
   // include dirs
