@@ -1,0 +1,14 @@
+module enumiration
+
+enum CMD is
+  PLUS,
+  MINUS,
+  DIVISION,
+  MODULUS,
+  UNKNOWN
+end
+
+func main() is 
+  printl("%d", CMD::PLUS)
+  printl("%d", CMD::MINUS)
+end

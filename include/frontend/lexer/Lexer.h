@@ -72,7 +72,9 @@ enum TokenKind {
   TOKEN_BIT_SHIFT_LEFT,  // * <<
   TOKEN_BIT_SHIFT_RIGHT, // * >>
   TOKEN_PLUS,            // * +
+  TOKEN_INCREMENT,       // * ++
   TOKEN_MINUS,           // * -
+  TOKEN_DECREMENT,       // * --
   TOKEN_STAR,            // * *
   TOKEN_SLASH,           // * /
   TOKEN_PERCENT,         // * %
@@ -93,6 +95,9 @@ enum TokenKind {
   TOKEN_TYPE_ANYREF,
   TOKEN_TYPE_TYPE, // * for generics ?
   TOKEN_NEW,
+  TOKEN_OVERRIDE, // * override
+  TOKEN_VIRTUAL,  // * virtual
+  TOKEN_ENUM,     // * enum
   TOKEN_UNKNOWN
 };
 
@@ -147,19 +152,19 @@ public:
 
   // Mostly single-character and/or special symbols
   Token(TokenKind kind, size_t line, size_t column)
-      : kind(kind), line(line), column(column){};
+      : kind(kind), line(line), column(column) {};
 
   // Int value
   Token(TokenKind kind, int intValue, size_t line, size_t column)
-      : kind(kind), value(intValue), line(line), column(column){};
+      : kind(kind), value(intValue), line(line), column(column) {};
 
   // Real number
   Token(TokenKind kind, double realValue, size_t line, size_t column)
-      : kind(kind), value(realValue), line(line), column(column){};
+      : kind(kind), value(realValue), line(line), column(column) {};
 
   // Identifier or string literal
   Token(TokenKind kind, const std::string &lexem, size_t line, size_t column)
-      : kind(kind), value(lexem), line(line), column(column){};
+      : kind(kind), value(lexem), line(line), column(column) {};
 };
 
 /*
@@ -186,7 +191,15 @@ private:
 
   void advance() { buffer++; }
   void rewind() { buffer--; }
-  char peek() { return buffer[0]; };
+  char peek() {
+    ++curr_column;
+
+    if (buffer[0] == '\n') {
+      curr_line++;
+      curr_column = 0;
+    }
+    return buffer[0];
+  };
 
   inline static unsigned int hash(const char *str, size_t len);
   static std::pair<const char *, TokenKind> in_word_set(const char *str,

@@ -1,18 +1,56 @@
 #include "frontend/SymbolTable.h"
 
-SymbolTable::SymbolTable() {
-  scopes["Global"] = std::make_shared<Scope>();
-  // this->scopes
-  // enterScope(); // Инициализация глобальной области
+void SymbolTable::initBuiltinFunctions(
+    const std::shared_ptr<GlobalTypeTable> &typeTable) {
+  // auto global = getGlobalScope();
+
+  //=============== GENERAL ===============
+  // - printl
+  bool isVoid = true;
+  // @TODO body??? args??? AnyRef ???
+  auto printDecl = std::make_shared<FuncDecl>("printl");
+
+  global_scope->addSymbol("printl", printDecl);
+
+  //========================================
+
+  //========== INTEGER BUILTIN METHODS ==========
+  enterScope(SCOPE_CLASS, "Integer");
+  // - Plus
+  auto intPlusTypeReturnType = typeTable->getType("", "Integer");
+  auto intPlusTypeParamType = typeTable->getType("", "Integer");
+  std::vector paramTypes = {intPlusTypeParamType};
+  auto intPlusType =
+      std::make_shared<TypeFunc>(intPlusTypeReturnType, paramTypes);
+  auto intPlusParamDecl =
+      std::make_shared<ParameterDecl>("x", intPlusTypeParamType);
+  std::vector<std::shared_ptr<Decl>> params = {intPlusParamDecl};
+  auto intPlusDecl =
+      std::make_shared<MethodDecl>("Plus", intPlusType, params, true);
+
+  global_scope->addSymbol("Plus", intPlusDecl);
+
+  // - Minus
+  auto intMinusTypeReturnType = typeTable->getType("", "Integer");
+  auto intMinusTypeParamType = typeTable->getType("", "Integer");
+  paramTypes = {intMinusTypeParamType};
+  auto intMinusType =
+      std::make_shared<TypeFunc>(intMinusTypeReturnType, paramTypes);
+  auto intMinusParamDecl =
+      std::make_shared<ParameterDecl>("x", intMinusTypeParamType);
+  params = {intPlusParamDecl};
+  auto intMinusDecl =
+      std::make_shared<MethodDecl>("Minus", intMinusType, params, true);
+
+  global_scope->addSymbol("Minus", intMinusDecl);
+
+  exitScope();
+  //========================================
+  // ... other built-in functions ...
 }
 
-// void SymbolTable::enterScope() { scopes.push_back(new Scope()); }
-//
-// void SymbolTable::exitScope() {
-//   if (!scopes.empty()) {
-//     scopes.pop_back();
-//   }
-// }
+/*
+SymbolTable::SymbolTable() { scopes["Global"] = std::make_shared<Scope>(); }
 
 bool SymbolTable::addSymbol(const std::string &scopeParent,
                             const std::string &name,
@@ -30,40 +68,18 @@ bool SymbolTable::addSymbol(const std::string &scopeParent,
 
 std::shared_ptr<Decl> SymbolTable::lookup(const std::string &scopeParent,
                                           const std::string &name) {
-  // Обход областей видимости от текущей к глобальной
-  // for (auto it = scopes[scopeParent].begin(); it != scopes[scopeParent];
-  // ++it) {
-  //   auto &scope = *it;
-  //   auto found = scopesymbols.find(name);
-  //   if (found != scope->symbols.end()) {
-  //     return found->second;
-  //   }
-  // }
-  auto scope = scopes[scopeParent];
-  auto decl = scope->symbols[name];
+  if (scopes[scopeParent] == nullptr)
+    scopes[scopeParent] = std::make_shared<Scope>();
+  ;
+  auto decl = scopes[scopeParent]->symbols[name];
   if (!decl)
     return nullptr;
   return decl;
 }
 
-// bool SymbolTable::isGlobalScope() const { return scopes.size() == 1; }
-
-// void ModuleSymbolTable::addToModuleScope(std::shared_ptr<Decl> decl) {
-//   this->symbolTables[moduleName].addSymbol(decl->name, decl);
-// }
-
-// void ModuleSymbolTable::addToLocalScope(const std::string &moduleName, const
-// std::string &parentDeclName, std::shared_ptr<Decl> decl){
-//
-// }
-
 void GlobalSymbolTable::addToGlobalScope(const std::string &moduleName,
                                          const std::string &parentDeclName,
                                          std::shared_ptr<Decl> decl) {
-  // auto &moduleSymTab = moduleSymbolTables.try_emplace(moduleName,
-  // moduleName).first->second;
-  // moduleSymTab.scopes[parentDeclName].addSymbol(decl->name, decl);
-  // auto modScope = moduleSymbolTables[moduleName];
   moduleSymbolTables[moduleName].addSymbol(parentDeclName, decl->name, decl);
 }
 
@@ -79,20 +95,6 @@ std::shared_ptr<Decl> GlobalSymbolTable::lookup(std::string moduleName,
   if (decl_glob)
     return decl_glob;
   return nullptr;
-  // auto moduleIt = moduleSymbolTables.find(moduleName);
-  // if (moduleIt == moduleSymbolTables.end()) return nullptr; // Module not
-  // found
-  //
-  // auto &symTab = moduleIt->second.symbolTables[parentScope];
-  // auto sym = symTab.lookup(name);
-  //
-  // if (!sym) {
-  //   auto builtIn = builtinSymbols.lookup(name);
-  //   if (builtIn) return builtIn;
-  //   return nullptr;
-  // }
-  //
-  // return sym;
 }
 
 void GlobalSymbolTable::initBuiltinFuncs(
@@ -122,3 +124,4 @@ void GlobalSymbolTable::copyBuiltinsToModule(const std::string &moduleName) {
                                              decl.second);
   }
 }
+*/

@@ -14,6 +14,9 @@
 #include "frontend/parser/Expression.h"
 #include "frontend/parser/Statement.h"
 
+#include <filesystem>
+#include <map>
+
 // enum DeclKind {
 //   DECL_VAR,
 //   DECL_FUNC,
@@ -162,6 +165,31 @@ public:
   ~MethodDecl() override = default;
 };
 
+class ConstrDecl : public Decl {
+public:
+  ConstrDecl(const std::string &name) : Decl(E_Constructor_Decl, name) {}
+  explicit ConstrDecl(const std::string &name,
+                      std::shared_ptr<TypeFunc> signature,
+                      std::vector<std::shared_ptr<Decl>> args,
+                      std::shared_ptr<Block> body)
+      : Decl(E_Method_Decl, name), signature(std::move(signature)),
+        args(std::move(args)), body(std::move(body)) {}
+
+  std::shared_ptr<TypeFunc> signature;
+  std::vector<std::shared_ptr<Decl>> args;
+
+  std::shared_ptr<Block> body;
+
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+
+  bool validate() override;
+
+  // no parameters
+  bool isDefault;
+
+  ~ConstrDecl() override = default;
+};
+
 class FuncDecl : public Decl {
 public:
   explicit FuncDecl(const std::string &name,
@@ -169,7 +197,11 @@ public:
                     std::vector<std::shared_ptr<ParameterDecl>> args,
                     std::shared_ptr<Block> body)
       : Decl(E_Function_Decl, name), signature(std::move(signature)),
-        args(std::move(args)), body(std::move(body)) {}
+        args(std::move(args)), isVoided(false), isVoid(signature->isVoid),
+        body(std::move(body)) {}
+
+  FuncDecl(const std::string &name)
+      : Decl(E_Function_Decl, name), signature(), body() {}
 
   std::shared_ptr<TypeFunc> signature;
   std::vector<std::shared_ptr<ParameterDecl>> args;
@@ -177,6 +209,7 @@ public:
   bool isForward;
   bool isShort;
   bool isVoided; // no parameters
+  bool isVoid;
   std::shared_ptr<Block> body;
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
@@ -203,7 +236,7 @@ public:
             std::vector<std::shared_ptr<ClassDecl>> base_class,
             std::vector<std::shared_ptr<FieldDecl>> fields,
             std::vector<std::shared_ptr<MethodDecl>> methods,
-            std::vector<std::shared_ptr<MethodDecl>> constructors)
+            std::vector<std::shared_ptr<ConstrDecl>> constructors)
       : Decl(E_Class_Decl, name), type(std::move(type)),
         base_classes(std::move(base_class)), fields(std::move(fields)),
         methods(std::move(methods)), constructors(std::move(constructors)) {}
@@ -211,7 +244,7 @@ public:
   ClassDecl(const std::string &name, std::shared_ptr<TypeClass> type,
             std::vector<std::shared_ptr<FieldDecl>> fields,
             std::vector<std::shared_ptr<MethodDecl>> methods,
-            std::vector<std::shared_ptr<MethodDecl>> constructors)
+            std::vector<std::shared_ptr<ConstrDecl>> constructors)
       : Decl(E_Class_Decl, name), type(std::move(type)),
         fields(std::move(fields)), methods(std::move(methods)),
         constructors(std::move(constructors)) {}
@@ -220,7 +253,7 @@ public:
   std::vector<std::shared_ptr<ClassDecl>> base_classes;
   std::vector<std::shared_ptr<FieldDecl>> fields;
   std::vector<std::shared_ptr<MethodDecl>> methods;
-  std::vector<std::shared_ptr<MethodDecl>> constructors;
+  std::vector<std::shared_ptr<ConstrDecl>> constructors;
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
@@ -279,32 +312,23 @@ class ModuleDecl : public Decl {
 public:
   ModuleDecl(const std::string &moduleNmae) : Decl(E_Module_Decl, moduleNmae) {}
 
+  void addImport(const std::string &importName) {
+    importedModules.push_back(importName);
+  }
+
+  std::vector<std::string> importedModules;
   std::vector<std::shared_ptr<Entity>> children;
 };
 
-class ConstrDecl : public Decl {
+class EnumDecl : public Decl {
 public:
-  ConstrDecl(const std::string &name) : Decl(E_Constructor_Decl, name) {}
-  explicit ConstrDecl(const std::string &name,
-                      std::shared_ptr<TypeFunc> signature,
-                      std::vector<std::shared_ptr<Decl>> args,
-                      std::shared_ptr<Block> body)
-      : Decl(E_Method_Decl, name), signature(std::move(signature)),
-        args(std::move(args)), body(std::move(body)) {}
+  EnumDecl(const std::string &enumName)
+      : Decl(E_Enum_Decl, enumName), size(0) {}
 
-  std::shared_ptr<TypeFunc> signature;
-  std::vector<std::shared_ptr<Decl>> args;
+  void addItem(const std::string &name) { items[name] = size++; };
 
-  std::shared_ptr<Block> body;
-
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
-
-  bool validate() override;
-
-  // no parameters
-  bool isDefault;
-
-  ~ConstrDecl() override = default;
+  size_t size;
+  std::map<std::string, uint32_t> items;
 };
 
 #endif

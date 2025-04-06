@@ -1,0 +1,17 @@
+module switchstatement
+
+func main() is 
+  var i : Integer(2)
+
+  switch i is
+    case 1 then 
+      printl(1)
+    end
+    case 2 then
+      printl(2)
+    end
+    default then 
+      printl("unknown")
+    end
+  end
+end

@@ -1,0 +1,10 @@
+module classes
+
+class FirstClass is 
+  
+  var a : Integer
+  
+  this(x : Integer) is 
+    a := x
+  end 
+end

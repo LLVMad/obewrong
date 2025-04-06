@@ -1,0 +1,7 @@
+module importing
+
+import provider
+ 
+func main() is 
+  fun()
+end

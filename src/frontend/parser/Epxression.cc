@@ -123,18 +123,18 @@ std::shared_ptr<Type> ConstructorCallEXP::resolveType(TypeTable typeTable) {
 
 bool ConstructorCallEXP::validate() { return true; }
 
-std::shared_ptr<Type> FieldAccessEXP::resolveType(TypeTable typeTable) {
-  (void)typeTable;
-  /*
-   * @TODO
-   * 1) search for left side in a class declarations
-   * 2) get type of a field by name
-   * 3) return its type
-   */
-  return nullptr;
-}
-
-bool FieldAccessEXP::validate() { return true; }
+// std::shared_ptr<Type> FieldAccessEXP::resolveType(TypeTable typeTable) {
+//   (void)typeTable;
+//   /*
+//    * @TODO
+//    * 1) search for left side in a class declarations
+//    * 2) get type of a field by name
+//    * 3) return its type
+//    */
+//   return nullptr;
+// }
+//
+// bool FieldAccessEXP::validate() { return true; }
 
 std::shared_ptr<Type> CompoundEXP::resolveType(TypeTable typeTable) {
   (void)typeTable;

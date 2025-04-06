@@ -59,3 +59,47 @@ D source code goes through the following stages when compiled:
 
         If a function is declared in the module which is not directly compiled (== not listed in the command line), semantic3 pass won't analyze its body.
 ```
+
+### SymbolTable
+```
+"Global": [
+    "ModuleName1": [
+        "ClassName1" : [
+            "ClassField1",
+            "ClassField2",
+            ...
+            "MethodName1" : [
+                "Parameter1",
+                "LocalVar1",
+                "LocalVar2"
+            ],
+            "Constructor1" : [
+                "Constr1" : [
+                    "Parameter1",
+                    "LocalVar1"
+                ]
+            ],
+            ...
+        ]
+    ],
+    "ModuleName2" : [
+        ...
+    ]
+]
+
+```
+
+"Global" -> instance of GlobalSymbolTable
+should include map 
+
+"struct Scope" example:
+- "method add":
+  - "var a"
+  - "parameter b"
+
+"class SymbolTable" example:
+- "module simple":
+  - "Scope1"
+
+maybe instead of making  a lot of maps it better to include in struct Scope
+a pointer to a parent scope?

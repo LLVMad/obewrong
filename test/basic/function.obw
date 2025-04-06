@@ -1,0 +1,9 @@
+module addints
+
+func add(a : Integer, b : Integer) : Integer is 
+  return a + b
+end
+
+func main() is 
+  printl(add(2, 2))
+end

@@ -1,36 +1,44 @@
-import IO
+module animals
 
 class Animal is
-  method speak() : String is
-    return "Animal sound"
+  var name : String
+
+  virtual this() is 
+    this.name := ""
+  end 
+  
+  virtual method speak() : String is 
+    return ""
   end
 end
 
 class Dog extends Animal is
-  method speak() : String is
+
+  this() is 
+    
+
+  override method speak() : String is
     return "Woof"
   end
 end
 
 class Cat extends Animal is
-  method speak() : String is
+  override method speak() : String is
     return "Meow"
   end
 end
 
-class Main is
-  this(argc: Integer, argv: List[String]) is
+func main() is
     var a : Animal()
     var d : Dog()
     var c : Cat()
 
     // Expected output: "Animal sound"
-    IO.Console.print(a.speak())
+    printl(a.speak())
 
     // Expected output: "Woof"
-    IO.Console.print(d.speak())
+    printl(d.speak())
 
     // Expected output: "Meow"
-    IO.Console.print(c.speak())
-  end
+    printl(c.speak())
 end

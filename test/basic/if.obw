@@ -1,0 +1,11 @@
+module ifstatement
+
+func main() is 
+  var a : Integer(2)
+
+  if a % 2 == 0 then 
+    printl("even")
+  else 
+    printl("odd")
+  end
+end

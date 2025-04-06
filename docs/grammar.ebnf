@@ -45,6 +45,11 @@ Statement ::=
 Assignment ::= 
     Identifier ":=" Expression
 
+Enum ::=
+  "enum" Identifier "is"
+  { Identifier, }
+  "end"
+
 ForLoop ::=
     "for" Assignment "," Expression "," Assignment "is"
     Body

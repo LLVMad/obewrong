@@ -1,0 +1,28 @@
+module inheritance
+
+class Vehicle is 
+  var brand : String 
+
+  this() is 
+    this.brand := "BMW"
+  end 
+
+  method honk() is 
+    printl("Tuut, tuut!")
+  end
+end
+
+class Car extends Vehicle is
+  var model : String 
+
+  this() is 
+    this.model := "X5"
+  end
+end
+
+func main() is 
+  var v : Vehicle()
+  var c : Car()
+
+  printl("%s %s %s", v.brand, c.brand, c.honk())
+end

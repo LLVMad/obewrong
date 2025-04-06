@@ -1,0 +1,14 @@
+module simple
+
+class Simple is   
+  method add(a : Integer) : Integer is 
+    var b : Integer 
+    b := a.Plus(2)
+    return b
+  end 
+end
+
+func main() is 
+  var simp : Simple
+  printl(simp.add(2)
+end

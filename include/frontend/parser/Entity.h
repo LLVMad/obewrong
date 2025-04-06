@@ -8,6 +8,8 @@
 
 #include "frontend/types/Types.h"
 
+#include <functional>
+
 struct Loc {
   size_t line;
   size_t col;
@@ -31,6 +33,7 @@ enum Ekind {
   E_Array_Decl,
   E_List_Decl,
   E_Module_Decl,
+  E_Enum_Decl,
 
   // Type-related entities
   E_Integer_Literal,
@@ -71,6 +74,9 @@ enum Ekind {
   E_Function_Call,
   E_Method_Call,
   E_Array_Literal,
+  E_Binary_Operator,
+  E_Unary_Operator,
+  E_Enum_Reference,
 };
 
 /**
@@ -121,7 +127,7 @@ enum BlockKind {
 class Block : public Entity {
 public:
   Block(std::vector<std::shared_ptr<Entity>> parts, BlockKind kind)
-      : Entity(E_Block), parts(std::move(parts)), kind(kind){};
+      : Entity(E_Block), parts(std::move(parts)), kind(kind) {};
 
   std::vector<std::shared_ptr<Entity>> parts;
   BlockKind kind;
