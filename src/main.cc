@@ -5,6 +5,7 @@
 #include "frontend/SourceManager.h"
 #include "frontend/lexer/Lexer.h"
 #include "frontend/parser/Parser.h"
+#include "frontend/semantic/PrinterAst.h"
 
 int main(int argc, char *argv[]) {
   SourceManager sm;
@@ -29,4 +30,7 @@ int main(int argc, char *argv[]) {
   std::shared_ptr<Entity> parseTree = parser.parseProgram();
 
   std::cout << parseTree->getKind() << std::endl;
+
+  PrinterAst printer(globalTypeTable, globalSymbolTable);
+  printer.printAST(parseTree);
 };

@@ -10,5 +10,5 @@ end
 
 func main() is 
   var simp : Simple
-  printl(simp.add(2)
+  printl(simp.add(2))
 end

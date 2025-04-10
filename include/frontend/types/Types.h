@@ -229,6 +229,14 @@ public:
     base_class.push_back(base);
   }
 
+  std::shared_ptr<TypeFunc> getMethod(const std::string &name) const {
+    for (const auto &method : methods_types) {
+      if (method->name == name)
+        return method;
+    }
+    return nullptr;
+  }
+
   ~TypeClass() override = default;
 };
 
