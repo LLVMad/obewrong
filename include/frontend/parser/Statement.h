@@ -170,7 +170,7 @@ public:
                    std::shared_ptr<Expression> condition,
                    std::shared_ptr<AssignmentSTMT> post,
                    std::shared_ptr<Block> body)
-      : Statement(E_While_Loop), varWithAss(std::move(varWithAss)),
+      : Statement(E_For_Loop), varWithAss(std::move(varWithAss)),
         condition(std::move(condition)), post(std::move(post)),
         body(std::move(body)) {}
 

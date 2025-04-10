@@ -1,6 +1,7 @@
 #ifndef EXPRESSION_H
 #define EXPRESSION_H
 
+#include <iostream>
 #include <utility>
 
 #include "Entity.h"
@@ -232,16 +233,14 @@ public:
  */
 class ClassNameEXP : public Expression {
 public:
-  ClassNameEXP(std::string name)
-      : Expression(E_Class_Name), _name(std::move(name)){};
+  ClassNameEXP(std::string _name)
+      : Expression(E_Class_Name), name(std::move(_name)){};
 
-  // В классе ClassNameEXP
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
   bool validate() override;
 
-private:
-  std::string _name;
+  std::string name;
 };
 
 /**
@@ -259,12 +258,12 @@ class ConstructorCallEXP : public Expression {
 public:
   ConstructorCallEXP(std::shared_ptr<ClassNameEXP> left,
                      std::vector<std::shared_ptr<Expression>> arguments)
-      : Expression(E_Function), left(std::move(left)),
+      : Expression(E_Constructor_Call), left(std::move(left)),
         arguments(std::move(arguments)), isDefault(false){};
 
   // Default constr
   ConstructorCallEXP(std::shared_ptr<ClassNameEXP> left)
-      : Expression(E_Function), left(std::move(left)), arguments(),
+      : Expression(E_Constructor_Call), left(std::move(left)), arguments(),
         isDefault(true){};
 
   // children should be

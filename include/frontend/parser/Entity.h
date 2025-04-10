@@ -45,6 +45,7 @@ enum Ekind {
   E_Boolean_Literal,
   E_Boolean_Type,
   E_Function,
+  E_Constructor_Call,
   E_Method,
   E_Chained_Functions, // compound expressions, a.Plus(2).Minus(1)...
   E_Function_Type,
@@ -58,6 +59,7 @@ enum Ekind {
   // Statement-related entities
   E_Assignment,
   E_While_Loop,
+  E_For_Loop,
   E_If_Statement,
   E_Switch_Statement,
   E_Case_Statement,
@@ -88,7 +90,7 @@ public:
   explicit Entity(Ekind kind) : location() { this->kind = kind; };
 
   Ekind getKind() const { return kind; };
-  Loc getLoc() const;
+  Loc getLoc() const { return location; };
 
   virtual std::shared_ptr<Type> resolveType(TypeTable typeTable) = 0;
   virtual bool validate() = 0;

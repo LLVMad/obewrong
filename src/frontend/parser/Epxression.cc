@@ -103,7 +103,7 @@ std::shared_ptr<Type> ClassNameEXP::resolveType(TypeTable typeTable) {
   //   return std::make_unique<Type>(TYPE_UNKNOWN, _name);
   // }
   // @TODO not found
-  return typeTable.getType(_name);
+  return typeTable.getType(name);
 }
 
 bool ClassNameEXP::validate() { return true; }
