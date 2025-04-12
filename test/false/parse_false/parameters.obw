@@ -1,0 +1,29 @@
+module paramfalse
+
+func fun(a : Integer is 
+  var b : Integer(a)
+end
+
+func fun2(var a : Integer) is 
+  var b : Integer(a)
+end
+
+func fun3(a : Integer b : Integer) is
+  var c : Integer(a)
+end
+
+func fun4(a, b) is
+  var c : Integer(a)
+end
+
+func fun5( is 
+  var c : Integer(0) 
+end
+
+func fun6 is 
+  var c : Integer(0)
+end
+
+func main() is 
+  fun()
+end

@@ -189,17 +189,18 @@ private:
 
   static bool isSpecial(char c);
 
-  void advance() { buffer++; }
-  void rewind() { buffer--; }
-  char peek() {
+  void advance() {
     ++curr_column;
 
     if (buffer[0] == '\n') {
       curr_line++;
       curr_column = 0;
     }
-    return buffer[0];
-  };
+
+    buffer++;
+  }
+  void rewind() { buffer--; }
+  char peek() { return buffer[0]; };
 
   inline static unsigned int hash(const char *str, size_t len);
   static std::pair<const char *, TokenKind> in_word_set(const char *str,

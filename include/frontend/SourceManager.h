@@ -54,6 +54,12 @@ public:
   std::string resolveImport(std::string importName,
                             const std::string &fromName);
 
+  std::string getLastFileName() const;
+
+  std::string getLastFilePath() const {
+    return files.back().fullPath;
+  }
+
 private:
   // include dirs
   std::vector<std::filesystem::path> systemDirectories;

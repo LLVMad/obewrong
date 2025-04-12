@@ -31,16 +31,22 @@ public:
   AssignmentSTMT(std::shared_ptr<VarRefEXP> lhs,
                  std::shared_ptr<Expression> rhs)
       : Statement(E_Assignment), variable(std::move(lhs)), field(nullptr),
-        expression(std::move(rhs)) {}
+        element(nullptr), expression(std::move(rhs)) {}
 
   AssignmentSTMT(std::shared_ptr<FieldRefEXP> lhs,
                  std::shared_ptr<Expression> rhs)
       : Statement(E_Assignment), variable(nullptr), field(std::move(lhs)),
+        element(nullptr), expression(std::move(rhs)) {}
+
+  AssignmentSTMT(std::shared_ptr<ElementRefEXP> lhs,
+                 std::shared_ptr<Expression> rhs)
+      : Statement(E_Assignment), variable(nullptr), field(nullptr), element(std::move(lhs)),
         expression(std::move(rhs)) {}
 
   // children are
   std::shared_ptr<VarRefEXP> variable;
   std::shared_ptr<FieldRefEXP> field;
+  std::shared_ptr<ElementRefEXP> element;
   std::shared_ptr<Expression> expression;
 
   ~AssignmentSTMT() override = default;
@@ -58,6 +64,9 @@ class ReturnSTMT : public Statement {
 public:
   explicit ReturnSTMT(std::shared_ptr<Expression> expr)
       : Statement(E_Return_Statement), expr(std::move(expr)) {}
+
+  [[deprecated("Use for error recovery only")]]
+  ReturnSTMT() : Statement(E_Return_Statement) {}
 
   // children are
   std::shared_ptr<Expression> expr;
@@ -170,9 +179,13 @@ public:
                    std::shared_ptr<Expression> condition,
                    std::shared_ptr<AssignmentSTMT> post,
                    std::shared_ptr<Block> body)
-      : Statement(E_While_Loop), varWithAss(std::move(varWithAss)),
+      : Statement(E_For_Loop), varWithAss(std::move(varWithAss)),
         condition(std::move(condition)), post(std::move(post)),
         body(std::move(body)) {}
+
+  [[deprecated("Use only for parse error")]]
+  ForSTMT()
+    : Statement(E_Dummy) {}
 
   std::shared_ptr<AssignmentSTMT> varWithAss;
   std::shared_ptr<Expression> condition;

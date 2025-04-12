@@ -86,3 +86,6 @@ std::string SourceManager::resolveImport(std::string importName,
 
   return contents;
 }
+std::string SourceManager::getLastFileName() const {
+  return this->files.back().name;
+}

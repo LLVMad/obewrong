@@ -1,0 +1,25 @@
+module exprerrors
+
+enum OPS is 
+  FIRST,
+  SEC
+end
+
+class St is 
+  var d : Integer
+end
+
+func ret_empty() is 
+  return
+  var a : Integer(0) 
+end
+
+func main() is 
+  var op : Integer := OPS::
+  var a : Integer(0)
+
+  var b : Integer := (1 + 2
+  
+  var st : St 
+  var c : Integer := st.dd 
+end

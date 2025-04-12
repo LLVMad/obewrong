@@ -207,8 +207,8 @@ std::unique_ptr<Token> Lexer::next() {
         c = peek();
       }
 
-      ++this->curr_line;
-      this->curr_column = 0;
+      advance();
+      c = peek();
     }
 
     switch (curr_state) {
@@ -455,8 +455,8 @@ std::unique_ptr<Token> Lexer::next() {
     // If no token has been returned move to next char, i.e. eat input
     advance();
 #ifdef DEBUG
-    LOG("Current buffer token: %s | state: %d | column %lu\n", token.c_str(),
-        curr_state, this->curr_column);
+    LOG("Current buffer token: %s | state: %d | %lu:%lu\n", token.c_str(),
+        curr_state, this->curr_line, this->curr_column);
 #endif
   }
 }
@@ -467,7 +467,7 @@ std::vector<std::unique_ptr<Token>> Lexer::lex() {
   std::unique_ptr<Token> token = next();
   while (token->kind != TOKEN_EOF) {
 #ifdef DEBUG
-    LOG("next token is %s\n", getTokenTypeName(token->kind));
+    LOG("next token is %s | %lu:%lu\n", getTokenTypeName(token->kind), curr_line, curr_column);
 #endif
     tokens.push_back(std::move(token));
     token = next();

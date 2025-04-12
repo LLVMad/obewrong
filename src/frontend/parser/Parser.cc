@@ -1,10 +1,22 @@
 #include "frontend/parser/Parser.h"
 
-#include "Error/Error.h"
 #include "frontend/SymbolTable.h"
 #include "frontend/TypeTable.h"
 #include "frontend/parser/Expression.h"
 #include "frontend/parser/Statement.h"
+
+#define SYNCED_TOKEN(kind)   \
+  ((kind == TOKEN_CLASS)  || \
+  (kind == TOKEN_FUNC)    || \
+  (kind == TOKEN_METHOD) || \
+  (kind == TOKEN_ENUM))       \
+
+#define PARSE_ERR(path, msg) \
+  ERR("%s:%d:%d %s\n",       \
+    path,                    \
+    peek(0)->line + 1,       \
+    peek(0)->column + 1,     \
+    msg)                     \
 
 bool isTypeName(TokenKind kind) {
   switch (kind) {
@@ -93,12 +105,23 @@ std::unique_ptr<Token> Parser::peek(size_t i) {
 }
 
 // @TODO
-bool Parser::expect(TokenKind expectedToken) {
+std::unique_ptr<Token> Parser::expect(TokenKind expectedToken, std::string msg) {
   std::unique_ptr<Token> token = peek();
-  if (token == nullptr || token->kind != expectedToken) {
-    return false;
+  int pos = tokenPos;
+
+  // if (token->kind != expectedToken) PARSE_ERR(msg);
+
+  while (token->kind != expectedToken || !SYNCED_TOKEN(token->kind)) {
+    // now we in panic mode
+    // search for sync token or expected token
+    if (tokens[pos + 1]->kind == TOKEN_EOF) {
+      PARSE_ERR(sm.getLastFilePath().c_str(), "Your program is gibberish\n");
+      exit(0);
+    }
+    token = std::make_unique<Token>(*tokens[++pos]);
   }
-  return true;
+
+  return std::move(token);
 }
 
 std::shared_ptr<Entity> Parser::parseProgram() {
@@ -116,21 +139,43 @@ std::shared_ptr<Entity> Parser::parseProgram() {
 
   auto root = std::make_shared<ModuleDecl>(std::get<std::string>(token->value));
   moduleName = std::get<std::string>(token->value);
+  token = peek();
+  while (token->kind == TOKEN_DOT) {
+    token = next();
+    moduleName += ("." + std::get<std::string>(next()->value));
+    token = peek();
+  }
+
+  globalSymbolTable->enterScope(SCOPE_MODULE, moduleName);
 
   token = peek();
   while (token->kind == TOKEN_MODULE_IMP) {
     token = next();
 
     auto importedModuleName = std::get<std::string>(next()->value);
+
+    token = peek();
+    while (token->kind == TOKEN_DOT) {
+      token = next();
+      importedModuleName += ("." + std::get<std::string>(next()->value));
+      token = peek();
+    }
+
     root->addImport(importedModuleName);
 
     size_t last_dot = importedModuleName.find_last_of('.');
     if (last_dot == std::string::npos)
       last_dot = -1;
-    if (!this->sm.isImportProvided(importedModuleName.substr(last_dot + 1))) {
+    auto modNameShort = importedModuleName.substr(last_dot + 1);
+    if (!this->sm.isImportProvided(modNameShort)) {
       throw std::runtime_error("Module import provided does not exist : " +
                                importedModuleName);
     }
+
+    globalSymbolTable->copySymbolFromModulesToCurrent(
+      importedModuleName, // from
+      moduleName // to
+    );
 
     token = peek();
   }
@@ -173,6 +218,8 @@ std::shared_ptr<Entity> Parser::parseProgram() {
 
   // globalSymbolTable->moduleSymbolTables.clear();
   // globalTypeTable->types.clear();
+
+  globalSymbolTable->exitScope();
 
   return root;
 }
@@ -264,6 +311,12 @@ std::shared_ptr<MethodDecl> Parser::parseMethodDecl() {
 
   // get method name
   token = peek();
+  bool is_static = token->kind == TOKEN_STATIC;
+  if (is_static) {
+    token = next();
+    token = peek();
+  }
+
   if (token == nullptr || token->kind != TOKEN_IDENTIFIER)
     return nullptr;
   token = next();
@@ -274,6 +327,7 @@ std::shared_ptr<MethodDecl> Parser::parseMethodDecl() {
   globalSymbolTable->enterScope(SCOPE_METHOD, method_name);
 
   auto method = std::make_shared<MethodDecl>(method_name);
+  if (is_static) method->isStatic = true;
 
   // get method parameters
   parseParameters(method);
@@ -434,18 +488,27 @@ std::shared_ptr<IfSTMT> Parser::parseIfStatement() {
 std::shared_ptr<VarDecl> Parser::parseVarDecl() {
   std::unique_ptr<Token> token = peek();
   if (token == nullptr || token->kind != TOKEN_VAR_DECL)
-    return nullptr;
-  token = next(); // eat 'var' lexeme
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected `var` keyword for a var declaration\n");
+  else
+    token = next();
 
   // read var name
-  token = next();
-  auto var_name = std::get<std::string>(token->value);
+  std::string var_name;
+  token = peek();
+  if (token->kind != TOKEN_IDENTIFIER) {
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected var name\n");
+    var_name = "unknown";
+  }
+  else {
+    var_name = std::get<std::string>(next()->value);
+    // token = next();
+  }
 
   // check if type specifier is present
   if (peek()->kind != TOKEN_COLON)
-    return nullptr; // @TODO error unspecified type
-
-  token = next(); // eat ':'
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected type qualifier for a variable\n");
+  else
+    token = next();
 
   // short constr call
   // var a : Integer(2)
@@ -472,8 +535,68 @@ std::shared_ptr<VarDecl> Parser::parseVarDecl() {
 
   // read type
   token = next();
-  var_type =
-      globalTypeTable->getType(moduleName, std::get<std::string>(token->value));
+  std::string type_name = "Integer";
+  if (!isTypeName(token->kind) && token->kind != TOKEN_IDENTIFIER) {
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected type qualifier for a variable\n");
+    var_type = globalTypeTable->types[moduleName].getType("Integer");
+  }
+  else {
+    var_type = globalTypeTable->types[moduleName].getType(
+      std::get<std::string>(token->value));
+    // token = next();
+  }
+
+  // composite container type
+  if (peek()->kind == TOKEN_LSBRACKET) {
+
+    token = next(); // eat '['
+
+    auto el_type_name = std::get<std::string>(next()->value);
+    auto el_type = globalTypeTable->getType(moduleName, el_type_name);
+
+    // @note <TypeList> is safe, because it has only el_type field
+    auto var_type_array = std::make_shared<TypeList>(el_type);
+    var_type_array->el_type = std::move(el_type);
+
+    // size_t array_size = 0;
+
+    // "," SIZE
+    if (peek()->kind == TOKEN_COMMA) {
+      auto var_type_const_array = std::make_shared<TypeArray>();
+      var_type_const_array->el_type = std::move(el_type);
+      token = next(); // eat ','
+
+      token = peek();
+      // @TODO can size be an expression?
+      token = next();
+      size_t array_size = std::get<int>(token->value);
+
+      var_type_const_array->el_type = std::move(var_type_array->el_type);
+      var_type_const_array->size = array_size;
+
+      // Array type cant be shared, because arrays
+      // have different length
+      // taken from c++ primer
+      // `"The number of elements in an array is part of the array's type."`
+      // so we add a new array type when we encounter a decl of array
+      // indexed by a var name ?
+      globalTypeTable->addType(moduleName, var_name, var_type_const_array);
+
+      var_type = var_type_const_array;
+    } else {
+      // Array type cant be shared, because arrays
+      // have different length
+      // taken from c++ primer
+      // `"The number of elements in an array is part of the array's type."`
+      // so we add a new array type when we encounter a decl of array
+      // indexed by a var name ?
+      globalTypeTable->addType(moduleName, var_name, var_type_array);
+
+      var_type = var_type_array;
+    }
+
+    token = next(); // eat ']'
+  }
 
   // type not found ?
   // @TODO return some cool error
@@ -503,6 +626,24 @@ std::shared_ptr<VarDecl> Parser::parseVarDecl() {
   //                                           var);
 
   return var;
+}
+
+std::shared_ptr<AssignmentSTMT> Parser::parseAssignment(std::shared_ptr<Expression> left) {
+  // auto var_name = std::get<std::string>(token->value);
+  auto var_ref = std::static_pointer_cast<VarRefEXP>(left);
+  std::unique_ptr<Token> token = peek();
+
+  // eat ':='
+  if (peek()->kind != TOKEN_ASSIGNMENT)
+    return nullptr;
+  token = next();
+
+  // read rvalue expression
+  auto initializer = parseExpression();
+
+  auto ass = std::make_shared<AssignmentSTMT>(var_ref, initializer);
+
+  return ass;
 }
 
 std::shared_ptr<AssignmentSTMT> Parser::parseAssignment() {
@@ -709,7 +850,7 @@ std::shared_ptr<ClassDecl> Parser::parseClassDecl() {
   token = next(); // eat 'class'
 
   // read classname
-  if (peek()->kind != TOKEN_IDENTIFIER)
+  if ((peek()->kind != TOKEN_IDENTIFIER) && !isTypeName(peek()->kind))
     return nullptr;
   token = next();
   auto class_name = std::get<std::string>(token->value);
@@ -721,16 +862,26 @@ std::shared_ptr<ClassDecl> Parser::parseClassDecl() {
   globalSymbolTable->enterScope(SCOPE_CLASS, class_name);
 
   // see if there is extends
+  std::shared_ptr<Decl> base_class = nullptr;
   if (peek()->kind == TOKEN_EXTENDS) {
     token = next();
 
     token = next();
-    auto base_class = globalSymbolTable->getGlobalScope()->lookup(class_name);
-    // globalSymbolTable->lookup(
-    //   moduleName, "Global", std::get<std::string>(token->value));
+    auto current_scope = globalSymbolTable->getCurrentScope();
+    auto module_scope = globalSymbolTable->getModuleScope(current_scope);
+    base_class = module_scope->lookup(std::get<std::string>(token->value));
 
-    auto base_class_type = globalTypeTable->getType(
-        moduleName, std::get<std::string>(token->value));
+    // copy declarations of base class to child class
+
+
+    // copy symbol table of base class to child class
+    globalSymbolTable->copySymbolsAndChildren(
+      module_scope, base_class->name, class_name);
+
+    // auto base_class_scope = globalSymbolTable->getModuleScope(current_scope)->
+
+    // auto base_class_type = globalTypeTable->getType(
+    //     moduleName, std::get<std::string>(token->value));
   }
 
   // read body of class
@@ -774,6 +925,11 @@ std::shared_ptr<ClassDecl> Parser::parseClassDecl() {
 
   auto class_stmt = std::make_shared<ClassDecl>(class_name, class_new_type,
                                                 fields, methods, constructors);
+  if (base_class) {
+    auto baseClassDecl = std::static_pointer_cast<ClassDecl>(base_class);
+    class_stmt->base_class = baseClassDecl;
+    class_stmt->type->base_class = baseClassDecl->type;
+  }
   // globalSymbolTable->addToGlobalScope(moduleName, "Global", class_stmt);
   globalSymbolTable->getCurrentScope()->addSymbol(class_name, class_stmt);
 
@@ -786,6 +942,15 @@ std::shared_ptr<EnumDecl> Parser::parseEnumDecl() {
     return nullptr;
   token = next(); // eat 'enum'
 
+  token = peek();
+  if (token->kind != TOKEN_IDENTIFIER) {
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected a name for enum type");
+    while (token->kind != TOKEN_BEND) {
+      token = next();
+    }
+    token = next();
+    return std::make_shared<EnumDecl>("unknown_enum");
+  }
   auto enum_name = std::get<std::string>(token->value);
 
   globalSymbolTable->enterScope(SCOPE_ENUM, enum_name);
@@ -799,8 +964,7 @@ std::shared_ptr<EnumDecl> Parser::parseEnumDecl() {
     enumDecl->addItem(item);
 
     token = peek();
-    if (token == nullptr)
-      return nullptr;
+    if (token->kind == TOKEN_COMMA) token = next();
   }
   token = next(); // eat 'end'
 
@@ -813,25 +977,42 @@ std::shared_ptr<EnumDecl> Parser::parseEnumDecl() {
 std::shared_ptr<FieldDecl> Parser::parseFieldDecl() {
   std::unique_ptr<Token> token = peek();
   if (token == nullptr || token->kind != TOKEN_VAR_DECL)
-    return nullptr;
-  token = next();
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected `var` keyword for field declaration\n");
+  else
+    token = next();
 
   // read lvalue var name
-  token = next();
-  auto var_name = std::get<std::string>(token->value);
-  // auto var_ref = std::make_shared<VarRefEXP>(var_name);
+  token = peek();
+
+  std::string var_name;
+  if (token->kind != TOKEN_IDENTIFIER) {
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected field name\n");
+    var_name = "unknown";
+  }
+  else {
+    var_name = std::get<std::string>(next()->value);
+    // token = next();
+  }
 
   // eat ':'
   if (peek()->kind != TOKEN_COLON)
-    return nullptr;
-  token = next();
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected type qualifier for a field\n");
+  else
+    token = next();
 
   // read type
-  if (!isTypeName(peek()->kind))
-    return nullptr;
   token = next();
-  auto var_type = globalTypeTable->types[moduleName].getType(
+  std::string type_name = "Integer";
+  std::shared_ptr<Type> var_type;
+  if (!isTypeName(token->kind) && token->kind != TOKEN_IDENTIFIER) {
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected type qualifier for a field\n");
+    var_type = globalTypeTable->types[moduleName].getType("Integer");
+  }
+  else {
+    // token = next();
+    var_type = globalTypeTable->types[moduleName].getType(
       std::get<std::string>(token->value));
+  }
 
   auto ass = std::make_shared<FieldDecl>(var_name, var_type);
 
@@ -849,9 +1030,24 @@ std::shared_ptr<WhileSTMT> Parser::parseWhileStatement() {
     return nullptr;
   token = next(); // eat 'while'
 
-  auto condition = parseExpression();
+  token = peek();
+  std::shared_ptr<Expression> condition;
+  if (token->kind != TOKEN_IDENTIFIER && token->kind != TOKEN_INT_NUMBER && token->kind != TOKEN_REAL_NUMBER && token->kind != TOKEN_STRING
+  && token->kind != TOKEN_BOOL_TRUE && token->kind != TOKEN_BOOL_FALSE && token->kind != TOKEN_LSBRACKET && token->kind != TOKEN_LBRACKET) {
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected condition for a while statement\n");
+    condition = std::make_shared<DummyExpression>("unknown_condition");
+  }
+  else
+    condition = parseExpression();
 
-  auto block_body = parseBlock(BLOCK_IN_WHILE);
+  token = peek();
+  std::shared_ptr<Block> block_body;
+  if (token->kind != TOKEN_LOOP) {
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected 'loop' keyword at the start of a while body\n");
+    block_body = nullptr;
+  }
+  else
+    block_body = parseBlock(BLOCK_IN_WHILE);
 
   return std::make_shared<WhileSTMT>(condition, block_body);
 }
@@ -864,15 +1060,22 @@ std::shared_ptr<ForSTMT> Parser::parseForStatement() {
 
   // assignment
   token = peek();
-  if (token->kind != TOKEN_IDENTIFIER)
-    return nullptr;
+  if (token->kind != TOKEN_IDENTIFIER) {
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected an identifier in a for loop\n");
+    while (token->kind != TOKEN_BEND) {
+      token = next();
+    }
+    // token = next();
+    return std::make_shared<ForSTMT>();
+  }
   auto varRef = parseAssignment();
 
   // eat ','
   token = peek();
   if (token->kind != TOKEN_COMMA)
-    return nullptr;
-  token = next();
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected comma after an assignment in a for loop\n");
+  else
+    token = next();
 
   // condition
   auto cond = parseExpression();
@@ -880,8 +1083,9 @@ std::shared_ptr<ForSTMT> Parser::parseForStatement() {
   // eat ','
   token = peek();
   if (token->kind != TOKEN_COMMA)
-    return nullptr;
-  token = next();
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected comma after an expression in a for loop\n");
+  else
+    token = next();
 
   // step after i.e. "i++"
   auto post = parseAssignment();
@@ -896,10 +1100,20 @@ std::shared_ptr<ForSTMT> Parser::parseForStatement() {
 std::shared_ptr<ReturnSTMT> Parser::parseReturnStatement() {
   std::unique_ptr<Token> token = peek();
   if (token == nullptr || token->kind != TOKEN_RETURN)
-    return nullptr;
+    return nullptr; // well, i just undetstood that it cant happen
 
   // eat 'return' lexeme
   token = next();
+
+  token = peek();
+  // @TODO that is super bad
+  if (token->kind != TOKEN_IDENTIFIER && token->kind != TOKEN_INT_NUMBER && token->kind != TOKEN_REAL_NUMBER && token->kind != TOKEN_STRING
+    && token->kind != TOKEN_BOOL_TRUE && token->kind != TOKEN_BOOL_FALSE && token->kind != TOKEN_LSBRACKET && token->kind != TOKEN_LBRACKET
+    && token->kind != TOKEN_SELFREF) {
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected expression after `return`\n");
+    // token = next();
+    return std::make_shared<ReturnSTMT>();
+  }
 
   std::shared_ptr<Expression> expr = parseExpression();
 
@@ -1066,9 +1280,10 @@ Parser::parseBinaryOp(std::shared_ptr<Expression> firstOperand) {
 
       // Look ahead for closing bracket
       if (!peek() || peek()->kind != TOKEN_RBRACKET) {
-        throw std::runtime_error("Expected closing bracket");
+        PARSE_ERR(sm.getLastFilePath().c_str(), "Expected ')' in a binary expression");
+        // throw std::runtime_error("Expected closing bracket");
       }
-      next(); // eat ')'
+      else next(); // eat ')'
 
       expr_stack.push(nested_expr);
       continue;
@@ -1122,6 +1337,18 @@ std::shared_ptr<Expression> Parser::parseExpression() {
 
   std::shared_ptr<Expression> node = parsePrimary();
 
+  // if (peek()->kind == TOKEN_ASSIGNMENT) {
+  //   return parseAssignment(node);
+  // }
+
+  // if (peek()->kind == TOKEN_COLON) {
+  //   PARSE_ERR(sm.getLastFilePath().c_str(), "You probably forgot to add 'var' keyword for a variable declaration\n");
+  //   std::unique_ptr<Token> token = peek();
+  //   while (token->kind != TOKEN_ASSIGNMENT) token = next();
+  //   next();
+  //   return parseExpression();
+  // }
+
   // what it could be
   auto comp = std::make_shared<CompoundEXP>();
 
@@ -1135,14 +1362,43 @@ std::shared_ptr<Expression> Parser::parseExpression() {
   if (token == nullptr)
     return node;
 
-  // enum ref
+  // assignment
+  if (token->kind == TOKEN_ASSIGNMENT) {
+    // @TODO
+  }
+
+  // enum ref or static method call
   if (token->kind == TOKEN_DOUBLE_COLON) {
     token = next();
-    auto node_as_var = std::static_pointer_cast<VarRefEXP>(comp->parts.back());
-    auto enumName = node_as_var->var_name;
-    auto itemName = std::get<std::string>(next()->value);
 
-    comp->addExpression(std::make_shared<EnumRefEXP>(enumName, itemName));
+    token = peek();
+    if (token->kind != TOKEN_IDENTIFIER) {
+      PARSE_ERR(sm.getLastFilePath().c_str(), "Expected an identifier after '::'\n");
+      return std::make_shared<Expression>(E_Dummy);
+    }
+    token = next();
+
+    switch (node->getKind()) {
+    case E_Enum_Decl: case E_Enum_Reference: {
+      auto node_as_var = std::static_pointer_cast<VarRefEXP>(comp->parts.back());
+      auto enumName = node_as_var->var_name;
+
+      auto itemName = std::get<std::string>(token->value);
+
+      comp->addExpression(std::make_shared<EnumRefEXP>(enumName, itemName));
+    } break;
+    case E_Class_Decl: case E_Class_Name: {
+      auto node_as_class_name_expr = std::static_pointer_cast<ClassNameEXP>(comp->parts.back());
+      auto className = node_as_class_name_expr->getName();
+      auto methodName = std::get<std::string>(token->value);
+
+      auto staticMethodCall = std::make_shared<MethodCallEXP>(methodName);
+      staticMethodCall->left = node_as_class_name_expr;
+      parseArguments(staticMethodCall);
+      comp->addExpression(staticMethodCall);
+    } break;
+    default: break;
+    }
   }
 
   if (token->kind == TOKEN_LBRACKET) {
@@ -1178,12 +1434,14 @@ std::shared_ptr<Expression> Parser::parseExpression() {
     token = peek();
     if (token == nullptr)
       return nullptr;
-    // eat closing bracket after func read
-    if (token->kind == TOKEN_RBRACKET)
-      token = next();
 
+    if (token->kind != TOKEN_RBRACKET) {
+      PARSE_ERR(sm.getLastFilePath().c_str(), "Expected `)` after functional call\n");
+    } else {
+      // eat closing bracket after func read
+      token = next();
+    }
     return func_call;
-    // }
   }
 
   // '.' is a delimeter between entitys here
@@ -1242,8 +1500,10 @@ std::shared_ptr<Expression> Parser::parseExpression() {
       token = peek();
       if (token == nullptr)
         return method_call;
-      // eat closing bracket after method read
-      if (token->kind == TOKEN_RBRACKET) {
+      if (token->kind != TOKEN_RBRACKET) {
+        PARSE_ERR(sm.getLastFilePath().c_str(), "Expected `)` after method call\n");
+      } else {
+        // eat closing bracket after func read
         token = next();
       }
     }
@@ -1321,15 +1581,35 @@ std::shared_ptr<ParameterDecl> Parser::parseParameterDecl() {
 
   // read first parameter
   token = peek();
-  if (token->kind != TOKEN_IDENTIFIER)
-    return nullptr;
+
+  if (token->kind == TOKEN_VAR_DECL) {
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Unnecessary 'var' keyword in parameter declaration\n");
+    token = next();
+    token = peek();
+  }
+
+  if (token->kind != TOKEN_IDENTIFIER) {
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected an identifier in a parameter declaration\n");
+    return nullptr; // @TODO
+  }
   token = next();
   auto param_name = std::get<std::string>(token->value);
 
   // read ':'
   token = peek();
-  if (token->kind != TOKEN_COLON)
-    return nullptr;
+  if (token->kind != TOKEN_COLON) {
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected a type qualifier for a variable, ignoring other parameters\n");
+    auto paramDummy = std::make_shared<ParameterDecl>(
+      param_name, globalTypeTable->types[moduleName].getType("Integer"));
+
+    globalSymbolTable->getCurrentScope()->addSymbol(param_name, paramDummy);
+
+    while (token->kind != TOKEN_RBRACKET && token->kind != TOKEN_COMMA) {
+      token = next();
+    }
+
+    return paramDummy;
+  }
   token = next();
 
   // read type
@@ -1343,10 +1623,6 @@ std::shared_ptr<ParameterDecl> Parser::parseParameterDecl() {
   auto paramDecl = std::make_shared<ParameterDecl>(
       param_name, globalTypeTable->types[moduleName].getType(param_type));
 
-  // globalSymbolTable->addToGlobalScope(moduleName,
-  // lastDeclaredScopeParent.top(),
-  //                                     paramDecl);
-
   globalSymbolTable->getCurrentScope()->addSymbol(param_name, paramDecl);
 
   return paramDecl;
@@ -1354,8 +1630,15 @@ std::shared_ptr<ParameterDecl> Parser::parseParameterDecl() {
 
 void Parser::parseParameters(const std::shared_ptr<FuncDecl> &funcDecl) {
   std::unique_ptr<Token> token = peek();
-  if (token == nullptr || token->kind != TOKEN_LBRACKET)
+  if (token == nullptr || token->kind != TOKEN_LBRACKET) {
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected '(' following a function declaration\n");
+
+    while (token->kind != TOKEN_BBEGIN) {
+      token = next();
+    }
+
     return;
+  }
   token = next();
 
   if (peek()->kind == TOKEN_RBRACKET) {
@@ -1369,6 +1652,13 @@ void Parser::parseParameters(const std::shared_ptr<FuncDecl> &funcDecl) {
   funcDecl->args.push_back(paramDecl);
 
   token = peek();
+
+  if (token->kind == TOKEN_IDENTIFIER) {
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected a comma between parameters declarations\n");
+    tokenPos--;
+    token = std::make_unique<Token>(TOKEN_COMMA, peek(0)->line, peek(0)->column);
+  }
+
   while (token->kind == TOKEN_COMMA) {
     token = next();
 
@@ -1381,9 +1671,10 @@ void Parser::parseParameters(const std::shared_ptr<FuncDecl> &funcDecl) {
   }
 
   token = peek();
-  if (token->kind != TOKEN_RBRACKET)
-    return;
-  token = next();
+  if (token == nullptr || token->kind != TOKEN_RBRACKET)
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected ')' following a function declaration\n");
+  else
+    token = next();
 
   if (funcDecl->args[0] == nullptr) {
     funcDecl->isVoided = true;
@@ -1393,8 +1684,15 @@ void Parser::parseParameters(const std::shared_ptr<FuncDecl> &funcDecl) {
 
 void Parser::parseParameters(const std::shared_ptr<MethodDecl> &funcDecl) {
   std::unique_ptr<Token> token = peek();
-  if (token == nullptr || token->kind != TOKEN_LBRACKET)
+  if (token == nullptr || token->kind != TOKEN_LBRACKET) {
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected '(' following a method declaration\n");
+
+    while (token->kind != TOKEN_BBEGIN) {
+      token = next();
+    }
+
     return;
+  }
   token = next();
 
   if (peek()->kind == TOKEN_RBRACKET) {
@@ -1406,6 +1704,14 @@ void Parser::parseParameters(const std::shared_ptr<MethodDecl> &funcDecl) {
   auto paramDecl = parseParameterDecl();
 
   funcDecl->args.push_back(paramDecl);
+
+  token = peek();
+
+  if (token->kind == TOKEN_IDENTIFIER) {
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected a comma between parameters declarations\n");
+    tokenPos--;
+    token = std::make_unique<Token>(TOKEN_COMMA, peek(0)->line, peek(0)->column);
+  }
 
   while (token->kind == TOKEN_COMMA) {
     token = next();
@@ -1419,9 +1725,10 @@ void Parser::parseParameters(const std::shared_ptr<MethodDecl> &funcDecl) {
   }
 
   token = peek();
-  if (token->kind != TOKEN_RBRACKET)
-    return;
-  token = next();
+  if (token == nullptr || token->kind != TOKEN_RBRACKET)
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected ')' following a method declaration\n");
+  else
+    token = next();
 
   if (funcDecl->args[0] == nullptr) {
     funcDecl->isVoided = true;
@@ -1431,8 +1738,15 @@ void Parser::parseParameters(const std::shared_ptr<MethodDecl> &funcDecl) {
 
 void Parser::parseParameters(const std::shared_ptr<ConstrDecl> &constrDecl) {
   std::unique_ptr<Token> token = peek();
-  if (token == nullptr || token->kind != TOKEN_LBRACKET)
+  if (token == nullptr || token->kind != TOKEN_LBRACKET) {
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected '(' following a constructor declaration\n");
+
+    while (token->kind != TOKEN_BBEGIN) {
+      token = next();
+    }
+
     return;
+  }
   token = next();
 
   if (peek()->kind == TOKEN_RBRACKET) {
@@ -1444,6 +1758,14 @@ void Parser::parseParameters(const std::shared_ptr<ConstrDecl> &constrDecl) {
   auto paramDecl = parseParameterDecl();
 
   constrDecl->args.push_back(paramDecl);
+
+  token = peek();
+
+  if (token->kind == TOKEN_IDENTIFIER) {
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected a comma between parameters declarations\n");
+    tokenPos--;
+    token = std::make_unique<Token>(TOKEN_COMMA, peek(0)->line, peek(0)->column);
+  }
 
   while (token->kind == TOKEN_COMMA) {
     token = next();
@@ -1458,8 +1780,9 @@ void Parser::parseParameters(const std::shared_ptr<ConstrDecl> &constrDecl) {
 
   token = peek();
   if (token == nullptr || token->kind != TOKEN_RBRACKET)
-    return;
-  token = next();
+    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected ')' following a constructor declaration\n");
+  else
+    token = next();
 
   if (constrDecl->args[0] == nullptr) {
     constrDecl->isDefault = true;
@@ -1535,7 +1858,7 @@ void Parser::parseArguments(
 void Parser::parseArguments(const std::shared_ptr<FuncCallEXP> &function_name) {
   if (peek()->kind == TOKEN_RBRACKET) {
     function_name->isVoided = true;
-    next();
+    // next();
     return;
   }
 
@@ -1545,8 +1868,8 @@ void Parser::parseArguments(const std::shared_ptr<FuncCallEXP> &function_name) {
   function_name->arguments.push_back(node);
 
   std::unique_ptr<Token> token = peek();
-  if (token == nullptr)
-    return;
+  // if (token == nullptr)
+  //   return;
 
   // arg, arg, arg
   // ',' is a delimiter
@@ -1596,24 +1919,53 @@ std::shared_ptr<Expression> Parser::parsePrimary() {
     next(); // eat ')'
     return expr;
   }
+  // array literal
+  // "[" Expression "," Expression "," ... "]"
+  case TOKEN_LSBRACKET: {
+    // token = next(); // eat '['
+
+    std::vector<std::shared_ptr<Expression>> elements;
+    elements.push_back(parseExpression());
+
+    while (peek()->kind == TOKEN_COMMA) {
+      token = next(); // eat ','
+      elements.push_back(parseExpression());
+    }
+
+    token = next(); // eat ']'
+
+    return std::make_shared<ArrayLiteralExpr>(elements);
+  }
   case TOKEN_IDENTIFIER:
   case TOKEN_PRINT: {
     auto var = globalSymbolTable->getCurrentScope()->lookup(
         std::get<std::string>(token->value));
     if (!var) {
-      throw std::runtime_error("Undefined variable: " +
-                               std::get<std::string>(token->value));
+      PARSE_ERR(sm.getLastFilePath().c_str(), "Variable not found in scope\n");
+      return std::make_shared<Expression>(E_Dummy);
+      // throw std::runtime_error("Undefined variable: " +
+      //                          std::get<std::string>(token->value));
     }
     switch (var->getKind()) {
-    case E_Field_Decl: {
-      // we return it as a var to construct
-      // a legit FieldRefEXP on parseExpression
-      // return
-      // std::make_shared<FieldRefEXP>(std::get<std::string>(token->value), );
-      return std::make_shared<VarRefEXP>(std::get<std::string>(token->value));
-    }
+    // case E_Field_Decl: {
+    //   // we return it as a var to construct
+    //   // a legit FieldRefEXP on parseExpression
+    //   // return
+    //   // std::make_shared<FieldRefEXP>(std::get<std::string>(token->value), );
+    //   return std::make_shared<VarRefEXP>(std::get<std::string>(token->value));
+    // }
     case E_Variable_Decl:
-    case E_Parameter_Decl: {
+    case E_Parameter_Decl:
+    case E_Field_Decl: {
+      if (peek()->kind == TOKEN_LSBRACKET) {
+        auto arrayRef = std::make_shared<VarRefEXP>(std::get<std::string>(token->value));
+        // index op
+        token = next(); // eat '['
+        auto indexedBy = parseExpression(); // @TODO ummm... sus
+        token = next(); // eat ']'
+
+        return std::make_shared<ElementRefEXP>(indexedBy, arrayRef);
+      }
       return std::make_shared<VarRefEXP>(std::get<std::string>(token->value));
     }
     case E_Class_Decl: {
@@ -1625,6 +1977,11 @@ std::shared_ptr<Expression> Parser::parsePrimary() {
     }
     case E_Method_Decl: {
       return std::make_shared<MethodCallEXP>(
+          std::get<std::string>(token->value));
+    }
+    case E_Enum_Decl: {
+      // @TODO
+      return std::make_shared<EnumRefEXP>(
           std::get<std::string>(token->value));
     }
     default:
@@ -1674,11 +2031,14 @@ Parser::parsePrimary(const std::string &classNameToSearchIn) {
   }
   case TOKEN_IDENTIFIER:
   case TOKEN_PRINT: {
-    auto var = globalSymbolTable->getGlobalScope()->lookupInClass(
-        std::get<std::string>(token->value), classNameToSearchIn);
+                                                // getGlobalScope()
+    auto currScope = globalSymbolTable->getCurrentScope();
+    auto var_name = std::get<std::string>(token->value);
+    auto var = globalSymbolTable->getModuleScope(currScope)->lookupInClass(
+        var_name, classNameToSearchIn);
     if (!var) {
-      throw std::runtime_error("Undefined variable: " +
-                               std::get<std::string>(token->value));
+      PARSE_ERR(sm.getLastFilePath().c_str(), "Variable not found in scope\n");
+      return std::make_shared<DummyExpression>(var_name);
     }
     switch (var->getKind()) {
     case E_Field_Decl: {

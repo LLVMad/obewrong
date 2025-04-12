@@ -1,0 +1,13 @@
+module std.types
+
+class Integer is 
+  var value : Integer 
+  
+  method Plus(x : Integer) is 
+    return this.value + x
+  end
+
+  method Minus(x : Integer) is 
+    return this.value - x 
+  end
+end

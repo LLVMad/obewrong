@@ -1,0 +1,7 @@
+module std.io
+
+class IO is 
+  method static print_int(x : Integer) is 
+    printl("%d", x)
+  end 
+end

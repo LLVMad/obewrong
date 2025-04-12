@@ -71,9 +71,10 @@ private:
   /**
    * Check if current token is of type that we need
    * @param expectedToken token kind to expect on current place
+   * @param msg
    * @return true if current tokens kind is == to expected
    */
-  bool expect(TokenKind expectedToken);
+  std::unique_ptr<Token> expect(TokenKind expectedToken, std::string msg);
 
   int tokenPos;
 
@@ -116,6 +117,7 @@ private:
    */
   std::shared_ptr<ForSTMT> parseForStatement();
 
+  std::shared_ptr<AssignmentSTMT> parseAssignment(std::shared_ptr<Expression> left);;
   std::shared_ptr<AssignmentSTMT> parseAssignment();
 
   /**
@@ -207,5 +209,23 @@ private:
 
   SourceManager &sm;
 };
+
+//========== FOR ERROR RECOVERY =========
+// @TODO
+// #define DEFAULT_SYNC_LIST
+//   { TOKEN_CLASS, TOKEN_METHOD, TOKEN_FUNC, TOKEN_ENUM }
+
+/**
+ * In panic mode we continuously search
+ * for a sync token to start fresh
+ *
+ * element of map is:
+ * <EXPECTED_TOKEN_THAT_WASNT_FOUND> : <LIST_OF_TOKENS_TO_SEARCH_FOR_NEW_START>
+ */
+// const std::map<TokenKind, std::vector<TokenKind>> SYNC_TOKENS = {
+//   {TOKEN_IDENTIFIER, DEFAULT_SYNC_LIST},
+//   {TOKEN_CLASS, DEFAULT_SYNC_LIST},
+//   {}
+// };
 
 #endif

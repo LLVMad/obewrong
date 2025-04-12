@@ -100,6 +100,7 @@ public:
     // builtinTypes.addType("Bool", std::make_shared<TypeBool>());
     builtinTypes.addType("Boolean", std::make_shared<TypeBool>());
     builtinTypes.addType("String", std::make_shared<TypeString>());
+    builtinTypes.addType("Array", std::make_shared<TypeArray>());
   }
 
   std::unordered_map<std::string, TypeTable> types;

@@ -156,6 +156,7 @@ public:
   bool isVoided; // no parameters
   bool isVoid;
   bool isBuiltin;
+  bool isStatic;
   std::shared_ptr<Block> body;
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
@@ -232,14 +233,14 @@ public:
  */
 class ClassDecl : public Decl {
 public:
-  ClassDecl(const std::string &name, std::shared_ptr<TypeClass> type,
-            std::vector<std::shared_ptr<ClassDecl>> base_class,
-            std::vector<std::shared_ptr<FieldDecl>> fields,
-            std::vector<std::shared_ptr<MethodDecl>> methods,
-            std::vector<std::shared_ptr<ConstrDecl>> constructors)
-      : Decl(E_Class_Decl, name), type(std::move(type)),
-        base_classes(std::move(base_class)), fields(std::move(fields)),
-        methods(std::move(methods)), constructors(std::move(constructors)) {}
+  // ClassDecl(const std::string &name, std::shared_ptr<TypeClass> type,
+  //           std::vector<std::shared_ptr<ClassDecl>> base_class,
+  //           std::vector<std::shared_ptr<FieldDecl>> fields,
+  //           std::vector<std::shared_ptr<MethodDecl>> methods,
+  //           std::vector<std::shared_ptr<ConstrDecl>> constructors)
+  //     : Decl(E_Class_Decl, name), type(std::move(type)),
+  //       base_classes(std::move(base_class)), fields(std::move(fields)),
+  //       methods(std::move(methods)), constructors(std::move(constructors)) {}
 
   ClassDecl(const std::string &name, std::shared_ptr<TypeClass> type,
             std::vector<std::shared_ptr<FieldDecl>> fields,
@@ -250,7 +251,7 @@ public:
         constructors(std::move(constructors)) {}
 
   std::shared_ptr<TypeClass> type;
-  std::vector<std::shared_ptr<ClassDecl>> base_classes;
+  std::shared_ptr<ClassDecl> base_class;
   std::vector<std::shared_ptr<FieldDecl>> fields;
   std::vector<std::shared_ptr<MethodDecl>> methods;
   std::vector<std::shared_ptr<ConstrDecl>> constructors;
@@ -262,6 +263,8 @@ public:
   ~ClassDecl() override = default;
 };
 
+// @TODO maybe get rid of Array and List decls
+// -> VarDecl can be an array decl, so...
 class ArrayDecl : public Decl {
 public:
   ArrayDecl(const std::string &name, std::shared_ptr<TypeArray> type,
@@ -277,6 +280,8 @@ public:
   // var a : Array[Integer] := [1, 2, 3]
   //                           ^^^^^^^^^
   std::shared_ptr<ArrayLiteralExpr> initializer;
+
+  size_t size;
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 

@@ -1,5 +1,6 @@
-#ifndef OBW_ERROR_H
-#define OBW_ERROR_H
+#ifndef OBW_PARSEERROR_H
+#define OBW_PARSEERROR_H
+
 #include "frontend/lexer/Lexer.h"
 #include <exception>
 #include <string>

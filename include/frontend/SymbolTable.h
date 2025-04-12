@@ -33,6 +33,10 @@ public:
     return true;
   }
 
+  void addChild(std::shared_ptr<Scope> child) {
+    children.push_back(std::move(child));
+  }
+
   std::shared_ptr<Decl> lookup(const std::string &name) const {
     if (auto it = symbols.find(name); it != symbols.end()) {
       return it->second;
@@ -62,7 +66,7 @@ public:
         return it->second;
       }
     }
-
+    //
     for (const auto &child : children) {
       if (child->kind == SCOPE_CLASS && child->name == className) {
         auto result = child->lookup(name);
@@ -71,20 +75,13 @@ public:
         return nullptr;
       }
     }
-    return nullptr;
-    // Recursively check parent scopes
-    // if (auto parent_ptr = parent.lock()) {
-    //   for (const auto &child : parent_ptr->children) {
-    //     if (child->kind == SCOPE_CLASS && child->name == className) {
-    //       auto decl = child->lookupInClass(child->name, className);
-    //       if (decl) return decl;
-    //     }
-    //   }
-    //   return parent_ptr->lookup(name);
+    // for (const auto &sym : symbols) {
+    //   if (sym.second->getKind() == E_Class_Decl)
     // }
-    //
-    // return nullptr;
+    return nullptr;
   }
+
+  // std::shared_ptr<Decl>
 
   std::shared_ptr<Scope> createChild(ScopeKind kind, std::string name) {
     auto child = std::make_shared<Scope>(kind, name, shared_from_this());
@@ -94,8 +91,9 @@ public:
 
   ScopeKind getKind() const { return kind; }
   const std::string &getName() const { return name; }
-  const auto &getChildren() const { return children; }
+  auto& getChildren() const { return children; }
   std::weak_ptr<Scope> getParent() const { return parent; }
+  std::unordered_map<std::string, std::shared_ptr<Decl>> &getSymbols() { return symbols; }
 
   void setName(const std::string &name) { this->name = name; }
   void appendToName(const std::string &name) { this->name += name; }
@@ -121,6 +119,65 @@ public:
     return current_scope;
   }
 
+  // copyying from module to module
+  // => globalScope based
+  void copySymbolFromModulesToCurrent(const std::string &from, const std::string &to) {
+
+    std::unordered_map<std::string, std::shared_ptr<Decl>> symbolsToCopy;
+    std::vector<std::shared_ptr<Scope>> scopeToCopy;
+    for (auto &scope : global_scope->getChildren()) {
+      if (scope->getName() == from) {
+        symbolsToCopy = scope->getSymbols();
+        scopeToCopy = scope->getChildren();
+        break;
+      }
+    }
+
+    for (auto &scope : global_scope->getChildren()) {
+      if (scope->getName() == to) {
+        for (auto &decl : symbolsToCopy) {
+          scope->addSymbol(decl.first, decl.second);
+        }
+        for (auto &scopeCopy : scopeToCopy) {
+          scope->addChild(scopeCopy);
+        }
+
+        return;
+      }
+    }
+
+    throw std::runtime_error("SymbolTable::copySymbolFromModulesToCurrent: No such symbol");
+  }
+
+  // copying from scopd to scope
+  // sc -> scope in which exists FROM and TO scopes
+  void copySymbolsAndChildren(std::shared_ptr<Scope> &sc, const std::string &from, const std::string &to) {
+    std::unordered_map<std::string, std::shared_ptr<Decl>> symbolsToCopy;
+    std::vector<std::shared_ptr<Scope>> scopeToCopy;
+    for (auto &scope : sc->getChildren()) {
+      if (scope->getName() == from) {
+        symbolsToCopy = scope->getSymbols();
+        scopeToCopy = scope->getChildren();
+        break;
+      }
+    }
+
+    for (auto &scope : sc->getChildren()) {
+      if (scope->getName() == to) {
+        for (auto &decl : symbolsToCopy) {
+          scope->addSymbol(decl.first, decl.second);
+        }
+        for (auto &scopeCopy : scopeToCopy) {
+          scope->addChild(scopeCopy);
+        }
+
+        return;
+      }
+    }
+
+    throw std::runtime_error("SymbolTable::copySymbolsAndChildren: No such symbol");
+  }
+
   void exitScope() {
     if (auto parent = current_scope->getParent().lock()) {
       current_scope = parent;
@@ -128,6 +185,16 @@ public:
   }
 
   void initBuiltinFunctions(const std::shared_ptr<GlobalTypeTable> &typeTable);
+
+  // return scope of type SCOPE_MODULE for
+  // a nested scope inside that module
+  std::shared_ptr<Scope> getModuleScope(std::shared_ptr<Scope> sc) {
+    if (auto parent = sc->getParent().lock()) {
+      if (parent->getKind() == SCOPE_MODULE) return parent;
+      if (parent->getName() == "Global") return nullptr;
+      return getModuleScope(parent);
+    }
+  }
 
   std::shared_ptr<Scope> getCurrentScope() const { return current_scope; }
   std::shared_ptr<Scope> getGlobalScope() const { return global_scope; }

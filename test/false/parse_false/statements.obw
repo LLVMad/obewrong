@@ -1,0 +1,60 @@
+module statmenterror
+
+class cl is 
+  var a : Integer
+end
+
+func main() is 
+  for 2, a < 1, a := a + 1 is
+    a := a + 1
+  end
+
+  for a := 0 a < 1 a := a + 1 is
+    a := a + 1
+  end
+
+  while loop
+    b := b + 1
+  end
+
+  while a < 1 then
+    a := a + 1
+  end
+
+  while a < 1
+    a := a + 1
+  end
+
+  switch i
+  case 1 then
+    printl(1)
+  end
+  case 2 then
+    printl(2)
+  end
+  default then
+    printl("unknown")
+  end
+
+  switch is
+  case 1 then
+    printl(1)
+  end
+  case 2 then
+    printl(2)
+  end
+  default then
+    printl("unknown")
+  end
+
+  switch i is
+  case then
+    printl(1)
+  end
+  case 2 then
+    printl(2)
+  end
+  default then
+    printl("unknown")
+  end
+end

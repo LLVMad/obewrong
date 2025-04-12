@@ -2,6 +2,7 @@
 #define OBW_EINFO_H
 
 #include "../TypeTable.h"
+#include "frontend/lexer/Lexer.h"
 
 #include <memory>
 #include <ostream>
@@ -77,6 +78,10 @@ enum Ekind {
   E_Binary_Operator,
   E_Unary_Operator,
   E_Enum_Reference,
+  E_Element_Reference,
+  E_Dummy,
+  E_For_Loop,
+  E_Constructor_Call,
 };
 
 /**
@@ -142,6 +147,26 @@ public:
   ~Block() override = default;
 };
 
+/**
+ * This node is pushed to AST
+ * in panic mode while doing
+ * error recovery
+ */
+class EDummy : public Entity {
+public:
+  EDummy()
+    : Entity(E_Dummy) {}
+
+  std::shared_ptr<Type> assumedType;
+  TokenKind expectedKind;
+  std::string valueIfPresent;
+  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+    (void)typeTable;
+    return nullptr;
+  }
+
+  bool validate() override { return false; }
+};
 /**
  * @TODO construct classes for each entitys
  * i.e. `class ClassDeclaration : Entity`

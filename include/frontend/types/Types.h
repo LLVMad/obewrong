@@ -215,7 +215,7 @@ class TypeClass : public Type {
 public:
   //  std::string name;
   // @TODO add base class info
-  std::vector<std::shared_ptr<TypeClass>> base_class;
+  std::shared_ptr<TypeClass> base_class;
   std::vector<std::shared_ptr<Type>> fields_types;
   std::vector<std::shared_ptr<TypeFunc>> methods_types;
 
@@ -226,7 +226,7 @@ public:
         methods_types(std::move((methods_types))) {}
 
   void addBaseClass(const std::shared_ptr<TypeClass> &base) {
-    base_class.push_back(base);
+    base_class = base;
   }
 
   ~TypeClass() override = default;

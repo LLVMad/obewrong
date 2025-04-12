@@ -20,6 +20,14 @@ public:
   ~Expression() override;
 };
 
+class DummyExpression : public Expression {
+public:
+  explicit DummyExpression(const std::string &name)
+    : Expression(E_Dummy), name(name) {};
+
+  std::string name;
+};
+
 /**
  * A literal expression is an expression consisting
  * of a single token, rather than a sequence of tokens,
@@ -151,9 +159,29 @@ public:
   bool validate() override;
 };
 
+// class ArrayRefEXP : public Expression {
+// public:
+//
+// };
+
+class ElementRefEXP : public Expression {
+public:
+  ElementRefEXP(std::shared_ptr<Expression> index, std::shared_ptr<VarRefEXP> arr)
+    : Expression(E_Element_Reference), arr(arr), index(index) {};
+
+  ElementRefEXP()
+    : Expression(E_Element_Reference), arr(nullptr), index(nullptr) {};
+
+  std::shared_ptr<VarRefEXP> arr;
+  std::shared_ptr<Expression> index;
+};
+
 /**
  * Represents object creation by invoking a constructor
- *
+ *  AssignmentSTMT(std::shared_ptr<FieldRefEXP> lhs,
+                 std::shared_ptr<Expression> rhs)
+      : Statement(E_Assignment), variable(nullptr), field(std::move(lhs)),
+        expression(std::move(rhs)) {}
  * var adder : Adder
  * adder.add(2, 2)
  *
@@ -235,6 +263,8 @@ public:
   ClassNameEXP(std::string name)
       : Expression(E_Class_Name), _name(std::move(name)) {};
 
+  std::string getName() const { return _name; };
+
   // В классе ClassNameEXP
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
@@ -259,12 +289,12 @@ class ConstructorCallEXP : public Expression {
 public:
   ConstructorCallEXP(std::shared_ptr<ClassNameEXP> left,
                      std::vector<std::shared_ptr<Expression>> arguments)
-      : Expression(E_Function), left(std::move(left)),
+      : Expression(E_Constructor_Call), left(std::move(left)),
         arguments(std::move(arguments)), isDefault(false) {};
 
   // Default constr
   ConstructorCallEXP(std::shared_ptr<ClassNameEXP> left)
-      : Expression(E_Function), left(std::move(left)), arguments(),
+      : Expression(E_Constructor_Call), left(std::move(left)), arguments(),
         isDefault(true) {};
 
   // children should be
@@ -420,6 +450,9 @@ class EnumRefEXP : public Expression {
 public:
   EnumRefEXP(const std::string &enumName, const std::string &itemName)
       : Expression(E_Enum_Reference), enumName(enumName), itemName(itemName) {};
+
+  EnumRefEXP(const std::string &enumName)
+    : Expression(E_Enum_Reference), enumName(enumName) {};
   std::string enumName;
   std::string itemName;
 };

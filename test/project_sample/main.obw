@@ -1,0 +1,10 @@
+module main 
+
+import std.types
+import std.io 
+
+func main() is 
+  var a : Integer(2)
+  var b : Integer := a.Plus(2)
+  IO::print_int(b)
+end

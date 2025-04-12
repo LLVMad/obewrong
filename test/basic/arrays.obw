@@ -1,0 +1,14 @@
+module arrays 
+
+func main() is 
+  // no initializer
+  var arr : Array[Integer, 5]
+  arr := [1, 2, 3, 4, 5]
+  
+  // with initializer
+  var arr2 : Array[Integer] := [1, 2, 0, 0]
+  
+  // element manipulation
+  arr2[0] := 5 
+  var el : Integer := arr2[0]
+end
