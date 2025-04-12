@@ -467,7 +467,8 @@ std::vector<std::unique_ptr<Token>> Lexer::lex() {
   std::unique_ptr<Token> token = next();
   while (token->kind != TOKEN_EOF) {
 #ifdef DEBUG
-    LOG("next token is %s | %lu:%lu\n", getTokenTypeName(token->kind), curr_line, curr_column);
+    LOG("next token is %s | %lu:%lu\n", getTokenTypeName(token->kind),
+        curr_line, curr_column);
 #endif
     tokens.push_back(std::move(token));
     token = next();

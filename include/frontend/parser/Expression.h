@@ -23,7 +23,7 @@ public:
 class DummyExpression : public Expression {
 public:
   explicit DummyExpression(const std::string &name)
-    : Expression(E_Dummy), name(name) {};
+      : Expression(E_Dummy), name(name) {};
 
   std::string name;
 };
@@ -166,11 +166,12 @@ public:
 
 class ElementRefEXP : public Expression {
 public:
-  ElementRefEXP(std::shared_ptr<Expression> index, std::shared_ptr<VarRefEXP> arr)
-    : Expression(E_Element_Reference), arr(arr), index(index) {};
+  ElementRefEXP(std::shared_ptr<Expression> index,
+                std::shared_ptr<VarRefEXP> arr)
+      : Expression(E_Element_Reference), arr(arr), index(index) {};
 
   ElementRefEXP()
-    : Expression(E_Element_Reference), arr(nullptr), index(nullptr) {};
+      : Expression(E_Element_Reference), arr(nullptr), index(nullptr) {};
 
   std::shared_ptr<VarRefEXP> arr;
   std::shared_ptr<Expression> index;
@@ -258,7 +259,7 @@ public:
 class ClassNameEXP : public Expression {
 public:
   ClassNameEXP(std::string _name)
-      : Expression(E_Class_Name), name(std::move(_name)){};
+      : Expression(E_Class_Name), name(std::move(_name)) {};
 
   // В классе ClassNameEXP
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
@@ -284,7 +285,7 @@ public:
   ConstructorCallEXP(std::shared_ptr<ClassNameEXP> left,
                      std::vector<std::shared_ptr<Expression>> arguments)
       : Expression(E_Constructor_Call), left(std::move(left)),
-        arguments(std::move(arguments)), isDefault(false){};
+        arguments(std::move(arguments)), isDefault(false) {};
 
   // Default constr
   ConstructorCallEXP(std::shared_ptr<ClassNameEXP> left)
@@ -446,7 +447,7 @@ public:
       : Expression(E_Enum_Reference), enumName(enumName), itemName(itemName) {};
 
   EnumRefEXP(const std::string &enumName)
-    : Expression(E_Enum_Reference), enumName(enumName) {};
+      : Expression(E_Enum_Reference), enumName(enumName) {};
   std::string enumName;
   std::string itemName;
 };

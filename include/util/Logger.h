@@ -17,13 +17,12 @@
 
 #define WARN(fmt, ...)                                                         \
   do {                                                                         \
-    fprintf(stderr, "[WARNING] " fmt, __VA_ARGS__);                               \
+    fprintf(stderr, "[WARNING] " fmt, __VA_ARGS__);                            \
   } while (0)
 
 #define ERR(fmt, ...)                                                          \
   do {                                                                         \
-    fprintf(stderr, "[ERROR] " fmt, __VA_ARGS__);                                 \
+    fprintf(stderr, "[ERROR] " fmt, __VA_ARGS__);                              \
   } while (0)
-
 
 #endif

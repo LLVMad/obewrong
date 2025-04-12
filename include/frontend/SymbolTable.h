@@ -91,9 +91,11 @@ public:
 
   ScopeKind getKind() const { return kind; }
   const std::string &getName() const { return name; }
-  auto& getChildren() const { return children; }
+  auto &getChildren() const { return children; }
   std::weak_ptr<Scope> getParent() const { return parent; }
-  std::unordered_map<std::string, std::shared_ptr<Decl>> &getSymbols() { return symbols; }
+  std::unordered_map<std::string, std::shared_ptr<Decl>> &getSymbols() {
+    return symbols;
+  }
 
   void setName(const std::string &name) { this->name = name; }
   void appendToName(const std::string &name) { this->name += name; }
@@ -121,7 +123,8 @@ public:
 
   // copyying from module to module
   // => globalScope based
-  void copySymbolFromModulesToCurrent(const std::string &from, const std::string &to) {
+  void copySymbolFromModulesToCurrent(const std::string &from,
+                                      const std::string &to) {
 
     std::unordered_map<std::string, std::shared_ptr<Decl>> symbolsToCopy;
     std::vector<std::shared_ptr<Scope>> scopeToCopy;
@@ -146,12 +149,14 @@ public:
       }
     }
 
-    throw std::runtime_error("SymbolTable::copySymbolFromModulesToCurrent: No such symbol");
+    throw std::runtime_error(
+        "SymbolTable::copySymbolFromModulesToCurrent: No such symbol");
   }
 
   // copying from scopd to scope
   // sc -> scope in which exists FROM and TO scopes
-  void copySymbolsAndChildren(std::shared_ptr<Scope> &sc, const std::string &from, const std::string &to) {
+  void copySymbolsAndChildren(std::shared_ptr<Scope> &sc,
+                              const std::string &from, const std::string &to) {
     std::unordered_map<std::string, std::shared_ptr<Decl>> symbolsToCopy;
     std::vector<std::shared_ptr<Scope>> scopeToCopy;
     for (auto &scope : sc->getChildren()) {
@@ -175,7 +180,8 @@ public:
       }
     }
 
-    throw std::runtime_error("SymbolTable::copySymbolsAndChildren: No such symbol");
+    throw std::runtime_error(
+        "SymbolTable::copySymbolsAndChildren: No such symbol");
   }
 
   void exitScope() {
@@ -190,8 +196,10 @@ public:
   // a nested scope inside that module
   std::shared_ptr<Scope> getModuleScope(std::shared_ptr<Scope> sc) {
     if (auto parent = sc->getParent().lock()) {
-      if (parent->getKind() == SCOPE_MODULE) return parent;
-      if (parent->getName() == "Global") return nullptr;
+      if (parent->getKind() == SCOPE_MODULE)
+        return parent;
+      if (parent->getName() == "Global")
+        return nullptr;
       return getModuleScope(parent);
     }
   }

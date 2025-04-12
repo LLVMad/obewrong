@@ -132,7 +132,7 @@ enum BlockKind {
 class Block : public Entity {
 public:
   Block(std::vector<std::shared_ptr<Entity>> parts, BlockKind kind)
-      : Entity(E_Block), parts(std::move(parts)), kind(kind){};
+      : Entity(E_Block), parts(std::move(parts)), kind(kind) {};
 
   std::vector<std::shared_ptr<Entity>> parts;
   BlockKind kind;
@@ -154,8 +154,7 @@ public:
  */
 class EDummy : public Entity {
 public:
-  EDummy()
-    : Entity(E_Dummy) {}
+  EDummy() : Entity(E_Dummy) {}
 
   std::shared_ptr<Type> assumedType;
   TokenKind expectedKind;

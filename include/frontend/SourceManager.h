@@ -56,9 +56,7 @@ public:
 
   std::string getLastFileName() const;
 
-  std::string getLastFilePath() const {
-    return files.back().fullPath;
-  }
+  std::string getLastFilePath() const { return files.back().fullPath; }
 
 private:
   // include dirs

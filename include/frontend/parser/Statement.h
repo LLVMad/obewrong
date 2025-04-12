@@ -40,8 +40,8 @@ public:
 
   AssignmentSTMT(std::shared_ptr<ElementRefEXP> lhs,
                  std::shared_ptr<Expression> rhs)
-      : Statement(E_Assignment), variable(nullptr), field(nullptr), element(std::move(lhs)),
-        expression(std::move(rhs)) {}
+      : Statement(E_Assignment), variable(nullptr), field(nullptr),
+        element(std::move(lhs)), expression(std::move(rhs)) {}
 
   // children are
   std::shared_ptr<VarRefEXP> variable;
@@ -69,7 +69,8 @@ public:
       : Statement(E_Return_Statement), expr(std::move(expr)) {}
 
   [[deprecated("Use for error recovery only")]]
-  ReturnSTMT() : Statement(E_Return_Statement) {}
+  ReturnSTMT()
+      : Statement(E_Return_Statement) {}
 
   // children are
   std::shared_ptr<Expression> expr;
@@ -188,7 +189,7 @@ public:
 
   [[deprecated("Use only for parse error")]]
   ForSTMT()
-    : Statement(E_Dummy) {}
+      : Statement(E_Dummy) {}
 
   std::shared_ptr<AssignmentSTMT> varWithAss;
   std::shared_ptr<Expression> condition;
