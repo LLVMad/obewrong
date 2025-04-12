@@ -46,7 +46,7 @@ target_link_libraries(obewrong PRIVATE obewrong_lib)
 
 # Enable warnings
 target_compile_options(obewrong PRIVATE
-        -Wall -Wextra -Wpedantic -Werror
+        -Wall -Wextra -Wpedantic -Werror -Wno-deprecated-declarations
 )
 
 # Enable optimizations in Release mode
