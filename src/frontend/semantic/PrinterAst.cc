@@ -204,10 +204,10 @@ void PrinterAst::printClassDecl(const std::shared_ptr<ClassDecl> &classDecl,
   std::cout << std::string(indent, ' ') << "ClassDecl | \"" << classDecl->name
             << "\"\n";
 
-  if (!classDecl->base_classes.empty()) {
-    for (const auto &base : classDecl->base_classes) {
-      std::cout << std::string(indent + 4, ' ') << base->name << "\n";
-    }
+  if (classDecl->base_class) {
+    // for (const auto &base : classDecl->base_classes) {
+      std::cout << std::string(indent + 4, ' ') << classDecl->base_class->name << "\n";
+    // }
   }
 
   if (!classDecl->fields.empty()) {

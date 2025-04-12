@@ -46,7 +46,10 @@ public:
   // children are
   std::shared_ptr<VarRefEXP> variable;
   std::shared_ptr<FieldRefEXP> field;
+
+  [[deprecated]]
   std::shared_ptr<ElementRefEXP> element;
+
   std::shared_ptr<Expression> expression;
 
   ~AssignmentSTMT() override = default;

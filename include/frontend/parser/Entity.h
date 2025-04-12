@@ -82,8 +82,6 @@ enum Ekind {
   E_Enum_Reference,
   E_Element_Reference,
   E_Dummy,
-  E_For_Loop,
-  E_Constructor_Call,
 };
 
 /**

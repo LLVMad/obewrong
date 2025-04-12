@@ -730,6 +730,9 @@ std::shared_ptr<Block> Parser::parseBlock(BlockKind blockKind) {
         // a.set(...)
         // printl(...)
         part = parseExpression();
+        if (peek()->kind == TOKEN_ASSIGNMENT) {
+          part = parseAssignment(std::static_pointer_cast<Expression>(part));
+        }
       }
     } break;
     case TOKEN_IF: {
@@ -1389,7 +1392,7 @@ std::shared_ptr<Expression> Parser::parseExpression() {
     } break;
     case E_Class_Decl: case E_Class_Name: {
       auto node_as_class_name_expr = std::static_pointer_cast<ClassNameEXP>(comp->parts.back());
-      auto className = node_as_class_name_expr->getName();
+      auto className = node_as_class_name_expr->name;
       auto methodName = std::get<std::string>(token->value);
 
       auto staticMethodCall = std::make_shared<MethodCallEXP>(methodName);
