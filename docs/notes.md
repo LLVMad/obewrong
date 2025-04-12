@@ -103,3 +103,12 @@ should include map
 
 maybe instead of making  a lot of maps it better to include in struct Scope
 a pointer to a parent scope?
+
+--------
+
+## 08.04.2025
+
+Todo:
+- Arrays/ Lists
+- Virtual/ Override
+- Generics
