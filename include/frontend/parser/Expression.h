@@ -178,10 +178,7 @@ public:
 
 /**
  * Represents object creation by invoking a constructor
- *  AssignmentSTMT(std::shared_ptr<FieldRefEXP> lhs,
-                 std::shared_ptr<Expression> rhs)
-      : Statement(E_Assignment), variable(nullptr), field(std::move(lhs)),
-        expression(std::move(rhs)) {}
+ *
  * var adder : Adder
  * adder.add(2, 2)
  *
@@ -260,18 +257,15 @@ public:
  */
 class ClassNameEXP : public Expression {
 public:
-  ClassNameEXP(std::string name)
-      : Expression(E_Class_Name), _name(std::move(name)) {};
-
-  std::string getName() const { return _name; };
+  ClassNameEXP(std::string _name)
+      : Expression(E_Class_Name), name(std::move(_name)){};
 
   // В классе ClassNameEXP
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
   bool validate() override;
 
-private:
-  std::string _name;
+  std::string name;
 };
 
 /**
@@ -290,7 +284,7 @@ public:
   ConstructorCallEXP(std::shared_ptr<ClassNameEXP> left,
                      std::vector<std::shared_ptr<Expression>> arguments)
       : Expression(E_Constructor_Call), left(std::move(left)),
-        arguments(std::move(arguments)), isDefault(false) {};
+        arguments(std::move(arguments)), isDefault(false){};
 
   // Default constr
   ConstructorCallEXP(std::shared_ptr<ClassNameEXP> left)

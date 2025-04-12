@@ -152,19 +152,19 @@ public:
 
   // Mostly single-character and/or special symbols
   Token(TokenKind kind, size_t line, size_t column)
-      : kind(kind), line(line), column(column) {};
+      : kind(kind), line(line), column(column){};
 
   // Int value
   Token(TokenKind kind, int intValue, size_t line, size_t column)
-      : kind(kind), value(intValue), line(line), column(column) {};
+      : kind(kind), value(intValue), line(line), column(column){};
 
   // Real number
   Token(TokenKind kind, double realValue, size_t line, size_t column)
-      : kind(kind), value(realValue), line(line), column(column) {};
+      : kind(kind), value(realValue), line(line), column(column){};
 
   // Identifier or string literal
   Token(TokenKind kind, const std::string &lexem, size_t line, size_t column)
-      : kind(kind), value(lexem), line(line), column(column) {};
+      : kind(kind), value(lexem), line(line), column(column){};
 };
 
 /*
