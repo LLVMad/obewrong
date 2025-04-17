@@ -1,0 +1,8 @@
+module libcintegration
+
+func main() is 
+  var ac_byte : access byte 
+  ac_byte := malloc(4)
+  printf("%d\n", ac_byte)
+  free(ac_byte)
+end

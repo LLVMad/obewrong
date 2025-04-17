@@ -3,6 +3,7 @@
 
 #include "types/Decl.h"
 #include "types/Types.h"
+#include <llvm/IR/Instructions.h>
 #include <memory>
 #include <stack>
 #include <unordered_map>
@@ -17,6 +18,12 @@ enum ScopeKind {
   SCOPE_ENUM,
 };
 
+struct SymbolInfo {
+  std::shared_ptr<Decl> decl; // for parsing phase
+  llvm::AllocaInst* alloca;   // for codegen
+  bool isInitialized;
+};
+
 /**
  * Symbol table for a single scope
  * of a class, method or func
@@ -24,12 +31,44 @@ enum ScopeKind {
 class Scope : public std::enable_shared_from_this<Scope> {
 public:
   Scope(ScopeKind kind, const std::string &name, std::weak_ptr<Scope> parent)
-      : kind(kind), name(name), parent(parent) {}
+      : kind(kind), name(name), parent(parent), depth(-1) {}
 
+  /**
+   * @phase Syntax analysis \n
+   * Puts a Declaration info of a certain construct into a map
+   * @param name
+   * @param decl Declaration info
+   */
   bool addSymbol(const std::string &name, std::shared_ptr<Decl> decl) {
     if (symbols.contains(name))
       return false;
-    symbols[name] = decl;
+    symbols[name].decl = decl;
+    return true;
+  }
+
+  /**
+   * @phase Code generation \n
+   * Puts an allocation intance of a variable into a map
+   * with previous Decl set
+   * @param name
+   * @param alloca instance of allocation
+   */
+  bool addSymbol(const std::string &name, llvm::AllocaInst *alloca) {
+    if (!symbols.contains(name))
+      return false;
+    symbols[name].alloca = alloca;
+    return true;
+  }
+
+  /**
+   * @phase Code generation \n
+   * Marks a variable as initialized
+   * @param name
+   */
+  bool markInitialized(const std::string &name) {
+    if (!symbols.contains(name))
+      return false;
+    symbols[name].isInitialized = true;
     return true;
   }
 
@@ -37,25 +76,54 @@ public:
     children.push_back(std::move(child));
   }
 
-  std::shared_ptr<Decl> lookup(const std::string &name) const {
+  /**
+   * Go into the next children scope
+   * @param depth depth of scope relative to the parent
+   *              0 - scope itself
+   * @return children scope at depth
+   */
+  std::shared_ptr<Scope> nextScope() {
+    depth++;
+    if (depth > static_cast<int>(children.size() - 1)) return std::shared_ptr(parent);
+    return children[depth];
+  }
+
+  /**
+   * Go into the prev children scope
+   * @param depth depth of scope relative to the parent
+   *              0 - parent scope
+   * @return children scope at depth
+   */
+  std::shared_ptr<Scope> prevScope() {
+    return std::shared_ptr(parent);
+  }
+
+  SymbolInfo* getSymbol(const std::string &name) {
     if (auto it = symbols.find(name); it != symbols.end()) {
-      return it->second;
+      return &it->second;
     }
 
     // Recursively check parent scopes
     if (auto parent_ptr = parent.lock()) {
-      // if (
-      //
-      //   (parent_ptr->kind == ScopeKind::SCOPE_CLASS
-      //     || parent_ptr->kind == ScopeKind::SCOPE_METHOD)) {
-      //   for (const auto child : parent_ptr->children) {
-      //     return child->lookup(name);
-      //   }
-      // }
-      return parent_ptr->lookup(name);
+      return parent_ptr->getSymbol(name);
     }
 
     return nullptr;
+  }
+
+  std::shared_ptr<Decl> lookup(const std::string &name) {
+    if (auto sym = this->getSymbol(name)) return sym->decl;
+    return nullptr;
+  }
+
+  llvm::AllocaInst* lookupAlloca(const std::string &name) {
+    if (auto sym = this->getSymbol(name)) return sym->alloca;
+    return nullptr;
+  }
+
+  bool isDeclInitialized(const std::string &name) {
+    if (auto sym = this->getSymbol(name)) return sym->isInitialized;
+    return false;
   }
 
   std::shared_ptr<Decl> lookupInClass(const std::string &name,
@@ -63,7 +131,7 @@ public:
     // idk need to think about this
     if (this->name == className) {
       if (auto it = symbols.find(name); it != symbols.end()) {
-        return it->second;
+        return it->second.decl;
       }
     }
     //
@@ -93,7 +161,7 @@ public:
   const std::string &getName() const { return name; }
   auto &getChildren() const { return children; }
   std::weak_ptr<Scope> getParent() const { return parent; }
-  std::unordered_map<std::string, std::shared_ptr<Decl>> &getSymbols() {
+  std::unordered_map<std::string, SymbolInfo> &getSymbols() {
     return symbols;
   }
 
@@ -105,7 +173,9 @@ private:
   std::string name;
   std::weak_ptr<Scope> parent;
   std::vector<std::shared_ptr<Scope>> children;
-  std::unordered_map<std::string, std::shared_ptr<Decl>> symbols;
+  std::unordered_map<std::string, SymbolInfo> symbols;
+
+  int depth;
 };
 
 class SymbolTable {
@@ -126,7 +196,7 @@ public:
   void copySymbolFromModulesToCurrent(const std::string &from,
                                       const std::string &to) {
 
-    std::unordered_map<std::string, std::shared_ptr<Decl>> symbolsToCopy;
+    std::unordered_map<std::string, SymbolInfo> symbolsToCopy;
     std::vector<std::shared_ptr<Scope>> scopeToCopy;
     for (auto &scope : global_scope->getChildren()) {
       if (scope->getName() == from) {
@@ -139,7 +209,7 @@ public:
     for (auto &scope : global_scope->getChildren()) {
       if (scope->getName() == to) {
         for (auto &decl : symbolsToCopy) {
-          scope->addSymbol(decl.first, decl.second);
+          scope->addSymbol(decl.first, decl.second.decl);
         }
         for (auto &scopeCopy : scopeToCopy) {
           scope->addChild(scopeCopy);
@@ -157,7 +227,7 @@ public:
   // sc -> scope in which exists FROM and TO scopes
   void copySymbolsAndChildren(std::shared_ptr<Scope> &sc,
                               const std::string &from, const std::string &to) {
-    std::unordered_map<std::string, std::shared_ptr<Decl>> symbolsToCopy;
+    std::unordered_map<std::string, SymbolInfo> symbolsToCopy;
     std::vector<std::shared_ptr<Scope>> scopeToCopy;
     for (auto &scope : sc->getChildren()) {
       if (scope->getName() == from) {
@@ -170,7 +240,7 @@ public:
     for (auto &scope : sc->getChildren()) {
       if (scope->getName() == to) {
         for (auto &decl : symbolsToCopy) {
-          scope->addSymbol(decl.first, decl.second);
+          scope->addSymbol(decl.first, decl.second.decl);
         }
         for (auto &scopeCopy : scopeToCopy) {
           scope->addChild(scopeCopy);

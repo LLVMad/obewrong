@@ -10,8 +10,13 @@
 #include <variant>
 #include <vector>
 
+#include "llvm/IR/Type.h"
+
+#include <llvm/IR/DerivedTypes.h>
+
 enum TypeKind {
   TYPE_UNKNOWN = -1,
+  TYPE_BYTE,
   TYPE_INT,
   TYPE_I16,
   TYPE_I64,
@@ -30,6 +35,7 @@ enum TypeKind {
   TYPE_BOOL,
   TYPE_GENERIC,
   TYPE_POINTER,
+  TYPE_ACCESS,
 };
 
 class Type {
@@ -40,6 +46,35 @@ public:
 
   explicit Type(TypeKind kind, std::string name)
       : kind(kind), name(std::move((name))) {}
+
+  virtual llvm::Type *toLLVMType(llvm::LLVMContext &lc) = 0;
+};
+
+// class Bit : public Type {
+// public:
+//   TypeKind kind;
+// };
+
+class TypeByte : public Type {
+public:
+  TypeByte() : Type(TYPE_BYTE, "byte") {}
+
+  llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
+    return llvm::Type::getInt8Ty(lc);
+  };
+};
+
+class TypeAccess : public Type {
+public:
+  TypeAccess(const std::shared_ptr<Type> &to)
+    : Type(TYPE_ACCESS, "access"), to(to) {}
+
+  std::shared_ptr<Type> to;
+
+  llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
+    auto toType = to->toLLVMType(lc);
+    return llvm::PointerType::get(toType, 0);
+  }
 };
 
 class TypeBuiltin : public Type {
@@ -51,6 +86,11 @@ public:
   uint8_t bytesize;
 
   ~TypeBuiltin() override = default;
+
+  llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
+    (void)lc;
+    return nullptr;
+  }
 };
 
 class TypeInt : public TypeBuiltin {
@@ -58,16 +98,11 @@ public:
   int max = INT_MAX;
   int min = INT_MIN;
 
-  /*
-   * !!!!! @TODO @IMPORTANT !!!!!!
-   *
-   * the reference implementation of
-   * builtin types
-   * might as well go here
-   * so all methods, etc.
-   */
-
   TypeInt() : TypeBuiltin(TYPE_INT, "Integer", 32) {}
+
+  llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
+    return llvm::Type::getInt32Ty(lc);
+  }
 
   ~TypeInt() override = default;
 };
@@ -79,6 +114,10 @@ public:
 
   TypeInt16() : TypeBuiltin(TYPE_I16, "Int16", 16) {}
 
+  llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
+    return llvm::Type::getInt16Ty(lc);
+  }
+
   ~TypeInt16() override = default;
 };
 
@@ -88,6 +127,10 @@ public:
   int64_t min = std::numeric_limits<int64_t>::min();
 
   TypeInt64() : TypeBuiltin(TYPE_I64, "Int64", 64) {}
+
+  llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
+    return llvm::Type::getInt64Ty(lc);
+  }
 
   ~TypeInt64() override = default;
 };
@@ -99,7 +142,16 @@ public:
 
   TypeUint16() : TypeBuiltin(TYPE_U16, "Uint16", 16) {}
 
+  // llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
+  //   return llvm::Type::getInt16Ty(lc);
+  // }
+
   ~TypeUint16() override = default;
+
+  llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
+    (void)lc;
+    return nullptr;
+  }
 };
 
 class TypeUint32 : public TypeBuiltin {
@@ -110,6 +162,11 @@ public:
   TypeUint32() : TypeBuiltin(TYPE_U32, "Uint32", 32) {}
 
   ~TypeUint32() override = default;
+
+  llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
+    (void)lc;
+    return nullptr;
+  }
 };
 
 class TypeUint64 : public TypeBuiltin {
@@ -120,6 +177,11 @@ public:
   TypeUint64() : TypeBuiltin(TYPE_U64, "Uint64", 64) {}
 
   ~TypeUint64() override = default;
+
+  llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
+    (void)lc;
+    return nullptr;
+  }
 };
 
 class TypeFloat64 : public TypeBuiltin {
@@ -131,6 +193,11 @@ public:
   TypeFloat64() : TypeBuiltin(TYPE_F64, "Float64", 64) {}
 
   ~TypeFloat64() override = default;
+
+  llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
+    (void)lc;
+    return nullptr;
+  }
 };
 
 // f32
@@ -143,6 +210,11 @@ public:
   TypeReal() : TypeBuiltin(TYPE_FLOAT, "Real", 32) {}
 
   ~TypeReal() override = default;
+
+  llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
+    (void)lc;
+    return nullptr;
+  }
 };
 
 class TypeString : public TypeBuiltin {
@@ -151,11 +223,20 @@ public:
   TypeString() : TypeBuiltin(TYPE_STRING, "String", 8) {}
 
   TypeString(size_t size) : TypeBuiltin(TYPE_STRING, "String", size) {}
+
+  llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
+    (void)lc;
+    return nullptr;
+  }
 };
 
 class TypeBool : public TypeBuiltin {
 public:
   TypeBool() : TypeBuiltin(TYPE_BOOL, "Bool", 1) {}
+
+  llvm::IntegerType *toLLVMType(llvm::LLVMContext &lc) override {
+    return llvm::Type::getInt1Ty(lc);
+  }
 
   ~TypeBool() override = default;
 };
@@ -170,6 +251,11 @@ public:
 
   // for when we dont know the parameters yet
   TypeArray() : Type(TYPE_ARRAY, "Array"), el_type(nullptr), size(0) {}
+
+  llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
+    (void)lc;
+    return nullptr;
+  }
 
   ~TypeArray() override = default;
 };
@@ -205,6 +291,11 @@ public:
         args(std::move(args)), isVoided(false), isVoid(true) {}
 
   ~TypeFunc() override = default;
+
+  llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
+    (void)lc;
+    return nullptr;
+  }
 };
 
 // class "signature"
@@ -237,6 +328,11 @@ public:
     return nullptr;
   }
 
+  llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
+    (void)lc;
+    return nullptr;
+  }
+
   ~TypeClass() override = default;
 };
 
@@ -248,6 +344,11 @@ public:
       : Type(TYPE_LIST, "List"), el_type(std::move((el_type))) {}
 
   TypeList() : Type(TYPE_LIST, "List"), el_type(nullptr) {}
+
+  llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
+    (void)lc;
+    return nullptr;
+  }
 
   ~TypeList() override = default;
 };

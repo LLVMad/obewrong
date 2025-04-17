@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <vector>
 
+#include "backend/CodegenVisitor.h"
 #include "frontend/SourceManager.h"
 #include "frontend/lexer/Lexer.h"
 #include "frontend/parser/Parser.h"
@@ -35,6 +36,13 @@ int main(int argc, char *argv[]) {
 
     PrinterAst printer(globalTypeTable, globalSymbolTable);
     printer.printAST(parseTree);
+
+    auto global_scope = globalSymbolTable->getGlobalScope();
+    CodeGenVisitor cgvisitor(global_scope, globalTypeTable);
+    cgvisitor.visitDefault(parseTree);
+    cgvisitor.dumpIR();
+    cgvisitor.createObjFile();
+
   }
   // auto buff = std::make_shared<SourceBuffer>(sm.readSource(args[0]));
   //

@@ -1,8 +1,10 @@
-//
-// Created by artjom on 4/12/25.
-//
+#ifndef OBW_IRCOMPILER_H
+#define OBW_IRCOMPILER_H
 
-#ifndef IRCOMPILER_H
-#define IRCOMPILER_H
+//class IRCompiler {
+//public:
+//  static createObj() {
+//  }
+//};
 
-#endif //IRCOMPILER_H
+#endif

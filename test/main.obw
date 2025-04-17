@@ -1,0 +1,10 @@
+module simplemain
+
+func fun(x : byte) : byte is 
+  return x + 2b
+end
+
+func main() is
+  var a : byte := fun(2b) 
+  printf("%d\n", a)
+end

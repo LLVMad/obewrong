@@ -40,7 +40,18 @@ enum TokenKind {
   TOKEN_BBEGIN,      // is
   TOKEN_BEND,        // end
   TOKEN_INT_NUMBER,
+  TOKEN_INT8_NUMBER,
+  TOKEN_UINT8_NUMBER,
+  TOKEN_INT16_NUMBER,
+  TOKEN_UINT16_NUMBER,
+  TOKEN_INT32_NUMBER,
+  TOKEN_UINT32_NUMBER,
+  TOKEN_INT64_NUMBER,
+  TOKEN_UINT64_NUMBER,
   TOKEN_REAL_NUMBER,
+  TOKEN_REAL16_NUMBER,
+  TOKEN_REAL32_NUMBER,
+  TOKEN_REAL64_NUMBER,
   TOKEN_COMMENT,
   TOKEN_STRING,
   TOKEN_BOOL_TRUE,       // true
@@ -98,7 +109,11 @@ enum TokenKind {
   TOKEN_OVERRIDE, // * override
   TOKEN_VIRTUAL,  // * virtual
   TOKEN_ENUM,     // * enum
-  TOKEN_UNKNOWN
+  TOKEN_PUBLIC,
+  TOKEN_PRIVATE,
+  TOKEN_ACCESS,
+  TOKEN_TYPE_BYTE,
+  TOKEN_UNKNOWN,
 };
 
 /*
@@ -192,7 +207,7 @@ private:
   void advance() {
     ++curr_column;
 
-    if (buffer[0] == '\n') {
+    if (buffer[0] == '\n' && (curr_state != STATE_READ_STRING)) {
       curr_line++;
       curr_column = 0;
     }

@@ -119,7 +119,7 @@ private:
 
   std::shared_ptr<AssignmentSTMT>
   parseAssignment(std::shared_ptr<Expression> left);
-  ;
+
   std::shared_ptr<AssignmentSTMT> parseAssignment();
 
   /**

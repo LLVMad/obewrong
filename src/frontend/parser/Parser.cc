@@ -29,6 +29,7 @@ bool isTypeName(TokenKind kind) {
   case TOKEN_TYPE_ANYVAL:
   case TOKEN_TYPE_ANYREF:
   case TOKEN_TYPE_TYPE:
+  case TOKEN_TYPE_BYTE:
     return true;
   default:
     return false;
@@ -532,15 +533,29 @@ std::shared_ptr<VarDecl> Parser::parseVarDecl() {
 
   // read type
   token = next();
-  std::string type_name = "Integer";
+  bool isPointer = false;
+  if (token->kind == TOKEN_ACCESS) {
+    // pointer to type
+    isPointer = true;
+    token = next();
+  }
+
+  std::string type_name = "byte";
   if (!isTypeName(token->kind) && token->kind != TOKEN_IDENTIFIER) {
     PARSE_ERR(sm.getLastFilePath().c_str(),
               "Expected type qualifier for a variable\n");
-    var_type = globalTypeTable->types[moduleName].getType("Integer");
+    var_type = globalTypeTable->types[moduleName].getType("byte");
   } else {
-    var_type = globalTypeTable->types[moduleName].getType(
+    if (isPointer) {
+      auto toType = globalTypeTable->types[moduleName].getType(
         std::get<std::string>(token->value));
-    // token = next();
+      var_type = std::make_shared<TypeAccess>(toType);
+      type_name = var_name; // alias a type by the variable name
+      globalTypeTable->addType(moduleName, type_name, var_type);
+    } else {
+      var_type = globalTypeTable->types[moduleName].getType(
+          std::get<std::string>(token->value));
+    }
   }
 
   // composite container type
@@ -856,7 +871,10 @@ std::shared_ptr<ClassDecl> Parser::parseClassDecl() {
   token = next();
   auto class_name = std::get<std::string>(token->value);
 
-  // lastDeclaredClass = class_name;
+  // check if its generic
+  // if (peek()->kind == TOKEN_RSBRACKET) {
+  //
+  // }
 
   // now our scope is this class
   // lastDeclaredScopeParent.emplace(class_name);
@@ -1005,16 +1023,31 @@ std::shared_ptr<FieldDecl> Parser::parseFieldDecl() {
 
   // read type
   token = next();
-  std::string type_name = "Integer";
+  bool isPointer = false;
+  if (token->kind == TOKEN_ACCESS) {
+    // pointer to type
+    isPointer = true;
+    token = next();
+  }
+
+  std::string type_name = "byte";
   std::shared_ptr<Type> var_type;
   if (!isTypeName(token->kind) && token->kind != TOKEN_IDENTIFIER) {
     PARSE_ERR(sm.getLastFilePath().c_str(),
               "Expected type qualifier for a field\n");
-    var_type = globalTypeTable->types[moduleName].getType("Integer");
+    var_type = globalTypeTable->types[moduleName].getType("byte");
   } else {
     // token = next();
-    var_type = globalTypeTable->types[moduleName].getType(
+    if (isPointer) {
+      auto toType = globalTypeTable->types[moduleName].getType(
         std::get<std::string>(token->value));
+      var_type = std::make_shared<TypeAccess>(toType);
+      type_name = var_name; // alias a type by the variable name
+      globalTypeTable->addType(moduleName, type_name, var_type);
+    } else {
+      var_type = globalTypeTable->types[moduleName].getType(
+          std::get<std::string>(token->value));
+    }
   }
 
   auto ass = std::make_shared<FieldDecl>(var_name, var_type);
@@ -1623,7 +1656,7 @@ std::shared_ptr<ParameterDecl> Parser::parseParameterDecl() {
               "Expected a type qualifier for a variable, ignoring other "
               "parameters\n");
     auto paramDummy = std::make_shared<ParameterDecl>(
-        param_name, globalTypeTable->types[moduleName].getType("Integer"));
+        param_name, globalTypeTable->types[moduleName].getType("byte"));
 
     globalSymbolTable->getCurrentScope()->addSymbol(param_name, paramDummy);
 
@@ -1636,15 +1669,42 @@ std::shared_ptr<ParameterDecl> Parser::parseParameterDecl() {
   token = next();
 
   // read type
-  token = peek();
-  if (!isTypeName(token->kind))
-    return nullptr;
+  // token = peek();
+  // if (!isTypeName(token->kind))
+  //   return nullptr;
+  // token = next();
   token = next();
-  auto param_type = std::get<std::string>(token->value);
+  bool isPointer = false;
+  if (token->kind == TOKEN_ACCESS) {
+    // pointer to type
+    isPointer = true;
+    token = next();
+  }
+
+  std::string type_name = "byte";
+  std::shared_ptr<Type> param_type;
+  if (!isTypeName(token->kind) && token->kind != TOKEN_IDENTIFIER) {
+    PARSE_ERR(sm.getLastFilePath().c_str(),
+              "Expected type qualifier for a field\n");
+    param_type = globalTypeTable->types[moduleName].getType("byte");
+  } else {
+    // token = next();
+    if (isPointer) {
+      auto toType = globalTypeTable->types[moduleName].getType(
+        std::get<std::string>(token->value));
+      param_type = std::make_shared<TypeAccess>(toType);
+      type_name = param_name; // alias a type by the variable name
+      globalTypeTable->addType(moduleName, type_name, param_type);
+    } else {
+      param_type = globalTypeTable->types[moduleName].getType(
+          std::get<std::string>(token->value));
+    }
+  }
+  // auto param_type = std::get<std::string>(token->value);
 
   // create paramdecl
   auto paramDecl = std::make_shared<ParameterDecl>(
-      param_name, globalTypeTable->types[moduleName].getType(param_type));
+      param_name, param_type);
 
   globalSymbolTable->getCurrentScope()->addSymbol(param_name, paramDecl);
 
@@ -1930,7 +1990,19 @@ std::shared_ptr<Expression> Parser::parsePrimary() {
   token = next();
   switch (token->kind) {
   case TOKEN_INT_NUMBER: {
-    return std::make_shared<IntLiteralEXP>(std::get<int>(token->value));
+    return std::make_shared<IntLiteralEXP>(std::get<int>(token->value), 16);
+  }
+  case TOKEN_INT8_NUMBER: {
+    return std::make_shared<IntLiteralEXP>(std::get<int>(token->value), 8);
+  }
+    case TOKEN_INT16_NUMBER: {
+    return std::make_shared<IntLiteralEXP>(std::get<int>(token->value), 16);
+  }
+    case TOKEN_INT32_NUMBER: {
+    return std::make_shared<IntLiteralEXP>(std::get<int>(token->value), 32);
+  }
+    case TOKEN_INT64_NUMBER: {
+    return std::make_shared<IntLiteralEXP>(std::get<int>(token->value), 64);
   }
   case TOKEN_REAL_NUMBER: {
     return std::make_shared<RealLiteralEXP>(std::get<double>(token->value));
@@ -1977,7 +2049,7 @@ std::shared_ptr<Expression> Parser::parsePrimary() {
         std::get<std::string>(token->value));
     if (!var) {
       PARSE_ERR(sm.getLastFilePath().c_str(), "Variable not found in scope\n");
-      return std::make_shared<Expression>(E_Dummy);
+      return std::make_shared<DummyExpression>(std::get<std::string>(token->value));
       // throw std::runtime_error("Undefined variable: " +
       //                          std::get<std::string>(token->value));
     }
@@ -2041,7 +2113,19 @@ Parser::parsePrimary(const std::string &classNameToSearchIn) {
   token = next();
   switch (token->kind) {
   case TOKEN_INT_NUMBER: {
-    return std::make_shared<IntLiteralEXP>(std::get<int>(token->value));
+    return std::make_shared<IntLiteralEXP>(std::get<int>(token->value), 16);
+  }
+  case TOKEN_INT8_NUMBER: {
+    return std::make_shared<IntLiteralEXP>(std::get<int>(token->value), 8);
+  }
+  case TOKEN_INT16_NUMBER: {
+    return std::make_shared<IntLiteralEXP>(std::get<int>(token->value), 16);
+  }
+  case TOKEN_INT32_NUMBER: {
+    return std::make_shared<IntLiteralEXP>(std::get<int>(token->value), 32);
+  }
+  case TOKEN_INT64_NUMBER: {
+    return std::make_shared<IntLiteralEXP>(std::get<int>(token->value), 64);
   }
   case TOKEN_REAL_NUMBER: {
     return std::make_shared<RealLiteralEXP>(std::get<double>(token->value));
