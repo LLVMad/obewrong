@@ -125,38 +125,46 @@ public:
  */
 class MethodDecl : public Decl {
 public:
-  MethodDecl(const std::string &name) : Decl(E_Method_Decl, name) {}
+  MethodDecl(const std::string &name)
+      : Decl(E_Method_Decl, name), isForward(false), isShort(false),
+        isVoided(false), isVoid(false), isBuiltin(false), isStatic(false),
+        isPrivate(false) {}
   explicit MethodDecl(const std::string &name,
                       std::shared_ptr<TypeFunc> signature,
-                      std::vector<std::shared_ptr<Decl>> args,
+                      std::vector<std::shared_ptr<ParameterDecl>> args,
                       std::shared_ptr<Block> body)
       : Decl(E_Method_Decl, name), signature(std::move(signature)),
-        args(std::move(args)), isVoided(false), isVoid(signature->isVoid),
-        body(std::move(body)) {}
+        args(std::move(args)), isForward(false), isShort(false),
+        isVoided(false), isVoid(signature->isVoid), isBuiltin(false),
+        isStatic(false), isPrivate(false), body(std::move(body)) {}
 
   explicit MethodDecl(const std::string &name,
                       std::shared_ptr<TypeFunc> signature,
                       std::shared_ptr<Block> body)
       : Decl(E_Method_Decl, name), signature(std::move(signature)), args(),
-        isVoided(true), isVoid(signature->isVoid), body(std::move(body)) {}
+        isForward(false), isShort(false), isVoided(true),
+        isVoid(signature->isVoid), isBuiltin(false), isStatic(false),
+        isPrivate(false), body(std::move(body)) {}
 
   explicit MethodDecl(const std::string &name,
                       const std::shared_ptr<TypeFunc> &signature,
-                      const std::vector<std::shared_ptr<Decl>> &args,
+                      const std::vector<std::shared_ptr<ParameterDecl>> &args,
                       bool isBuiltin)
       : Decl(E_Method_Decl, name), signature(signature), args(args),
-        isVoided(false), isVoid(signature->isVoid), isBuiltin(isBuiltin),
-        body() {}
+        isForward(false), isShort(false), isVoided(false),
+        isVoid(signature->isVoid), isBuiltin(isBuiltin), isStatic(false),
+        isPrivate(false), body() {}
 
   std::shared_ptr<TypeFunc> signature;
-  std::vector<std::shared_ptr<Decl>> args;
+  std::vector<std::shared_ptr<ParameterDecl>> args;
 
   bool isForward;
   bool isShort;
   bool isVoided; // no parameters
-  bool isVoid;
+  bool isVoid;  // no return type
   bool isBuiltin;
   bool isStatic;
+  bool isPrivate;
   std::shared_ptr<Block> body;
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
@@ -171,13 +179,13 @@ public:
   ConstrDecl(const std::string &name) : Decl(E_Constructor_Decl, name) {}
   explicit ConstrDecl(const std::string &name,
                       std::shared_ptr<TypeFunc> signature,
-                      std::vector<std::shared_ptr<Decl>> args,
+                      std::vector<std::shared_ptr<ParameterDecl>> args,
                       std::shared_ptr<Block> body)
       : Decl(E_Method_Decl, name), signature(std::move(signature)),
         args(std::move(args)), body(std::move(body)) {}
 
   std::shared_ptr<TypeFunc> signature;
-  std::vector<std::shared_ptr<Decl>> args;
+  std::vector<std::shared_ptr<ParameterDecl>> args;
 
   std::shared_ptr<Block> body;
 

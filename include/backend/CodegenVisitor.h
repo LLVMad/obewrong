@@ -46,7 +46,12 @@ public:
       : globalScope(globalScope), typeTable(typeTable) {
     context = std::make_unique<llvm::LLVMContext>();
     builder = std::make_unique<llvm::IRBuilder<>>(*context);
-    module = std::make_unique<llvm::Module>("Module", *context);
+
+    moduleName = globalScope->getChildren()[0]->getName();
+    module = std::make_unique<llvm::Module>(
+      moduleName,
+      *context
+      );
 
     currentScope = globalScope;
     currDepth = 0;
@@ -125,16 +130,16 @@ public:
   cgresult_t visit(const std::shared_ptr<IntLiteralEXP> &node);
   cgresult_t visit(const std::shared_ptr<RealLiteralEXP> &node);
   cgresult_t visit(const std::shared_ptr<StringLiteralEXP> &node);
-  cgvoid_t visit(const std::shared_ptr<BoolLiteralEXP> &node);
-  cgvoid_t visit(const std::shared_ptr<ArrayLiteralExpr> &node);
+  cgresult_t visit(const std::shared_ptr<BoolLiteralEXP> &node);
+  cgresult_t visit(const std::shared_ptr<ArrayLiteralExpr> &node);
   cgresult_t visit(const std::shared_ptr<VarRefEXP> &node);
-  cgvoid_t visit(const std::shared_ptr<FieldRefEXP> &node);
-  cgvoid_t visit(const std::shared_ptr<MethodCallEXP> &node);
+  cgresult_t visit(const std::shared_ptr<FieldRefEXP> &node);
+  cgresult_t visit(const std::shared_ptr<MethodCallEXP> &node);
   cgresult_t visit(const std::shared_ptr<FuncCallEXP> &node);
   cgresult_t visit(const std::shared_ptr<ClassNameEXP> &node);
-  cgvoid_t visit(const std::shared_ptr<ConstructorCallEXP> &node);
-  cgvoid_t visit(const std::shared_ptr<CompoundEXP> &node);
-  cgvoid_t visit(const std::shared_ptr<ThisEXP> &node);
+  cgresult_t visit(const std::shared_ptr<ConstructorCallEXP> &node);
+  cgresult_t visit(const std::shared_ptr<CompoundEXP> &node);
+  cgresult_t visit(const std::shared_ptr<ThisEXP> &node);
   cgresult_t visit(const std::shared_ptr<BinaryOpEXP> &node);
   // #####========================================#####
 
@@ -163,15 +168,20 @@ public:
   cgvoid_t visit(const std::shared_ptr<ForSTMT> &node);
   // #####========================================#####
 
+  cgresult_t visit(const std::shared_ptr<Type> &node);
+
   void dumpIR() const { module->print(llvm::outs(), nullptr); }
 
   void createObjFile();
 
 private:
+  // #####========== UTILLITY ==========#####
   llvm::Function *getFunction(std::string name);
   llvm::AllocaInst *createEntryBlockAlloca(llvm::Function *TheFunction,
                                            llvm::Type *Type,
                                            llvm::StringRef VarName);
+  // llvm::StructType* getStructType(const std::string &name);
+  // #####========================================#####
 
   // entry for a symboltable (actually a tree of scopes)
   std::shared_ptr<Scope> globalScope;

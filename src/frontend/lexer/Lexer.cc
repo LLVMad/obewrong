@@ -226,7 +226,7 @@ std::unique_ptr<Token> Lexer::next() {
 
     switch (curr_state) {
     case STATE_START: {
-      if (std::isalpha(c)) {
+      if (std::isalpha(c) || c == '_') {
         curr_state = STATE_READ_WORD;
       } else if (std::isdigit(c) /*|| c == '-'*/) {
         curr_state = STATE_READ_NUM;
@@ -382,8 +382,10 @@ std::unique_ptr<Token> Lexer::next() {
         curr_state = STATE_START;
         advance();
         return std::make_unique<Token>(TOKEN_PERCENT, curr_line, curr_column);
-      } else
-        curr_state = STATE_FAIL;
+      } else {
+        advance();
+        curr_state = STATE_START;
+      }
     } break;
     case STATE_READ_WORD: {
       if (isalpha(c) || c == '_' || std::isdigit(c)) {

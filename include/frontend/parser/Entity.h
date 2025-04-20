@@ -35,6 +35,7 @@ enum Ekind {
   E_List_Decl,
   E_Module_Decl,
   E_Enum_Decl,
+  E_Main_Decl,
 
   // Type related entities
   E_Integer_Type,

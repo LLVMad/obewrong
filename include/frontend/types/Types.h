@@ -14,6 +14,12 @@
 
 #include <llvm/IR/DerivedTypes.h>
 
+enum AccessKind {
+  ACC_GENERAL,
+  ACC_NOT_NULL,
+  ACC_OWN
+};
+
 enum TypeKind {
   TYPE_UNKNOWN = -1,
   TYPE_BYTE,
@@ -67,8 +73,9 @@ public:
 class TypeAccess : public Type {
 public:
   TypeAccess(const std::shared_ptr<Type> &to)
-    : Type(TYPE_ACCESS, "access"), to(to) {}
+    : Type(TYPE_ACCESS, "access"), kind(ACC_GENERAL), to(to) {}
 
+  AccessKind kind;
   std::shared_ptr<Type> to;
 
   llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
@@ -367,16 +374,10 @@ public:
  *   example: `var i : ref Integer`
  *                     ^^^
  *
- * - Pointers cannot escape variables scope
- *
- * - No pointer arithmetic
- *
- * - Pointers cannot be null if not explicitly marked
- *   example: `var pi : access null Integer`
- *
  * - this attributes for pointer types are allowed:
- *    - `limited` - ownership is moved when pointer is copied
- *    - `general` - shared ownership
+ *    - `general` - raw C pointer 
+ *    - `own` - unique pointer, move semantic 
+ *    - `not_null` - cannot be nulled 
  */
 class TypePointer : public Type {
 public:
