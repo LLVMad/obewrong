@@ -7,6 +7,7 @@
 #include "frontend/lexer/Lexer.h"
 #include "frontend/parser/Parser.h"
 #include "frontend/semantic/PrinterAst.h"
+#include "frontend/semantic/SemanticAnalyzer.h"
 
 int main(int argc, char *argv[]) {
   SourceManager sm;
@@ -20,6 +21,7 @@ int main(int argc, char *argv[]) {
 
   auto globalSymbolTable = std::make_shared<SymbolTable>();
   auto globalTypeTable = std::make_shared<GlobalTypeTable>();
+  globalTypeTable->initBuiltinTypes();
   for (int i = args.size() - 1; i >= 0; i--) {
     printf("#==== parsing %s\n", args[i].c_str());
     auto buff = std::make_shared<SourceBuffer>(sm.readSource(args[i]));
@@ -37,6 +39,9 @@ int main(int argc, char *argv[]) {
     PrinterAst printer(globalTypeTable, globalSymbolTable);
     printer.printAST(parseTree);
 
+    SemanticAnalyzer analyzer(globalTypeTable, globalSymbolTable);
+    analyzer.analyze(parseTree);
+
     auto global_scope = globalSymbolTable->getGlobalScope();
     CodeGenVisitor cgvisitor(global_scope, globalTypeTable);
     cgvisitor.visitDefault(parseTree);
@@ -44,6 +49,7 @@ int main(int argc, char *argv[]) {
     cgvisitor.createObjFile();
 
   }
+
   // auto buff = std::make_shared<SourceBuffer>(sm.readSource(args[0]));
   //
   // Lexer lexer(buff);

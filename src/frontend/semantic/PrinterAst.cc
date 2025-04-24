@@ -219,6 +219,7 @@ void PrinterAst::printClassDecl(const std::shared_ptr<ClassDecl> &classDecl,
 
   if (!classDecl->methods.empty()) {
     for (const auto &method : classDecl->methods) {
+      std::cout << "enter into classDecl->methods" << std::endl;
       printEntity(method, indent + 4);
     }
   }

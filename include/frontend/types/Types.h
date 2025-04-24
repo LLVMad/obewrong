@@ -340,6 +340,15 @@ public:
     return nullptr;
   }
 
+  std::shared_ptr<Type> getField(const std::string &fieldName) const {
+    for (const auto &field : fields_types) {
+      if (field->name == fieldName) {
+        return field;
+      }
+    }
+    return nullptr;
+  }
+
   ~TypeClass() override = default;
 };
 

@@ -272,6 +272,7 @@ public:
         return nullptr;
       return getModuleScope(parent);
     }
+    return nullptr;
   }
 
   std::shared_ptr<Scope> getCurrentScope() const { return current_scope; }
