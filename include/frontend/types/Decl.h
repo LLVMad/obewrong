@@ -209,8 +209,11 @@ public:
         args(std::move(args)), isVoided(false), isVoid(signature->isVoid),
         body(std::move(body)) {}
 
-  FuncDecl(const std::string &name)
-      : Decl(E_Function_Decl, name), signature(), body() {}
+  FuncDecl(const std::string &name, bool isMain = false)
+      : Decl(isMain ? E_Main_Decl : E_Function_Decl, name), signature(), body() {}
+
+  // FuncDecl(const std::string &name, bool isMain)
+  //     : Decl(isMain ? E_Function_Decl, name), signature(), body() {}
 
   std::shared_ptr<TypeFunc> signature;
   std::vector<std::shared_ptr<ParameterDecl>> args;

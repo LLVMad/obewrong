@@ -17,18 +17,18 @@ cgresult_t CodeGenVisitor::visitDefault(const std::shared_ptr<Entity> &node) {
   // Because E_Kind enum values
   // go in ORDER we can just check
   // their numeric values
-  if (node->getKind() >= 0 && node->getKind() < 11) {
+  if (node->getKind() >= 0 && node->getKind() < 12) {
     return visit(std::static_pointer_cast<Decl>(node));
   }
  
-  if (node->getKind() >= 11 && node->getKind() < 16) {
+  if (node->getKind() >= 12 && node->getKind() < 17) {
     // types visit
     // can it happen actually?
     // i think they cannot appear as a
     // DISTINCT node themselfs
     return cgnone;
   }
-  if (node->getKind() >= 16 && node->getKind() < 36) {
+  if (node->getKind() >= 16 && node->getKind() < 37) {
     return visit(std::static_pointer_cast<Expression>(node));
   }
   else {
@@ -63,6 +63,10 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<Expression> &expr) {
     auto exprFuncCall = std::static_pointer_cast<FuncCallEXP>(expr);
     return visit(exprFuncCall);
   }
+  case E_Constructor_Call: {
+    auto exprConstrCall = std::static_pointer_cast<ConstructorCallEXP>(expr);
+    return visit(exprConstrCall);
+  }
   case E_Var_Reference: {
     auto exprVarRef = std::static_pointer_cast<VarRefEXP>(expr);
     return visit(exprVarRef);
@@ -76,7 +80,30 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<Expression> &expr) {
 }
 
 cgresult_t CodeGenVisitor::visit(const std::shared_ptr<FieldRefEXP> &node) {
+  // llvm::AllocaInst *alloca = currentScope->lookupAlloca(node->var_name); /* varEnv[node->var_name]; */
+  // bool isInited = currentScope->isDeclInitialized(no);
+  auto [_, alloca, isInited] = *currentScope->getSymbol(node->field_name);
 
+  // if (!isInited) {
+  //   return alloc;
+  // }
+
+  // auto objName = node->obj->var_name;
+  // auto [varDecl, varAlloca, varIsInited] = *currentScope->getSymbol(objName);
+  // llvm::Type* classType = llvm::StructType::getTypeByName(
+  //   *context,
+  //   std::static_pointer_cast<VarDecl>(varDecl)->type->name
+  // );
+
+  auto gep = llvm::GetElementPtrInst::Create(
+    alloca->getAllocatedType(), )
+
+  return builder->CreateStructGEP(
+    alloca->getAllocatedType()
+        ->getPointerElementType() /* get type of element on heap*/,
+    builder->CreateLoad(alloca) /*get heap ptr */,
+    objField.fieldIndex +
+        NUM_RESERVED_FIELDS /* offset pointer by reserved fields */);
 }
 
 cgresult_t CodeGenVisitor::visit(const std::shared_ptr<FuncCallEXP> &node) {
@@ -297,6 +324,10 @@ cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<ClassDecl> &node) {
   // llvm::Value* result;
   for(auto &method : node->methods) {
     visit(method);
+  }
+
+  for (auto &constr : node->constructors) {
+    visit(constr);
   }
 
   return cgnone;

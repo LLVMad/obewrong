@@ -1,10 +1,17 @@
 module simplemain
 
-func fun(x : byte) : byte is 
-  return x + 2b
+class Point is 
+  var x : byte 
+  var y : byte 
+
+  this(_x: byte, _y: byte) is 
+    this.x := _x 
+    this.y := _y
+  end
 end
 
 func main() is
-  var a : byte := fun(2b) 
-  printf("%d\n", a)
+  var a : Point(2, 2)
+  //var p : Point(2, 2)
+  //printf("point = %d:%d\n", p.x, p.y)
 end

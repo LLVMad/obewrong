@@ -235,8 +235,8 @@ std::shared_ptr<FuncDecl> Parser::parseFunctionDecl() {
 
   globalSymbolTable->enterScope(SCOPE_METHOD, func_name);
 
-  auto func = std::make_shared<FuncDecl>(func_name);
-  if(func_name == "main") func->kind = E_Main_Decl;
+  auto func = std::make_shared<FuncDecl>(func_name, func_name == "main");
+
 
   // get func parameters
   parseParameters(func);
@@ -816,7 +816,7 @@ std::shared_ptr<ConstrDecl> Parser::parseConstructorDecl() {
   token = next(); // eat 'this'
 
   // take class name for "mangled" name of constructor function
-  auto className = currentScope->getParent()->getName();
+  auto className = globalSymbolTable->getCurrentScope()->prevScope()->getName();
 
   // ????
   // lastDeclaredScopeParent.emplace("this");
