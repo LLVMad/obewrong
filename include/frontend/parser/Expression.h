@@ -38,13 +38,16 @@ public:
  */
 class IntLiteralEXP : public Expression {
 public:
-  IntLiteralEXP(int val) : Expression(E_Integer_Literal), _value(val) {};
+  IntLiteralEXP(int val, size_t bytesize)
+    : Expression(E_Integer_Literal), bytesize(bytesize), _value(val) {};
 
-  int getValue() { return _value; }
+  size_t getByteSize() const { return bytesize; };
+  int getValue() const { return _value; }
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
 private:
+  size_t bytesize;
   int _value;
 };
 
@@ -63,7 +66,15 @@ private:
 class StringLiteralEXP : public Expression {
 public:
   StringLiteralEXP(std::string val)
-      : Expression(E_String_Literal), value(std::move(val)) {};
+      : Expression(E_String_Literal), value(std::move(val)) {
+    // std::string value = std::move(val);
+     value.erase(
+     std::remove(value.begin(), value.end(), '\"'),
+     value.end()
+     );
+    // std::ranges::remove(value, '\"');
+    // std::ranges::remove(value, '\"');
+  };
 
   std::string value;
 

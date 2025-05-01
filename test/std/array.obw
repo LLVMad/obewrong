@@ -1,0 +1,27 @@
+module std.array
+
+class RawArray is 
+  var elements : access byte 
+  var size_in_bytes : byte
+
+  this(size: byte) is 
+    this.elements := malloc(size)
+    this.size_in_bytes := size
+  end
+
+  method grow(by : byte) is 
+    this.elements := realloc(elements, size_in_bytes + by)
+    this.size_in_bytes := this.size_in_bytes + by
+  end
+
+  method shrink(by : byte) is 
+    this.elements := realloc(elements, size_in_bytes - by)
+    this.size_in_bytes := this.size_in_bytes - by
+  end
+end
+
+func main() is 
+  var raw_arr : RawArray(4)
+
+  printf("%d\n", raw_arr.size_in_bytes)
+end

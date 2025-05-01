@@ -89,18 +89,20 @@ public:
 
   // Инициализация встроенных типов
   void initBuiltinTypes() {
-    builtinTypes.addType("Integer", std::make_shared<TypeInt>());
-    builtinTypes.addType("Int16", std::make_shared<TypeInt16>());
-    builtinTypes.addType("Int64", std::make_shared<TypeInt64>());
-    builtinTypes.addType("Uint16", std::make_shared<TypeUint16>());
-    builtinTypes.addType("Uint32", std::make_shared<TypeUint32>());
-    builtinTypes.addType("Uint64", std::make_shared<TypeUint64>());
-    builtinTypes.addType("Real", std::make_shared<TypeReal>());
-    builtinTypes.addType("Float64", std::make_shared<TypeFloat64>());
-    // builtinTypes.addType("Bool", std::make_shared<TypeBool>());
-    builtinTypes.addType("Boolean", std::make_shared<TypeBool>());
-    builtinTypes.addType("String", std::make_shared<TypeString>());
-    builtinTypes.addType("Array", std::make_shared<TypeArray>());
+    builtinTypes.addType("byte", std::make_shared<TypeByte>());
+    // builtinTypes.addType("access", std::make_shared<TypeAccess>());
+    // builtinTypes.addType("Integer", std::make_shared<TypeInt>());
+    // builtinTypes.addType("Int16", std::make_shared<TypeInt16>());
+    // builtinTypes.addType("Int64", std::make_shared<TypeInt64>());
+    // builtinTypes.addType("Uint16", std::make_shared<TypeUint16>());
+    // builtinTypes.addType("Uint32", std::make_shared<TypeUint32>());
+    // builtinTypes.addType("Uint64", std::make_shared<TypeUint64>());
+    // builtinTypes.addType("Real", std::make_shared<TypeReal>());
+    // builtinTypes.addType("Float64", std::make_shared<TypeFloat64>());
+    // // builtinTypes.addType("Bool", std::make_shared<TypeBool>());
+    // builtinTypes.addType("Boolean", std::make_shared<TypeBool>());
+    // builtinTypes.addType("String", std::make_shared<TypeString>());
+    // builtinTypes.addType("Array", std::make_shared<TypeArray>());
   }
 
   std::unordered_map<std::string, TypeTable> types;

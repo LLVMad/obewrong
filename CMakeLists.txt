@@ -38,7 +38,16 @@ file(GLOB_RECURSE HEADERS "include/*.h")
 add_library(obewrong_lib STATIC ${SOURCES} ${HEADERS})
 
 # Link against LLVM components
-llvm_map_components_to_libnames(LLVM_LIBS core support irreader)
+llvm_map_components_to_libnames(
+        LLVM_LIBS
+        core support
+        irreader
+        bitreader bitwriter
+        codegen
+        target x86asmparser x86codegen
+        linker
+        targetparser
+        )
 target_link_libraries(obewrong_lib PRIVATE ${LLVM_LIBS})
 
 add_executable(obewrong src/main.cc)
@@ -46,7 +55,7 @@ target_link_libraries(obewrong PRIVATE obewrong_lib)
 
 # Enable warnings
 target_compile_options(obewrong PRIVATE
-        -Wall -Wextra -Wpedantic -Werror -Wno-deprecated-declarations
+        -Wall -Wextra -Wpedantic -Werror -Wno-deprecated-declarations -Wno-unused-parameter
 )
 
 # Enable optimizations in Release mode

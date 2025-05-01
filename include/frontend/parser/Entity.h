@@ -35,27 +35,40 @@ enum Ekind {
   E_List_Decl,
   E_Module_Decl,
   E_Enum_Decl,
+  E_Main_Decl,
 
-  // Type-related entities
-  E_Integer_Literal,
+  // Type related entities
   E_Integer_Type,
-  E_Real_Literal,
   E_Real_Type,
-  E_String_Literal,
   E_String_Type,
-  E_Boolean_Literal,
   E_Boolean_Type,
+  E_Function_Type,
+
+  // Expression related
+  E_Integer_Literal,
+  E_Real_Literal,
+  E_String_Literal,
+  E_Array_Literal,
+  E_Var_Reference,
+  E_Field_Reference,
+  E_Boolean_Literal,
   E_Function,
   E_Constructor_Call,
   E_Method,
   E_Chained_Functions, // compound expressions, a.Plus(2).Minus(1)...
-  E_Function_Type,
   E_Class_Name,
+  E_Dummy,
+  E_Function_Call,
+  E_Method_Call,
+  E_Binary_Operator,
+  E_Unary_Operator,
+  E_Enum_Reference,
+  E_Element_Reference,
 
   // Special entities
   E_This, // current instance of object
-  E_Library_Class,
-  E_Generic_Class,
+  // E_Library_Class,
+  // E_Generic_Class,
 
   // Statement-related entities
   E_Assignment,
@@ -66,22 +79,6 @@ enum Ekind {
   E_Case_Statement,
   E_Return_Statement,
   E_Block,
-
-  E_Var_Reference,
-  E_Field_Reference,
-
-  // fake entities, that just used to link meaningfully ones
-  E_Expression,
-  E_Arguments, // arguments list that is passed to a function
-
-  E_Function_Call,
-  E_Method_Call,
-  E_Array_Literal,
-  E_Binary_Operator,
-  E_Unary_Operator,
-  E_Enum_Reference,
-  E_Element_Reference,
-  E_Dummy,
 };
 
 /**

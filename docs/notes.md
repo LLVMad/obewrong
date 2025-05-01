@@ -112,3 +112,43 @@ Todo:
 - Arrays/ Lists
 - Virtual/ Override
 - Generics
+
+## 19.04.2025
+
+### Thoughts:
+- deprecate ClassNameEXP?
+- create MainDecl ?
+- Only HARDCODED types are:
+  - Byte (uint8_t)
+    - lowers to llvm add instr
+  - Pointer (ada alike)
+    - unique ptr 
+    - shared ptr
+    - strongly typed
+    - nullptr literal
+- All other types are part of std lib
+  - maybe implement them with residue number system?
+  - maybe impl them with only bit ops?
+- Generics should be resolved in compile time same goes to metaprogramming and they should be predictable
+  - Generics should be alike Dlang templates so outside of class decl or func decl
+  - NAMED templates
+- Alias for renaming
+- Compound literals from C23
+- ref keyword as a 'reference to' in parameters of function
+- variable should be marked as available for referencing
+- Virtual methods on base class 
+- Override specifier for child class overriden functions
+- volatile keyword
+- const qualifier
+- destructors
+
+### Todo:
+
+-[ ] Move param read in FuncDecl to ParamDecl visit
+-[ ] Test fibonacci funtction
+-[ ] class declaration
+-[ ] add assignment to enum items
+-[ ] unsigned integer literals
+-[ ] float literals postfix 
+-[ ] shor declaration
+-[ ] forward declaration

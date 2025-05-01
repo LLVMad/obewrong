@@ -1,0 +1,13 @@
+module pt
+
+class Pointer[T] is 
+  var addr: byte
+end
+
+class Array[T] is 
+  var elements: Pointer[T]
+end
+
+class Integer is 
+  var value : Array[byte, 4]
+end

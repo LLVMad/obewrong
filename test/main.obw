@@ -1,0 +1,17 @@
+module simplemain
+
+class Point is 
+  var x : byte 
+  var y : byte 
+
+  this(_x: byte, _y: byte) is 
+    this.x := _x 
+    this.y := _y
+  end
+end
+
+func main() is
+  var a : Point(2, 2)
+  //var p : Point(2, 2)
+  //printf("point = %d:%d\n", p.x, p.y)
+end
