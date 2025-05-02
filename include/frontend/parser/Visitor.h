@@ -40,6 +40,8 @@ public:
   virtual void visit(std::shared_ptr<ClassDecl> node) = 0;
   virtual void visit(std::shared_ptr<ArrayDecl> node) = 0;
   virtual void visit(std::shared_ptr<ListDecl> node) = 0;
+  virtual void visit(std::shared_ptr<Block> node) = 0;
+  virtual void visit(std::shared_ptr<Decl> node) = 0;
   //=============================================
 
   //=============== STATEMENTS ===============
@@ -51,34 +53,6 @@ public:
   virtual void visit(std::shared_ptr<WhileSTMT> node) = 0;
   virtual void visit(std::shared_ptr<ForSTMT> node) = 0;
   //=============================================
-};
-
-/**
- * Prints AST tree
- *
- * @example \n
- * ModuleSTMT | "simple" \n
- *   ClassDecl | "Simple" \n
- *     FieldDecl | "a Integer" \n
- *
- *     MethodDecl | "add" \n
- *       ParameterDecl | "a" \n
- *         AssignmentSTMT | "b := .." \n
- *           VarRefEXP | "a" \n
- *           MethodCallEXPR | "a.UnaryMinus()" \n
- *         MethodCallEXPR | "a.Plus(b)" \n
- *
- *     ConstrDecl | "..." \n
- *       ParamDecl | "b" \n
- *         AssignemtnEXPR \n
- *           FieldRefEXPR | "a" \n
- *           ...
- */
-class PrintVisitor : public Visitor {
-public:
-  void visit(std::shared_ptr<IntLiteralEXP> node) override {
-    std::cout << node->getValue() << std::endl;
-  };
 };
 
 #endif

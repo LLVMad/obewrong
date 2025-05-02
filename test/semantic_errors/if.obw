@@ -1,0 +1,15 @@
+module ifelif 
+
+func main() is 
+  var a : Integer(2)
+
+  if a % 3 == 0 then
+    printl("mod 3")
+  end
+  else if a % 2 == 0 then 
+    printl("mod 2")
+  end
+  else 
+    printl("no mod")
+  end 
+end
