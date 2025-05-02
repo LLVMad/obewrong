@@ -3,14 +3,13 @@ module simple
 class Simple is   
   method add(a : Integer) : Integer is 
     var b : Integer 
-    b := a + 2
-    return b
+    b := a + "2"          // Ошибка 1: сложение int и string
+    var c : String := 100 // Ошибка 2: присвоение int строковой переменной
+    return "result"       // Ошибка 3: возврат string вместо int
   end 
 end
 
 func main() is 
   var simp : Simple
   printl(simp.add(2))
-
-  var c //error
 end
