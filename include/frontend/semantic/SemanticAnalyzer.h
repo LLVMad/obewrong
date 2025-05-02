@@ -14,6 +14,7 @@ public:
       : globalTypeTable(globalTypeTable), symbolTable(symbolTable) {
     globalTypeTable->initBuiltinTypes();
     symbolTable->initBuiltinFunctions(globalTypeTable);
+    currentScope = symbolTable->getGlobalScope();
   }
 
   bool analyze(std::shared_ptr<Entity> root);
@@ -24,6 +25,10 @@ private:
   std::shared_ptr<SymbolTable> symbolTable;
   std::vector<std::string> errors;
   std::shared_ptr<Scope> currentScope;
+
+  std::shared_ptr<Type> currentReturnType;
+  bool currentFuncIsVoid = false;
+  std::string currentModuleName;
 
   // Declarations
   void checkModuleDecl(const std::shared_ptr<ModuleDecl> &moduleDecl);
@@ -36,6 +41,7 @@ private:
   void checkEnumDecl(const std::shared_ptr<EnumDecl> &enumDecl);
   void checkArrayDecl(const std::shared_ptr<ArrayDecl> &arrayDecl);
   void checkMethodDecl(const std::shared_ptr<MethodDecl> &methodDecl);
+  void checkMainDecl(const std::shared_ptr<FuncDecl> &funcDecl);
 
   void checkEntity(const std::shared_ptr<Entity> &entity);
   void checkBlock(const std::shared_ptr<Block> &block);
@@ -69,8 +75,10 @@ private:
   void checkReturnSTMT(const std::shared_ptr<ReturnSTMT> &returnStmt);
   void checkThisEXP(const std::shared_ptr<ThisEXP> &thisExp);
 
-  void resolveType(const std::shared_ptr<Expression> &expr);
   void reportError(const std::string &message, const Loc &loc);
+  std::shared_ptr<Type>
+  resolveExprType(const std::shared_ptr<Expression> &expr);
+  std::shared_ptr<Type> getTypeInTypeTable(std::string str);
 };
 
 #endif

@@ -8,6 +8,7 @@
 #include <stack>
 #include <unordered_map>
 #include <vector>
+// #include <iostream>
 
 enum ScopeKind {
   SCOPE_GLOBAL, // scope of all project (multiple cu's)
@@ -20,7 +21,7 @@ enum ScopeKind {
 
 struct SymbolInfo {
   std::shared_ptr<Decl> decl; // for parsing phase
-  llvm::AllocaInst* alloca;   // for codegen
+  llvm::AllocaInst *alloca;   // for codegen
   bool isInitialized;
 };
 
@@ -84,7 +85,8 @@ public:
    */
   std::shared_ptr<Scope> nextScope() {
     depth++;
-    if (depth > static_cast<int>(children.size() - 1)) return std::shared_ptr(parent);
+    if (depth > static_cast<int>(children.size() - 1))
+      return std::shared_ptr(parent);
     return children[depth];
   }
 
@@ -94,11 +96,15 @@ public:
    *              0 - parent scope
    * @return children scope at depth
    */
-  std::shared_ptr<Scope> prevScope() {
-    return std::shared_ptr(parent);
-  }
+  std::shared_ptr<Scope> prevScope() { return std::shared_ptr(parent); }
 
-  SymbolInfo* getSymbol(const std::string &name) {
+  SymbolInfo *getSymbol(const std::string &name) {
+    // std::cout << "----PRINT SYMBOLS IN SCOPE----" << std::endl;
+    // for (const auto &sym : symbols) {
+    //     std::cout << sym.second.decl->name << std::endl;
+    //   }
+
+    // std::cout << "---try to find " << name  << "---"<< std::endl;
     if (auto it = symbols.find(name); it != symbols.end()) {
       return &it->second;
     }
@@ -112,17 +118,20 @@ public:
   }
 
   std::shared_ptr<Decl> lookup(const std::string &name) {
-    if (auto sym = this->getSymbol(name)) return sym->decl;
+    if (auto sym = this->getSymbol(name))
+      return sym->decl;
     return nullptr;
   }
 
-  llvm::AllocaInst* lookupAlloca(const std::string &name) {
-    if (auto sym = this->getSymbol(name)) return sym->alloca;
+  llvm::AllocaInst *lookupAlloca(const std::string &name) {
+    if (auto sym = this->getSymbol(name))
+      return sym->alloca;
     return nullptr;
   }
 
   bool isDeclInitialized(const std::string &name) {
-    if (auto sym = this->getSymbol(name)) return sym->isInitialized;
+    if (auto sym = this->getSymbol(name))
+      return sym->isInitialized;
     return false;
   }
 
@@ -161,9 +170,7 @@ public:
   const std::string &getName() const { return name; }
   auto &getChildren() const { return children; }
   std::weak_ptr<Scope> getParent() const { return parent; }
-  std::unordered_map<std::string, SymbolInfo> &getSymbols() {
-    return symbols;
-  }
+  std::unordered_map<std::string, SymbolInfo> &getSymbols() { return symbols; }
 
   void setName(const std::string &name) { this->name = name; }
   void appendToName(const std::string &name) { this->name += name; }

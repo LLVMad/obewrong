@@ -35,32 +35,32 @@ enum Ekind {
   E_List_Decl,
   E_Module_Decl,
   E_Enum_Decl,
-  E_Main_Decl,
+  E_Main_Decl, // 11
 
   // Type related entities
   E_Integer_Type,
   E_Real_Type,
   E_String_Type,
   E_Boolean_Type,
-  E_Function_Type,
+  E_Function_Type, // 16
 
   // Expression related
   E_Integer_Literal,
   E_Real_Literal,
   E_String_Literal,
-  E_Array_Literal,
+  E_Array_Literal, // 20
   E_Var_Reference,
   E_Field_Reference,
   E_Boolean_Literal,
   E_Function,
-  E_Constructor_Call,
+  E_Constructor_Call, // 25
   E_Method,
   E_Chained_Functions, // compound expressions, a.Plus(2).Minus(1)...
   E_Class_Name,
-  E_Dummy,
+  E_Dummy, // 29
   E_Function_Call,
   E_Method_Call,
-  E_Binary_Operator,
+  E_Binary_Operator, // 32
   E_Unary_Operator,
   E_Enum_Reference,
   E_Element_Reference,
@@ -78,7 +78,7 @@ enum Ekind {
   E_Switch_Statement,
   E_Case_Statement,
   E_Return_Statement,
-  E_Block,
+  E_Block, // 44
 };
 
 /**
@@ -129,7 +129,7 @@ enum BlockKind {
 class Block : public Entity {
 public:
   Block(std::vector<std::shared_ptr<Entity>> parts, BlockKind kind)
-      : Entity(E_Block), parts(std::move(parts)), kind(kind) {};
+      : Entity(E_Block), parts(std::move(parts)), kind(kind){};
 
   std::vector<std::shared_ptr<Entity>> parts;
   BlockKind kind;

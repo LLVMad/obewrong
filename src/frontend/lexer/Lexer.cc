@@ -18,39 +18,25 @@
  * Hash function for fast check if an input word is a keyword
  */
 inline unsigned int Lexer::hash(const char *str, size_t len) {
-  static unsigned char asso_values[] =
-      {
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47,  5, 47, 28,
-    47,  0,  3, 47, 15,  0, 47, 47, 10, 10,
-    10, 20, 15, 47,  0,  0, 20,  0, 10,  5,
-    15,  3, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47
-  };
-  register unsigned int hval = len;
+  static unsigned char asso_values[] = {
+      47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
+      47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
+      47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
+      47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
+      47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
+      47, 47, 47, 47, 47, 47, 47, 5,  47, 28, 47, 0,  3,  47, 15, 0,  47, 47,
+      10, 10, 10, 20, 15, 47, 0,  0,  20, 0,  10, 5,  15, 3,  47, 47, 47, 47,
+      47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
+      47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
+      47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
+      47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
+      47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
+      47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
+      47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
+      47, 47, 47, 47};
+  unsigned int hval = len;
 
-  switch (hval)
-  {
+  switch (hval) {
   default:
     hval += asso_values[(unsigned char)str[3]];
     /*FALLTHROUGH*/
@@ -67,99 +53,29 @@ inline unsigned int Lexer::hash(const char *str, size_t len) {
  */
 std::pair<const char *, TokenKind> Lexer::in_word_set(const char *str,
                                                       size_t len) {
-  static const char * wordlist[] =
-  {
-    "", "",
-    "is",
-    "new",
-    "true",
-    "if",
-    "return",
-    "byte",
-    "var",
-    "case",
-    "false",
-    "",
-    "default",
-    "end",
-    "else",
-    "class",
-    "public",
-    "private",
-    "override",
-    "this",
-    "",
-    "method",
-    "extends",
-    "for",
-    "enum",
-    "",
-    "module",
-    "virtual",
-    "",
-    "then",
-    "while",
-    "switch",
-    "func",
-    "",
-    "access",
-    "",
-    "import",
-    "", "",
-    "loop",
-    "", "", "", "", "", "",
-    "static"
-  };
+  static const char *wordlist[] = {
+      "",         "",       "is",     "new",     "true",    "if",
+      "return",   "byte",   "var",    "case",    "false",   "",
+      "default",  "end",    "else",   "class",   "public",  "private",
+      "override", "this",   "",       "method",  "extends", "for",
+      "enum",     "",       "module", "virtual", "",        "then",
+      "while",    "switch", "func",   "",        "access",  "",
+      "import",   "",       "",       "loop",    "",        "",
+      "",         "",       "",       "",        "static"};
 
   static const TokenKind keytokenlist[] = {
-    TOKEN_UNKNOWN,
-    TOKEN_UNKNOWN,
-    TOKEN_BBEGIN,
-    TOKEN_NEW,
-    TOKEN_BOOL_TRUE,
-    TOKEN_IF,
-    TOKEN_RETURN,
-    TOKEN_TYPE_BYTE,
-    TOKEN_VAR_DECL,
-    TOKEN_CASE,
-    TOKEN_BOOL_FALSE,
-    TOKEN_UNKNOWN,
-    TOKEN_DEFAULT,
-    TOKEN_BEND,
-    TOKEN_ELSE,
-    TOKEN_CLASS,
-    TOKEN_PUBLIC,
-    TOKEN_PRIVATE,
-    TOKEN_OVERRIDE,
-    TOKEN_SELFREF,
-    TOKEN_UNKNOWN,
-    TOKEN_METHOD,
-    TOKEN_EXTENDS,
-    TOKEN_FOR,
-    TOKEN_ENUM,
-    TOKEN_UNKNOWN,
-    TOKEN_MODULE_DECL,
-    TOKEN_VIRTUAL,
-    TOKEN_UNKNOWN,
-    TOKEN_THEN,
-    TOKEN_WHILE,
-    TOKEN_SWITCH,
-    TOKEN_FUNC,
-    TOKEN_UNKNOWN,
-    TOKEN_ACCESS,
-    TOKEN_UNKNOWN,
-    TOKEN_MODULE_IMP,
-    TOKEN_UNKNOWN,
-    TOKEN_UNKNOWN,
-    TOKEN_LOOP,
-    TOKEN_UNKNOWN,
-    TOKEN_UNKNOWN,
-    TOKEN_UNKNOWN,
-    TOKEN_UNKNOWN,
-    TOKEN_UNKNOWN,
-    TOKEN_UNKNOWN,
-    TOKEN_STATIC
-};
+      TOKEN_UNKNOWN,    TOKEN_UNKNOWN, TOKEN_BBEGIN,      TOKEN_NEW,
+      TOKEN_BOOL_TRUE,  TOKEN_IF,      TOKEN_RETURN,      TOKEN_TYPE_BYTE,
+      TOKEN_VAR_DECL,   TOKEN_CASE,    TOKEN_BOOL_FALSE,  TOKEN_UNKNOWN,
+      TOKEN_DEFAULT,    TOKEN_BEND,    TOKEN_ELSE,        TOKEN_CLASS,
+      TOKEN_PUBLIC,     TOKEN_PRIVATE, TOKEN_OVERRIDE,    TOKEN_SELFREF,
+      TOKEN_UNKNOWN,    TOKEN_METHOD,  TOKEN_EXTENDS,     TOKEN_FOR,
+      TOKEN_ENUM,       TOKEN_UNKNOWN, TOKEN_MODULE_DECL, TOKEN_VIRTUAL,
+      TOKEN_UNKNOWN,    TOKEN_THEN,    TOKEN_WHILE,       TOKEN_SWITCH,
+      TOKEN_FUNC,       TOKEN_UNKNOWN, TOKEN_ACCESS,      TOKEN_UNKNOWN,
+      TOKEN_MODULE_IMP, TOKEN_UNKNOWN, TOKEN_UNKNOWN,     TOKEN_LOOP,
+      TOKEN_UNKNOWN,    TOKEN_UNKNOWN, TOKEN_UNKNOWN,     TOKEN_UNKNOWN,
+      TOKEN_UNKNOWN,    TOKEN_UNKNOWN, TOKEN_STATIC};
 
   if (len <= MAX_WORD_LENGTH && len >= MIN_WORD_LENGTH) {
     unsigned int key = hash(str, len);
@@ -213,7 +129,8 @@ std::unique_ptr<Token> Lexer::next() {
     // Skip comments
     // @TODO test, this is SUS
     if (c == '/') {
-      if (buffer[1] != '/') break;
+      if (buffer[1] != '/')
+        break;
 
       while (c != '\n') {
         advance();
@@ -411,33 +328,33 @@ std::unique_ptr<Token> Lexer::next() {
           // int8_t
           advance();
           curr_state = STATE_START;
-          return std::make_unique<Token>(TOKEN_INT8_NUMBER, std::stoi(token),
-                                         curr_line,
-                                         curr_column /* - token.length() + 1 */);
+          return std::make_unique<Token>(
+              TOKEN_INT8_NUMBER, std::stoi(token), curr_line,
+              curr_column /* - token.length() + 1 */);
         }
         if (c == 'h') {
           // int16_t
           advance();
           curr_state = STATE_START;
-          return std::make_unique<Token>(TOKEN_INT16_NUMBER, std::stoi(token),
-                                         curr_line,
-                                         curr_column /* - token.length() + 1 */);
+          return std::make_unique<Token>(
+              TOKEN_INT16_NUMBER, std::stoi(token), curr_line,
+              curr_column /* - token.length() + 1 */);
         }
         if (c == 'l') {
           // int32_t
           advance();
           if (peek() == 'l') {
-            //int64_t
+            // int64_t
             advance();
             curr_state = STATE_START;
-            return std::make_unique<Token>(TOKEN_INT64_NUMBER, std::stoi(token),
-                                           curr_line,
-                                           curr_column /* - token.length() + 1 */);
+            return std::make_unique<Token>(
+                TOKEN_INT64_NUMBER, std::stoi(token), curr_line,
+                curr_column /* - token.length() + 1 */);
           }
           curr_state = STATE_START;
-          return std::make_unique<Token>(TOKEN_INT32_NUMBER, std::stoi(token),
-                                         curr_line,
-                                         curr_column /* - token.length() + 1 */);
+          return std::make_unique<Token>(
+              TOKEN_INT32_NUMBER, std::stoi(token), curr_line,
+              curr_column /* - token.length() + 1 */);
         }
 
         curr_state = STATE_START;
@@ -552,18 +469,18 @@ const char *Lexer::getTokenTypeName(TokenKind type) {
                                      "TOKEN_BBEGIN",
                                      "TOKEN_BEND",
                                      "TOKEN_INT_NUMBER",
-                                    "TOKEN_INT8_NUMBER",
-                                    "TOKEN_UINT8_NUMBER",
-                                    "TOKEN_INT16_NUMBER",
-                                    "TOKEN_UINT16_NUMBER",
-                                    "TOKEN_INT32_NUMBER",
-                                    "TOKEN_UINT32_NUMBER",
-                                    "TOKEN_INT64_NUMBER",
-                                    "TOKEN_UINT64_NUMBER",
+                                     "TOKEN_INT8_NUMBER",
+                                     "TOKEN_UINT8_NUMBER",
+                                     "TOKEN_INT16_NUMBER",
+                                     "TOKEN_UINT16_NUMBER",
+                                     "TOKEN_INT32_NUMBER",
+                                     "TOKEN_UINT32_NUMBER",
+                                     "TOKEN_INT64_NUMBER",
+                                     "TOKEN_UINT64_NUMBER",
                                      "TOKEN_REAL_NUMBER",
-                                      "TOKEN_REAL16_NUMBER",
-                                      "TOKEN_REAL32_NUMBER",
-                                      "TOKEN_REAL64_NUMBER",
+                                     "TOKEN_REAL16_NUMBER",
+                                     "TOKEN_REAL32_NUMBER",
+                                     "TOKEN_REAL64_NUMBER",
                                      "TOKEN_COMMENT",
                                      "TOKEN_STRING",
                                      "TOKEN_BOOL_TRUE",
@@ -621,10 +538,10 @@ const char *Lexer::getTokenTypeName(TokenKind type) {
                                      "TOKEN_OVERRIDE",
                                      "TOKEN_VIRTUAL",
                                      "TOKEN_ENUM",
-                                    "TOKEN_PUBLIC",
-                                    "TOKEN_PRIVATE",
-                                    "TOKEN_ACCESS",
-                                    "TOKEN_TYPE_BYTE"
+                                     "TOKEN_PUBLIC",
+                                     "TOKEN_PRIVATE",
+                                     "TOKEN_ACCESS",
+                                     "TOKEN_TYPE_BYTE"
                                      "TOKEN_UNKNOWN"};
   return tokenNames[type];
 }

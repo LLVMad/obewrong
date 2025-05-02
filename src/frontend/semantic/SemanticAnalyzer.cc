@@ -32,7 +32,6 @@ std::string getUnaryOperatorString(OperatorKind op) {
 }
 
 bool SemanticAnalyzer::analyze(std::shared_ptr<Entity> root) {
-  currentScope = symbolTable->getGlobalScope();
   checkEntity(root);
   return errors.empty();
 }
@@ -140,6 +139,9 @@ void SemanticAnalyzer::checkEntity(const std::shared_ptr<Entity> &entity) {
   case E_This:
     checkThisEXP(std::dynamic_pointer_cast<ThisEXP>(entity));
     break;
+  case E_Main_Decl:
+    checkMainDecl(std::dynamic_pointer_cast<FuncDecl>(entity));
+    break;
   default:
     reportError("Unhandled entity kind: " + std::to_string(entity->getKind()),
                 entity->getLoc());
@@ -154,57 +156,10 @@ void SemanticAnalyzer::checkBlock(const std::shared_ptr<Block> &block) {
 
 void SemanticAnalyzer::checkMethodCallEXP(
     const std::shared_ptr<MethodCallEXP> &methodCall) {
-  resolveType(methodCall->left);
-  auto objType = methodCall->left->resolveType(globalTypeTable->builtinTypes);
-  if (!objType) {
-    reportError("Undefined object in method call", methodCall->getLoc());
-    return;
-  }
+  checkEntity(methodCall->left);
 
-  auto type = globalTypeTable->getType("", objType->name);
-  if (!type) {
-    reportError("Type '" + objType->name + "' not found", methodCall->getLoc());
-    return;
-  }
-
-  auto classType = std::dynamic_pointer_cast<TypeClass>(type);
-  if (!classType) {
-    reportError("Type '" + objType->name + "' is not a class",
-                methodCall->getLoc());
-    return;
-  }
-
-  auto method = classType->getMethod(methodCall->method_name);
-  if (!method) {
-    reportError("Method '" + methodCall->method_name + "' not found in type '" +
-                    objType->name + "'",
-                methodCall->getLoc());
-    return;
-  }
-
-  if (method->args.size() != methodCall->arguments.size()) {
-    reportError("Argument count mismatch for method '" +
-                    methodCall->method_name + "'",
-                methodCall->getLoc());
-    return;
-  }
-
-  for (size_t i = 0; i < methodCall->arguments.size(); ++i) {
-    resolveType(methodCall->arguments[i]);
-    auto argType =
-        methodCall->arguments[i]->resolveType(globalTypeTable->builtinTypes);
-    if (argType != method->args[i]) {
-      reportError("Type mismatch in argument " + std::to_string(i + 1),
-                  methodCall->arguments[i]->getLoc());
-    }
-  }
-}
-
-void SemanticAnalyzer::resolveType(const std::shared_ptr<Expression> &expr) {
-  auto type = expr->resolveType(globalTypeTable->builtinTypes);
-
-  if (!type) {
-    reportError("Cannot resolve type of expression", expr->getLoc());
+  for (const auto &arg : methodCall->arguments) {
+    checkEntity(arg);
   }
 }
 
@@ -218,34 +173,10 @@ void SemanticAnalyzer::reportError(const std::string &message, const Loc &loc) {
 void SemanticAnalyzer::checkAssignmentSTMT(
     const std::shared_ptr<AssignmentSTMT> &assignment) {
   if (assignment->variable) {
-    resolveType(assignment->variable);
-    auto varType =
-        assignment->variable->resolveType(globalTypeTable->builtinTypes);
-    resolveType(assignment->expression);
-    auto exprType =
-        assignment->expression->resolveType(globalTypeTable->builtinTypes);
-    if (varType != exprType) {
-      reportError("Type mismatch in assignment", assignment->getLoc());
-    }
-  } else if (assignment->field) {
-    resolveType(assignment->field->obj);
-    auto objType =
-        assignment->field->obj->resolveType(globalTypeTable->builtinTypes);
-    auto classType = std::dynamic_pointer_cast<TypeClass>(objType);
-    if (classType) {
-      auto fieldDecl = classType->getField(assignment->field->field_name);
-      if (!fieldDecl) {
-        reportError("Field '" + assignment->field->field_name + "' not found",
-                    assignment->getLoc());
-        return;
-      }
-      resolveType(assignment->expression);
-      auto exprType =
-          assignment->expression->resolveType(globalTypeTable->builtinTypes);
-      if (exprType != fieldDecl) {
-        reportError("Type mismatch in field assignment", assignment->getLoc());
-      }
-    }
+    checkEntity(assignment->variable);
+  }
+  if (assignment->expression) {
+    checkEntity(assignment->expression);
   }
 }
 
@@ -253,7 +184,15 @@ void SemanticAnalyzer::checkVarDecl(const std::shared_ptr<VarDecl> &varDecl) {
   if (!varDecl->type) {
     reportError("Variable '" + varDecl->name + "' has no type",
                 varDecl->getLoc());
-    return;
+  }
+
+  std::shared_ptr<Type> declaredType;
+  if (currentScope->getName() != "main") {
+    declaredType = globalTypeTable->getType(
+        symbolTable->getCurrentScope()->getName(), varDecl->type->name);
+  } else {
+    declaredType =
+        globalTypeTable->getType(currentModuleName, varDecl->type->name);
   }
 
   bool isBuiltinTypes = false;
@@ -261,61 +200,50 @@ void SemanticAnalyzer::checkVarDecl(const std::shared_ptr<VarDecl> &varDecl) {
     if (name == varDecl->type->name)
       isBuiltinTypes = true;
   }
-
-  auto declaredType = globalTypeTable->getType("", varDecl->type->name);
-  // if (!declaredType and !isBuiltinTypes) {
-  //     reportError("Undefined type '" + varDecl->type->name + "'",
-  //     varDecl->getLoc()); return;
-  // }
+  if (!declaredType and !isBuiltinTypes) {
+    reportError("Undefined type '" + varDecl->type->name + "'",
+                varDecl->getLoc());
+  }
 
   if (varDecl->initializer) {
-    resolveType(varDecl->initializer);
-    auto initType =
-        varDecl->initializer->resolveType(globalTypeTable->builtinTypes);
-    if (initType != declaredType) {
-      reportError("Type mismatch in initialization of '" + varDecl->name + "'",
-                  varDecl->getLoc());
-    }
+    checkEntity(varDecl->initializer);
   }
 }
 
 void SemanticAnalyzer::checkModuleDecl(
     const std::shared_ptr<ModuleDecl> &moduleDecl) {
+  currentScope = currentScope->nextScope();
+  currentModuleName = moduleDecl->name;
   if (moduleDecl->children.empty()) {
     reportError("Module '" + moduleDecl->name + "' is empty",
                 moduleDecl->getLoc());
-    return;
   }
 
   for (const auto &child : moduleDecl->children) {
     checkEntity(child);
   }
+
+  currentScope = currentScope->prevScope();
 }
 
 void SemanticAnalyzer::checkClassDecl(
     const std::shared_ptr<ClassDecl> &classDecl) {
-  std::string moduleName = symbolTable->getCurrentScope()->getName();
-  // TODO
+  // std::string moduleName = symbolTable->getCurrentScope()->getName();
 
-  auto existingType = globalTypeTable->getType(moduleName, classDecl->name);
-  std::cout << "Checking class " << classDecl->name << " in module "
-            << moduleName << std::endl;
+  // if (globalTypeTable->getType(currentScope->getName(), classDecl->name)) {
+  //   reportError("Duplicate class name: " + classDecl->name,
+  //   classDecl->getLoc());
+  // }
 
-  if (existingType) {
-    reportError("Duplicate class name: " + classDecl->name,
-                classDecl->getLoc());
-    return;
-  }
+  currentScope = currentScope->nextScope();
 
   if (!classDecl->fields.empty()) {
     for (const auto &field : classDecl->fields) {
-      std::cout << "enter into classDecl->fields" << std::endl;
       checkEntity(field);
     }
   }
   if (!classDecl->methods.empty()) {
     for (const auto &method : classDecl->methods) {
-      std::cout << "enter into classDecl->methods" << std::endl;
       checkEntity(method);
     }
   }
@@ -324,17 +252,17 @@ void SemanticAnalyzer::checkClassDecl(
       checkEntity(constr);
     }
   }
+  currentScope = currentScope->prevScope();
 }
 
 void SemanticAnalyzer::checkConstrDecl(
     const std::shared_ptr<ConstrDecl> &constrDecl) {
-  auto classType = std::dynamic_pointer_cast<TypeClass>(
-      currentScope->lookup(constrDecl->name));
-  if (!classType) {
+  auto [decl, alloc, isInited] = *currentScope->getSymbol(constrDecl->name);
+
+  if (!isInited) {
     reportError("Constructor '" + constrDecl->name +
                     "' is not in a class scope",
                 constrDecl->getLoc());
-    return;
   }
 
   for (const auto &param : constrDecl->args) {
@@ -360,7 +288,8 @@ void SemanticAnalyzer::checkParameterDecl(
                 paramDecl->getLoc());
   }
 
-  if (currentScope->lookup(paramDecl->name)) {
+  auto [decl, alloc, isInited] = *currentScope->getSymbol(paramDecl->name);
+  if (isInited) {
     reportError("Duplicate parameter name: " + paramDecl->name,
                 paramDecl->getLoc());
   }
@@ -374,7 +303,8 @@ void SemanticAnalyzer::checkFieldDecl(
                 fieldDecl->getLoc());
   }
 
-  if (currentScope->lookup(fieldDecl->name)) {
+  auto [decl, alloc, isInited] = *currentScope->getSymbol(fieldDecl->name);
+  if (isInited) {
     reportError("Duplicate field name: " + fieldDecl->name,
                 fieldDecl->getLoc());
   }
@@ -382,6 +312,10 @@ void SemanticAnalyzer::checkFieldDecl(
 
 void SemanticAnalyzer::checkFuncDecl(
     const std::shared_ptr<FuncDecl> &funcDecl) {
+  currentScope = currentScope->nextScope();
+  currentReturnType =
+      funcDecl->isVoid ? nullptr : funcDecl->signature->return_type;
+  currentFuncIsVoid = funcDecl->isVoid;
   if (!funcDecl->isVoid) {
     auto returnType =
         globalTypeTable->getType("", funcDecl->signature->return_type->name);
@@ -392,7 +326,8 @@ void SemanticAnalyzer::checkFuncDecl(
     }
   }
 
-  if (currentScope->lookup(funcDecl->name)) {
+  auto [decl, alloc, isInited] = *currentScope->getSymbol(funcDecl->name);
+  if (isInited) {
     reportError("Duplicate function name: " + funcDecl->name,
                 funcDecl->getLoc());
   }
@@ -404,10 +339,18 @@ void SemanticAnalyzer::checkFuncDecl(
   if (funcDecl->body) {
     checkEntity(funcDecl->body);
   }
+
+  currentReturnType = nullptr;
+  currentFuncIsVoid = false;
+  currentScope = currentScope->prevScope();
 }
 
 void SemanticAnalyzer::checkMethodDecl(
     const std::shared_ptr<MethodDecl> &methodDecl) {
+  currentScope = currentScope->nextScope();
+  currentReturnType =
+      methodDecl->isVoid ? nullptr : methodDecl->signature->return_type;
+  currentFuncIsVoid = methodDecl->isVoid;
   if (!methodDecl->isVoid) {
     auto returnType =
         globalTypeTable->getType("", methodDecl->signature->return_type->name);
@@ -423,8 +366,8 @@ void SemanticAnalyzer::checkMethodDecl(
     }
   }
 
-  // auto classScope = symbolTable->getEnclosingClassScope(currentScope);
-  if (currentScope->lookup(methodDecl->name)) {
+  auto [decl, alloc, isInited] = *currentScope->getSymbol(methodDecl->name);
+  if (isInited) {
     reportError("Duplicate method name: " + methodDecl->name,
                 methodDecl->getLoc());
   }
@@ -436,6 +379,10 @@ void SemanticAnalyzer::checkMethodDecl(
   if (methodDecl->body) {
     checkEntity(methodDecl->body);
   }
+  currentReturnType = nullptr;
+  currentFuncIsVoid = false;
+
+  currentScope = currentScope->prevScope();
 }
 
 void SemanticAnalyzer::checkArrayDecl(
@@ -451,7 +398,8 @@ void SemanticAnalyzer::checkArrayDecl(
                 arrayDecl->getLoc());
   }
 
-  if (currentScope->lookup(arrayDecl->name)) {
+  auto [decl, alloc, isInited] = *currentScope->getSymbol(arrayDecl->name);
+  if (isInited) {
     reportError("Duplicate array name: " + arrayDecl->name,
                 arrayDecl->getLoc());
   }
@@ -459,7 +407,8 @@ void SemanticAnalyzer::checkArrayDecl(
 
 void SemanticAnalyzer::checkEnumDecl(
     const std::shared_ptr<EnumDecl> &enumDecl) {
-  if (currentScope->lookup(enumDecl->name)) {
+  auto [decl, alloc, isInited] = *currentScope->getSymbol(enumDecl->name);
+  if (isInited) {
     reportError("Duplicate enum name: " + enumDecl->name, enumDecl->getLoc());
   }
 
@@ -474,10 +423,6 @@ void SemanticAnalyzer::checkEnumDecl(
 
 void SemanticAnalyzer::checkIntLiteralEXP(
     const std::shared_ptr<IntLiteralEXP> &lit) {
-  auto type = lit->resolveType(globalTypeTable->builtinTypes);
-  if (!type || type->name != "Integer") {
-    reportError("Invalid integer literal type", lit->getLoc());
-  }
 
   if (lit->getValue() < std::numeric_limits<int32_t>::min() ||
       lit->getValue() > std::numeric_limits<int32_t>::max()) {
@@ -487,7 +432,7 @@ void SemanticAnalyzer::checkIntLiteralEXP(
 
 void SemanticAnalyzer::checkRealLiteralEXP(
     const std::shared_ptr<RealLiteralEXP> &lit) {
-  auto type = lit->resolveType(globalTypeTable->builtinTypes);
+  auto type = resolveExprType(lit);
   if (!type || type->name != "Real") {
     reportError("Invalid real literal type", lit->getLoc());
   }
@@ -495,7 +440,7 @@ void SemanticAnalyzer::checkRealLiteralEXP(
 
 void SemanticAnalyzer::checkStringLiteralEXP(
     const std::shared_ptr<StringLiteralEXP> &lit) {
-  auto type = lit->resolveType(globalTypeTable->builtinTypes);
+  auto type = resolveExprType(lit);
   if (!type || type->name != "String") {
     reportError("Invalid string literal type", lit->getLoc());
   }
@@ -503,7 +448,7 @@ void SemanticAnalyzer::checkStringLiteralEXP(
 
 void SemanticAnalyzer::checkBoolLiteralEXP(
     const std::shared_ptr<BoolLiteralEXP> &lit) {
-  auto type = lit->resolveType(globalTypeTable->builtinTypes);
+  auto type = resolveExprType(lit);
   if (!type || type->name != "Bool") {
     reportError("Invalid boolean literal type", lit->getLoc());
   }
@@ -511,8 +456,8 @@ void SemanticAnalyzer::checkBoolLiteralEXP(
 
 void SemanticAnalyzer::checkClassNameEXP(
     const std::shared_ptr<ClassNameEXP> &classRef) {
-  auto classType =
-      globalTypeTable->getType(currentScope->getName(), classRef->name);
+  auto classType = globalTypeTable->getType(
+      symbolTable->getCurrentScope()->getName(), classRef->name);
   if (!classType) {
     reportError("Undefined class name: " + classRef->name, classRef->getLoc());
     return;
@@ -525,24 +470,16 @@ void SemanticAnalyzer::checkClassNameEXP(
 
 void SemanticAnalyzer::checkVarRefEXP(
     const std::shared_ptr<VarRefEXP> &varRef) {
-  auto varDecl = currentScope->lookup(varRef->var_name);
-  if (!varDecl) {
+  auto [decl, alloc, isInited] = *currentScope->getSymbol(varRef->var_name);
+  if (!decl) {
     reportError("Undefined variable '" + varRef->var_name + "'",
-                varRef->getLoc());
-    return;
-  }
-
-  auto varType = varDecl->resolveType(globalTypeTable->builtinTypes);
-  if (!varType) {
-    reportError("Cannot resolve type for variable '" + varRef->var_name + "'",
                 varRef->getLoc());
   }
 }
 
 void SemanticAnalyzer::checkFieldRefEXP(
     const std::shared_ptr<FieldRefEXP> &fieldRef) {
-  resolveType(fieldRef->obj);
-  auto objType = fieldRef->obj->resolveType(globalTypeTable->builtinTypes);
+  auto objType = resolveExprType(fieldRef->obj);
 
   auto classType = std::dynamic_pointer_cast<TypeClass>(objType);
   if (!classType) {
@@ -558,40 +495,24 @@ void SemanticAnalyzer::checkFieldRefEXP(
 
 void SemanticAnalyzer::checkFuncCallEXP(
     const std::shared_ptr<FuncCallEXP> &funcCall) {
-  auto funcDecl = currentScope->lookup(funcCall->func_name);
-  if (!funcDecl) {
-    reportError("Undefined function '" + funcCall->func_name + "'",
-                funcCall->getLoc());
-    return;
-  }
-
-  auto funcType = funcDecl->resolveType(globalTypeTable->builtinTypes);
-  auto funcSignature = std::dynamic_pointer_cast<TypeFunc>(funcType);
-
-  if (funcCall->arguments.size() != funcSignature->args.size()) {
-    reportError("Argument count mismatch for function '" + funcCall->func_name +
-                    "'",
-                funcCall->getLoc());
-  }
-
-  for (size_t i = 0; i < funcCall->arguments.size(); ++i) {
-    resolveType(funcCall->arguments[i]);
-    auto argType =
-        funcCall->arguments[i]->resolveType(globalTypeTable->builtinTypes);
-    if (argType != funcSignature->args[i]) {
-      reportError("Type mismatch in argument " + std::to_string(i + 1),
-                  funcCall->arguments[i]->getLoc());
+  if (!funcCall->arguments.empty()) {
+    for (const auto &arg : funcCall->arguments) {
+      checkEntity(arg);
     }
   }
 }
 
 void SemanticAnalyzer::checkConstructorCallEXP(
     const std::shared_ptr<ConstructorCallEXP> &constrCall) {
-  // TODO
-  auto classType = globalTypeTable->getType(
-      symbolTable->getCurrentScope()->getName(), constrCall->left->name);
+  auto classType = globalTypeTable->getType("", constrCall->left->name);
 
-  if (!classType) {
+  bool isBuiltinTypes = false;
+  for (const auto &[name, type] : globalTypeTable->builtinTypes.types) {
+    if (name == constrCall->left->name)
+      isBuiltinTypes = true;
+  }
+
+  if (!classType and !isBuiltinTypes) {
     reportError("Undefined class '" + constrCall->left->name + "'",
                 constrCall->getLoc());
     return;
@@ -605,10 +526,9 @@ void SemanticAnalyzer::checkArrayLiteralExpr(
     return;
   }
 
-  auto firstType =
-      arrayLit->elements[0]->resolveType(globalTypeTable->builtinTypes);
+  auto firstType = resolveExprType(arrayLit->elements[0]);
   for (const auto &elem : arrayLit->elements) {
-    auto elemType = elem->resolveType(globalTypeTable->builtinTypes);
+    auto elemType = resolveExprType(elem);
     if (elemType != firstType) {
       reportError("All array elements must be of the same type",
                   elem->getLoc());
@@ -618,25 +538,30 @@ void SemanticAnalyzer::checkArrayLiteralExpr(
 
 void SemanticAnalyzer::checkBinaryOpEXP(
     const std::shared_ptr<BinaryOpEXP> &binOp) {
-  resolveType(binOp->left);
-  resolveType(binOp->right);
+  auto leftType = resolveExprType(binOp->left);
+  auto rightType = resolveExprType(binOp->right);
 
-  auto leftType = binOp->left->resolveType(globalTypeTable->builtinTypes);
-  auto rightType = binOp->right->resolveType(globalTypeTable->builtinTypes);
-
-  if (leftType != rightType) {
-    reportError("Operator '" + getOperatorString(binOp->op) +
-                    "' cannot be applied to types '" + leftType->name +
-                    "' and '" + rightType->name + "'",
+  if (leftType->name != rightType->name) {
+    reportError("Type mismatch for operator " + getOperatorString(binOp->op),
                 binOp->getLoc());
   }
+
+  if (binOp->op == OP_PLUS || binOp->op == OP_MINUS ||
+      binOp->op == OP_MULTIPLY || binOp->op == OP_DIVIDE) {
+    if (leftType->name != "Integer" && leftType->name != "Real") {
+      reportError("Operator " + getOperatorString(binOp->op) +
+                      " cannot be applied to non-numeric type",
+                  binOp->getLoc());
+    }
+  }
+
+  checkEntity(binOp->left);
+  checkEntity(binOp->right);
 }
 
 void SemanticAnalyzer::checkUnaryOpEXP(
     const std::shared_ptr<UnaryOpEXP> &unaryOp) {
-  resolveType(unaryOp->operand);
-  auto operandType =
-      unaryOp->operand->resolveType(globalTypeTable->builtinTypes);
+  auto operandType = resolveExprType(unaryOp->operand);
 
   // if (operandType == ) {
   //   reportError("Unary operator '" + getUnaryOperatorString(unaryOp->op) +
@@ -647,14 +572,14 @@ void SemanticAnalyzer::checkUnaryOpEXP(
 
 void SemanticAnalyzer::checkEnumRefEXP(
     const std::shared_ptr<EnumRefEXP> &enumRef) {
-  auto enumDecl = currentScope->lookup(enumRef->enumName);
-  if (!enumDecl || enumDecl->getKind() != E_Enum_Decl) {
+  auto [decl, alloc, isInited] = *currentScope->getSymbol(enumRef->enumName);
+  if (!decl || decl->getKind() != E_Enum_Decl) {
     reportError("Undefined enumeration '" + enumRef->enumName + "'",
                 enumRef->getLoc());
     return;
   }
 
-  auto enumType = std::dynamic_pointer_cast<EnumDecl>(enumDecl);
+  auto enumType = std::dynamic_pointer_cast<EnumDecl>(decl);
   if (!enumType->items.count(enumRef->itemName)) {
     reportError("Undefined item '" + enumRef->itemName + "' in enumeration '" +
                     enumRef->enumName + "'",
@@ -667,9 +592,7 @@ void SemanticAnalyzer::checkForSTMT(const std::shared_ptr<ForSTMT> &forStmt) {
     checkEntity(forStmt->varWithAss);
 
   if (forStmt->condition) {
-    resolveType(forStmt->condition);
-    auto condType =
-        forStmt->condition->resolveType(globalTypeTable->builtinTypes);
+    auto condType = resolveExprType(forStmt->condition);
     if (condType->name != "Bool") {
       reportError("For loop condition must be boolean",
                   forStmt->condition->getLoc());
@@ -684,9 +607,7 @@ void SemanticAnalyzer::checkForSTMT(const std::shared_ptr<ForSTMT> &forStmt) {
 
 void SemanticAnalyzer::checkWhileSTMT(
     const std::shared_ptr<WhileSTMT> &whileStmt) {
-  resolveType(whileStmt->condition);
-  auto condType =
-      whileStmt->condition->resolveType(globalTypeTable->builtinTypes);
+  auto condType = resolveExprType(whileStmt->condition);
   if (condType->name != "Bool") {
     reportError("While loop condition must be boolean",
                 whileStmt->condition->getLoc());
@@ -696,8 +617,7 @@ void SemanticAnalyzer::checkWhileSTMT(
 }
 
 void SemanticAnalyzer::checkIfSTMT(const std::shared_ptr<IfSTMT> &ifStmt) {
-  resolveType(ifStmt->condition);
-  auto condType = ifStmt->condition->resolveType(globalTypeTable->builtinTypes);
+  auto condType = resolveExprType(ifStmt->condition);
   if (condType->name != "Bool") {
     reportError("If condition must be boolean", ifStmt->condition->getLoc());
   }
@@ -709,16 +629,12 @@ void SemanticAnalyzer::checkIfSTMT(const std::shared_ptr<IfSTMT> &ifStmt) {
 
 void SemanticAnalyzer::checkSwitchSTMT(
     const std::shared_ptr<SwitchSTMT> &switchStmt) {
-  resolveType(switchStmt->condition);
-  auto condType =
-      switchStmt->condition->resolveType(globalTypeTable->builtinTypes);
+  auto condType = resolveExprType(switchStmt->condition);
 
   for (const auto &caseStmt : switchStmt->cases) {
     checkEntity(caseStmt);
     if (caseStmt->condition_literal) {
-      resolveType(caseStmt->condition_literal);
-      auto caseType = caseStmt->condition_literal->resolveType(
-          globalTypeTable->builtinTypes);
+      auto caseType = resolveExprType(caseStmt->condition_literal);
       if (caseType != condType) {
         reportError("Case type mismatch with switch condition",
                     caseStmt->condition_literal->getLoc());
@@ -736,22 +652,29 @@ void SemanticAnalyzer::checkCaseSTMT(
 
 void SemanticAnalyzer::checkReturnSTMT(
     const std::shared_ptr<ReturnSTMT> &returnStmt) {
-  // auto currentFunc = symbolTable->getEnclosingFunction(currentScope);
-  // if (!currentFunc) {
-  //   reportError("Return outside function", returnStmt->getLoc());
-  //   return;
-  // }
+  if (!currentReturnType && !currentFuncIsVoid) {
+    reportError("Return outside function context", returnStmt->getLoc());
+    return;
+  }
 
-  // if (currentFunc->isVoid && returnStmt->expr) {
-  //   reportError("Void function cannot return value", returnStmt->getLoc());
-  // } else if (!currentFunc->isVoid) {
-  //   resolveType(returnStmt->expr);
-  //   auto returnType =
-  //   returnStmt->expr->resolveType(globalTypeTable->builtinTypes); if
-  //   (returnType != currentFunc->signature->returnType) {
-  //     reportError("Return type mismatch", returnStmt->getLoc());
-  //   }
-  // }
+  if (currentFuncIsVoid) {
+    if (returnStmt->expr) {
+      reportError("Void function cannot return a value", returnStmt->getLoc());
+    }
+  } else {
+    if (!returnStmt->expr) {
+      reportError("Non-void function must return a value",
+                  returnStmt->getLoc());
+      return;
+    }
+
+    auto returnType = resolveExprType(returnStmt->expr);
+    if (!returnType || returnType->name != currentReturnType->name) {
+      reportError("Return type mismatch: expected '" + currentReturnType->name +
+                      "'",
+                  returnStmt->getLoc());
+    }
+  }
 }
 
 void SemanticAnalyzer::checkThisEXP(const std::shared_ptr<ThisEXP> &thisExp) {
@@ -759,4 +682,153 @@ void SemanticAnalyzer::checkThisEXP(const std::shared_ptr<ThisEXP> &thisExp) {
   // if (!classScope) {
   //   reportError("'this' used outside class context", thisExp->getLoc());
   // }
+}
+
+void SemanticAnalyzer::checkMainDecl(
+    const std::shared_ptr<FuncDecl> &funcDecl) {
+  if (symbolTable->getCurrentScope()->lookup("main")) {
+    reportError("Duplicate main declaration", funcDecl->getLoc());
+  }
+
+  if (!funcDecl->isVoid) {
+    if (funcDecl->signature->return_type->name != "Integer") {
+      reportError("main must return Integer or be void", funcDecl->getLoc());
+    }
+  }
+
+  currentScope = currentScope->nextScope();
+  for (const auto &param : funcDecl->args) {
+    checkEntity(param);
+  }
+  if (funcDecl->body) {
+    checkEntity(funcDecl->body);
+  }
+  currentScope = currentScope->prevScope();
+}
+
+std::shared_ptr<Type> SemanticAnalyzer::getTypeInTypeTable(std::string str) {
+  for (const auto &[name, type] : globalTypeTable->builtinTypes.types) {
+    if (name == str) {
+      return type;
+    }
+  }
+  return nullptr;
+}
+
+std::shared_ptr<Type>
+SemanticAnalyzer::resolveExprType(const std::shared_ptr<Expression> &expr) {
+  if (auto intLit = std::dynamic_pointer_cast<IntLiteralEXP>(expr)) {
+    return getTypeInTypeTable("Integer");
+  }
+  if (auto realLit = std::dynamic_pointer_cast<RealLiteralEXP>(expr)) {
+    return getTypeInTypeTable("Real");
+  }
+  if (auto strLit = std::dynamic_pointer_cast<StringLiteralEXP>(expr)) {
+    return getTypeInTypeTable("String");
+  }
+  if (auto boolLit = std::dynamic_pointer_cast<BoolLiteralEXP>(expr)) {
+    return getTypeInTypeTable("Bool");
+  }
+
+  if (auto varRef = std::dynamic_pointer_cast<VarRefEXP>(expr)) {
+    if (auto decl = currentScope->lookup(varRef->var_name)) {
+      if (auto varDecl = std::dynamic_pointer_cast<VarDecl>(decl))
+        return varDecl->type;
+      if (auto paramDecl = std::dynamic_pointer_cast<ParameterDecl>(decl))
+        return paramDecl->type;
+      if (auto fieldDecl = std::dynamic_pointer_cast<FieldDecl>(decl))
+        return fieldDecl->type;
+      reportError("Unexpected declaration type for variable", expr->getLoc());
+    }
+    return nullptr;
+  }
+
+  if (auto fieldRef = std::dynamic_pointer_cast<FieldRefEXP>(expr)) {
+    auto objType = resolveExprType(fieldRef->obj);
+    if (auto classType = std::dynamic_pointer_cast<TypeClass>(objType)) {
+      if (auto fieldType = classType->getField(fieldRef->field_name)) {
+        return fieldType;
+      }
+      reportError("Undefined field: " + fieldRef->field_name, expr->getLoc());
+    } else {
+      reportError("Field access on non-class type", expr->getLoc());
+    }
+    return nullptr;
+  }
+
+  if (auto methodCall = std::dynamic_pointer_cast<MethodCallEXP>(expr)) {
+    auto classType =
+        std::dynamic_pointer_cast<TypeClass>(resolveExprType(methodCall->left));
+    if (!classType) {
+      reportError("Method call on non-class type", expr->getLoc());
+      return nullptr;
+    }
+    if (auto methodType = classType->getMethod(methodCall->method_name)) {
+      return methodType;
+    }
+    reportError("Undefined method: " + methodCall->method_name, expr->getLoc());
+    return nullptr;
+  }
+
+  if (auto constrCall = std::dynamic_pointer_cast<ConstructorCallEXP>(expr)) {
+    return globalTypeTable->getType("", constrCall->left->name);
+  }
+
+  if (auto binOp = std::dynamic_pointer_cast<BinaryOpEXP>(expr)) {
+    auto leftType = resolveExprType(binOp->left);
+    auto rightType = resolveExprType(binOp->right);
+
+    if (binOp->op == OP_EQUAL || binOp->op == OP_NOT_EQUAL ||
+        binOp->op == OP_LESS || binOp->op == OP_LESS_EQUAL ||
+        binOp->op == OP_MORE || binOp->op == OP_MORE_EQUAL) {
+      return getTypeInTypeTable("Bool");
+    }
+
+    if (binOp->op == OP_LOGIC_AND || binOp->op == OP_LOGIC_OR) {
+      if (leftType->name != "Bool" || rightType->name != "Bool") {
+        reportError("Logical operators require boolean operands",
+                    binOp->getLoc());
+      }
+    }
+
+    return getTypeInTypeTable("Bool");
+  }
+
+  if (auto unaryOp = std::dynamic_pointer_cast<UnaryOpEXP>(expr)) {
+    auto operandType = resolveExprType(unaryOp->operand);
+
+    if (unaryOp->op == OP_LOGIC_NOT) {
+      if (operandType->name != "Bool") {
+        reportError("'!' operator requires boolean operand", unaryOp->getLoc());
+      }
+      return getTypeInTypeTable("Bool");
+    }
+
+    return operandType;
+  }
+
+  if (auto className = std::dynamic_pointer_cast<ClassNameEXP>(expr)) {
+    return globalTypeTable->getType("", className->name);
+  }
+
+  if (auto enumRef = std::dynamic_pointer_cast<EnumRefEXP>(expr)) {
+    return globalTypeTable->getType("", enumRef->enumName);
+  }
+
+  if (auto arrayLit = std::dynamic_pointer_cast<ArrayLiteralExpr>(expr)) {
+    if (arrayLit->elements.empty())
+      return nullptr;
+
+    auto firstType = resolveExprType(arrayLit->elements[0]);
+    for (const auto &elem : arrayLit->elements) {
+      if (resolveExprType(elem) != firstType) {
+        reportError("Inconsistent array element types", elem->getLoc());
+        return nullptr;
+      }
+    }
+    return std::make_shared<TypeArray>(arrayLit->elements.size(), firstType);
+  }
+
+  reportError("Unresolved expression type", expr->getLoc());
+  return nullptr;
 }

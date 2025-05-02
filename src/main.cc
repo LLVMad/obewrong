@@ -42,12 +42,11 @@ int main(int argc, char *argv[]) {
     SemanticAnalyzer analyzer(globalTypeTable, globalSymbolTable);
     analyzer.analyze(parseTree);
 
-    auto global_scope = globalSymbolTable->getGlobalScope();
-    CodeGenVisitor cgvisitor(global_scope, globalTypeTable);
-    cgvisitor.visitDefault(parseTree);
-    cgvisitor.dumpIR();
-    cgvisitor.createObjFile();
-
+    // auto global_scope = globalSymbolTable->getGlobalScope();
+    // CodeGenVisitor cgvisitor(global_scope, globalTypeTable);
+    // cgvisitor.visitDefault(parseTree);
+    // cgvisitor.dumpIR();
+    // cgvisitor.createObjFile();
   }
 
   // auto buff = std::make_shared<SourceBuffer>(sm.readSource(args[0]));
