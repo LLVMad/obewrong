@@ -24,13 +24,13 @@ void SymbolTable::initBuiltinFunctions(
   //     std::make_shared<TypeFunc>(intPlusTypeReturnType, paramTypes);
   // auto intPlusParamDecl =
   //     std::make_shared<ParameterDecl>("x", intPlusTypeParamType);
-  // std::vector<std::shared_ptr<Decl>> params = {intPlusParamDecl};
+  // std::vector<std::shared_ptr<ParameterDecl>> params = {intPlusParamDecl};
   // auto intPlusDecl =
   //     std::make_shared<MethodDecl>("Plus", intPlusType, params, true);
   //
   // global_scope->addSymbol("Plus", intPlusDecl);
-
-  // - Minus
+  //
+  // // - Minus
   // auto intMinusTypeReturnType = typeTable->getType("", "Integer");
   // auto intMinusTypeParamType = typeTable->getType("", "Integer");
   // paramTypes = {intMinusTypeParamType};

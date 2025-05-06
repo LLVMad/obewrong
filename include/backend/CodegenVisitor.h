@@ -30,12 +30,13 @@
 #include <map>
 #include <variant>
 
-#define cgresult_t  std::variant<std::monostate, llvm::Value*, llvm::Type*>
+#define cgresult_t  std::variant<std::monostate, llvm::Value*, llvm::Type*, llvm::AllocaInst*>
 #define cgvoid_t    std::monostate
 #define cgnone      std::monostate {}
 
 #define cggetval(var)    std::get<llvm::Value*>(var)
 #define cggettype(var)   std::get<llvm::Type*>(var)
+#define cggetalloc(var)  std::get<llvm::AllocaInst*>(var)
 
 #define LIBC_PATH "../lib/libc.ll"
 

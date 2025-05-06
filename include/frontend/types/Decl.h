@@ -55,7 +55,7 @@ public:
       : Decl(E_Field_Decl, name), type(std::move(type)) {}
 
   std::shared_ptr<Type> type;
-
+  size_t index; // index of a field in a class
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
   bool validate() override;

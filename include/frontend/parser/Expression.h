@@ -165,6 +165,7 @@ public:
 
   std::string field_name;
   std::shared_ptr<VarRefEXP> obj; // object which field is referenced
+  size_t index;
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
   bool validate() override;
@@ -370,10 +371,12 @@ public:
 // @TODO
 class ThisEXP : public Expression {
 public:
-  ThisEXP() : Expression(E_This) {}
+  ThisEXP() : Expression(E_This), name("this") {}
 
   // no children, just a link to ???
   // @TODO add link to idk what
+
+  std::string name; // compatabillity for VarRef
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 

@@ -70,9 +70,10 @@ public:
   };
 };
 
+// Pointer type
 class TypeAccess : public Type {
 public:
-  TypeAccess(const std::shared_ptr<Type> &to)
+  TypeAccess(const std::shared_ptr<Type> to)
     : Type(TYPE_ACCESS, "access"), kind(ACC_GENERAL), to(to) {}
 
   AccessKind kind;
@@ -336,8 +337,7 @@ public:
   }
 
   llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
-    (void)lc;
-    return nullptr;
+    return llvm::StructType::getTypeByName(lc, llvm::StringRef(name));
   }
 
   ~TypeClass() override = default;

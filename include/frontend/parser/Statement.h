@@ -25,30 +25,37 @@ public:
   ~Statement() override;
 };
 
+enum AssKind {
+  VAR_ASS,
+  FIELD_ASS,
+  EL_ASS, // a[0] :=
+};
+
 // Identifier := Expression
 class AssignmentSTMT : public Statement {
 public:
   AssignmentSTMT(std::shared_ptr<VarRefEXP> lhs,
                  std::shared_ptr<Expression> rhs)
-      : Statement(E_Assignment), variable(std::move(lhs)), field(nullptr),
+      : Statement(E_Assignment), assKind(VAR_ASS), variable(std::move(lhs)), field(nullptr),
         element(nullptr), expression(std::move(rhs)) {}
 
   AssignmentSTMT(std::shared_ptr<FieldRefEXP> lhs,
                  std::shared_ptr<Expression> rhs)
-      : Statement(E_Assignment), variable(nullptr), field(std::move(lhs)),
+      : Statement(E_Assignment), assKind(FIELD_ASS), variable(nullptr), field(std::move(lhs)),
         element(nullptr), expression(std::move(rhs)) {}
 
   AssignmentSTMT(std::shared_ptr<ElementRefEXP> lhs,
                  std::shared_ptr<Expression> rhs)
-      : Statement(E_Assignment), variable(nullptr), field(nullptr),
+      : Statement(E_Assignment), assKind(EL_ASS), variable(nullptr), field(nullptr),
         element(std::move(lhs)), expression(std::move(rhs)) {}
 
   // children are
+  AssKind assKind;
+
   std::shared_ptr<VarRefEXP> variable;
   std::shared_ptr<FieldRefEXP> field;
-
-  [[deprecated]]
   std::shared_ptr<ElementRefEXP> element;
+
 
   std::shared_ptr<Expression> expression;
 

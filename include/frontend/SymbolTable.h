@@ -40,8 +40,8 @@ public:
    * @param decl Declaration info
    */
   bool addSymbol(const std::string &name, std::shared_ptr<Decl> decl) {
-    if (symbols.contains(name))
-      return false;
+    // if (symbols.contains(name))
+    //   return false;
     symbols[name].decl = decl;
     return true;
   }

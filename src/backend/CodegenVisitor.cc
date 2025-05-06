@@ -80,30 +80,40 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<Expression> &expr) {
 }
 
 cgresult_t CodeGenVisitor::visit(const std::shared_ptr<FieldRefEXP> &node) {
-  // llvm::AllocaInst *alloca = currentScope->lookupAlloca(node->var_name); /* varEnv[node->var_name]; */
-  // bool isInited = currentScope->isDeclInitialized(no);
-  auto [_, alloca, isInited] = *currentScope->getSymbol(node->field_name);
+  auto [decl, alloca, isInited] = *currentScope->getSymbol(node->obj->var_name);
 
-  // if (!isInited) {
-  //   return alloc;
-  // }
+  dumpIR();
 
-  // auto objName = node->obj->var_name;
-  // auto [varDecl, varAlloca, varIsInited] = *currentScope->getSymbol(objName);
-  // llvm::Type* classType = llvm::StructType::getTypeByName(
-  //   *context,
-  //   std::static_pointer_cast<VarDecl>(varDecl)->type->name
+  auto varDecl = std::static_pointer_cast<VarDecl>(decl);
+
+  if (varDecl->type->kind == TYPE_ACCESS) {
+    auto ptrType = std::static_pointer_cast<TypeAccess>(varDecl->type);
+    auto classTypeLLVM = ptrType->to->toLLVMType(*context);
+    auto ptrAlloca = builder->CreateLoad(alloca->getAllocatedType(), alloca);
+
+    // construct GEP
+    return builder->CreateStructGEP(
+      classTypeLLVM,
+      ptrAlloca,
+      node->index,
+      node->field_name
+    );
+  } else {
+    auto classTypeLLVM = varDecl->type->toLLVMType(*context);
+
+    // construct GEP
+    return builder->CreateStructGEP(
+      classTypeLLVM,
+      alloca,
+      node->index,
+      node->field_name
+    );
+  }
+
+  // return builder->CreateLoad(
+  //
   // );
 
-  auto gep = llvm::GetElementPtrInst::Create(
-    alloca->getAllocatedType(), )
-
-  return builder->CreateStructGEP(
-    alloca->getAllocatedType()
-        ->getPointerElementType() /* get type of element on heap*/,
-    builder->CreateLoad(alloca) /*get heap ptr */,
-    objField.fieldIndex +
-        NUM_RESERVED_FIELDS /* offset pointer by reserved fields */);
 }
 
 cgresult_t CodeGenVisitor::visit(const std::shared_ptr<FuncCallEXP> &node) {
@@ -118,7 +128,33 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<FuncCallEXP> &node) {
   // auto FArgs = CalleeF->args();
   for (unsigned i = 0, e = Args.size(); i != e; ++i) {
     cgresult_t arg = visit(Args[i]);
-    ArgsV.push_back(cggetval(arg));
+    auto val = cggetval(arg);
+
+    // load an argument
+    // @TODO probably shoulnt do it here???
+    // becouse we shouldnt do load:
+    // - in assignment
+    if (Args[i]->getKind() == E_Field_Reference) {
+      auto fieldRef = std::static_pointer_cast<FieldRefEXP>(Args[i]);
+      auto [decl, alloca, isInited] = *currentScope->getSymbol(fieldRef->obj->var_name);
+      auto varDecl = std::static_pointer_cast<VarDecl>(decl);
+
+      auto classTypeLLVM = varDecl->type->toLLVMType(*context);
+      val = builder->CreateLoad(
+        classTypeLLVM->getStructElementType(fieldRef->index),
+        val
+      );
+    }
+
+    // @TODO
+    // if (val->getType()->isPointerTy()) {
+    //   val = builder->CreateLoad(
+    //     val->getType()->getStructElementType(),
+    //     val
+    //   );
+    // }
+
+    ArgsV.push_back(val);
 
     if (!ArgsV.back())
       return cgnone;
@@ -141,7 +177,13 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<ConstructorCallEXP> &node
 
   std::vector<llvm::Value *> ArgsV;
   auto Args = node->arguments;
-  // auto FArgs = CalleeF->args();
+
+  // self as first argument
+  auto classType = llvm::StructType::getTypeByName(*context, node->left->name);
+  auto objInstanceRef = builder->CreateAlloca(classType);
+  // currentScope->addSymbol(node->, objInstanceRef);
+  ArgsV.push_back(objInstanceRef);
+
   for (unsigned i = 0, e = Args.size(); i != e; ++i) {
     cgresult_t arg = visit(Args[i]);
     ArgsV.push_back(cggetval(arg));
@@ -151,10 +193,12 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<ConstructorCallEXP> &node
   }
 
   if (CalleeF->getReturnType()->isVoidTy()) {
-    return builder->CreateCall(CalleeF, ArgsV);
+    builder->CreateCall(CalleeF, ArgsV);
   }
   else
-    return builder->CreateCall(CalleeF, ArgsV, "calltmp");
+    builder->CreateCall(CalleeF, ArgsV, "calltmp");
+
+  return objInstanceRef;
 }
 
 cgresult_t CodeGenVisitor::visit(const std::shared_ptr<StringLiteralEXP> &node) {
@@ -308,17 +352,19 @@ cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<Decl> &node) {
 }
 
 cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<ClassDecl> &node) {
-  llvm::StructType::create(*context, llvm::StringRef(node->name));
+  currentScope = currentScope->nextScope();
+
+  auto classType = llvm::StructType::create(*context, llvm::StringRef(node->name));
 
   auto classSignature = node->type;
-  std::vector<llvm::Type*> fieldTypes(node->fields.size());
+  std::vector<llvm::Type*> fieldTypes;
   for (auto &field : node->fields) {
     // add fields types
     fieldTypes.push_back(field->type->toLLVMType(*context));
   }
 
-  llvm::StructType* classType =
-    llvm::StructType::getTypeByName(*context, node->name);
+  // llvm::StructType* classType =
+  //   llvm::StructType::getTypeByName(*context, node->name);
   classType->setBody(llvm::ArrayRef(fieldTypes));
 
   // llvm::Value* result;
@@ -329,6 +375,8 @@ cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<ClassDecl> &node) {
   for (auto &constr : node->constructors) {
     visit(constr);
   }
+
+  currentScope = currentScope->prevScope();
 
   return cgnone;
 }
@@ -346,7 +394,7 @@ cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<ConstrDecl> &node) {
 
   llvm::FunctionType *FT = llvm::FunctionType::get(returnType, argTypes, false);
 
-  llvm::Function *F = llvm::Function::Create(FT, llvm::Function::CommonLinkage,
+  llvm::Function *F = llvm::Function::Create(FT, llvm::Function::InternalLinkage,
     node->name, module.get());
 
   size_t i = 0;
@@ -417,12 +465,19 @@ cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<VarDecl> &node) {
   auto varType = cggettype(visit(node->type))/*node->type->toLLVMType(*context) */;
   auto initializer = node->initializer;
   llvm::AllocaInst *alloca;
-  llvm::Value *initVal;
+  cgresult_t initVal;
   if (initializer) {
-    initVal = cggetval(visit(initializer));
-    alloca = builder->CreateAlloca(varType, initVal, var_name);
+    initVal = visit(initializer);
+    printf("\n=====================================\n");
+    dumpIR();
+    printf("\n=====================================\n");
+    if (initializer->getKind() != E_Constructor_Call) {
+      alloca = builder->CreateAlloca(varType, cggetval(initVal), var_name);
 
-    builder->CreateStore(initVal, alloca);
+      builder->CreateStore(cggetval(initVal), alloca);
+    } else {
+      alloca = cggetalloc(initVal);
+    }
   }
   else {
     // @TODO
@@ -453,7 +508,8 @@ cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<FuncDecl> &node) {
 
   llvm::FunctionType *FT = llvm::FunctionType::get(returnType, argTypes, false);
 
-  llvm::Function *F = llvm::Function::Create(FT, llvm::Function::CommonLinkage,
+  llvm::Function *F = llvm::Function::Create(FT,
+    (node->getKind() == E_Main_Decl) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage,
     node->name, module.get());
 
   size_t i = 0;
@@ -517,11 +573,29 @@ cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<Statement> &node) {
 }
 
 cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<AssignmentSTMT> &node) {
-  llvm::Value *var = cggetval(visit(node->variable));
+  llvm::Value *var = nullptr;
+  std::string name;
+  switch (node->assKind) {
+  case VAR_ASS:
+    var = cggetval(visit(node->variable));
+    name = node->variable->var_name;
+    currentScope->markInitialized(name);
+    break;
+  case FIELD_ASS:
+    var = cggetval(visit(node->field));
+
+    name = node->field->field_name;
+    break;
+  case EL_ASS:
+    var = cggetval(visit(node->element));
+    // name = node->element->; @TODO
+    break;
+  }
+
   llvm::Value *assignment = cggetval(visit(node->expression));
 
   // varInitialized[node->variable->var_name] = true;
-  currentScope->markInitialized(node->variable->var_name);
+
   builder->CreateStore(assignment, var);
   return cgnone;
 }
@@ -584,6 +658,12 @@ void CodeGenVisitor::createObjFile() {
   if (TheTargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
     llvm::errs() << "TheTargetMachine can't emit a file of this type";
     return;
+  }
+
+  if (llvm::verifyModule(*module, &llvm::errs())) {
+    llvm::errs() << "Module verification failed!\n";
+    exit(-1);
+    // Handle error
   }
 
   pass.run(*module);

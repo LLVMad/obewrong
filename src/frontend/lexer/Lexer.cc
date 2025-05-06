@@ -500,6 +500,10 @@ std::unique_ptr<Token> Lexer::next() {
     if (!std::isspace(c) && c != '\n' && c != '\r')
       token += c;
 
+    // @TODO move up
+    if (curr_state == STATE_READ_STRING && std::isspace(c))
+      token += c;
+
     // If no token has been returned move to next char, i.e. eat input
     advance();
 #ifdef DEBUG

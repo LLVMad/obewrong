@@ -671,6 +671,8 @@ std::shared_ptr<AssignmentSTMT> Parser::parseAssignment() {
   // or a fieldref
   token = next();
 
+  std::string left_name = std::get<std::string>(token->value);
+
   // check if its a fieldref
   // token = peek();
   if (peek()->kind == TOKEN_DOT) {
@@ -679,7 +681,7 @@ std::shared_ptr<AssignmentSTMT> Parser::parseAssignment() {
     token = next(); // get to field name
     // @TODO expect identif
     auto var_name = std::get<std::string>(token->value);
-    auto var_ref = std::make_shared<FieldRefEXP>(var_name);
+    auto var_ref = std::make_shared<FieldRefEXP>(var_name, std::make_shared<VarRefEXP>(left_name));
 
     // eat ':='
     if (peek()->kind != TOKEN_ASSIGNMENT)
@@ -816,7 +818,7 @@ std::shared_ptr<ConstrDecl> Parser::parseConstructorDecl() {
   token = next(); // eat 'this'
 
   // take class name for "mangled" name of constructor function
-  auto className = globalSymbolTable->getCurrentScope()->prevScope()->getName();
+  auto className = globalSymbolTable->getCurrentScope()->getName();
 
   // ????
   // lastDeclaredScopeParent.emplace("this");
@@ -916,10 +918,14 @@ std::shared_ptr<ClassDecl> Parser::parseClassDecl() {
   std::vector<std::shared_ptr<MethodDecl>> methods;
   std::vector<std::shared_ptr<ConstrDecl>> constructors;
 
+  size_t index = 0; // for enumerating fields
+
   for (auto &ent : body_block->parts) {
     switch (ent->getKind()) {
     case E_Field_Decl: {
       auto field = std::dynamic_pointer_cast<FieldDecl>(ent);
+      field->index = index;
+      index++;
       fields.push_back(field);
       fieldTypes.push_back(field->type);
     } break;
@@ -938,13 +944,42 @@ std::shared_ptr<ClassDecl> Parser::parseClassDecl() {
     }
   }
 
-  globalSymbolTable->exitScope();
-  // lastDeclaredScopeParent.pop();
-
   auto class_new_type =
       std::make_shared<TypeClass>(class_name, fieldTypes, methodTypes);
-  // add new type (class) to LE SYMBOOOOOL TAABLEEEEESS si si papa
+  // add `this` as a selfref variable (field)
+  auto selfRefType = std::make_shared<TypeAccess>(class_new_type);
+
+  auto thisParam = std::make_shared<ParameterDecl>("this", selfRefType);
+  for (auto &meth : class_new_type->methods_types) {
+    meth->args.emplace(meth->args.begin(), selfRefType);
+  }
+
+  for (auto &meth : methods) {
+    meth->args.emplace(meth->args.begin(), thisParam);
+  }
+
+  for (auto &child : globalSymbolTable->getCurrentScope()->getChildren()) {
+    if (child->getKind() == SCOPE_METHOD) {
+      child->addSymbol("this", thisParam);
+    }
+  }
+
+  for (auto constr : constructors) {
+    constr->args.emplace(constr->args.begin(), thisParam);
+  }
+
+  // globalTypeTable->addType(moduleName, "access_" + class_name, selfRefType);
+
+
+
+  // finally add the new type
   globalTypeTable->addType(moduleName, class_name, class_new_type);
+
+  // auto thisField = std::make_shared<FieldDecl>("this", selfRefType);
+  // globalSymbolTable->getCurrentScope()->addSymbol("this", )
+
+  globalSymbolTable->exitScope();
+  // lastDeclaredScopeParent.pop();
 
   auto class_stmt = std::make_shared<ClassDecl>(class_name, class_new_type,
                                                 fields, methods, constructors);
@@ -1563,23 +1598,23 @@ std::shared_ptr<Expression> Parser::parseExpression() {
         token = next();
       }
     }
-    // - if not its a field access, than cannot be chained mind you
+    // - if not its a field access, than cannot be chained mind you (WHAT???)
     //   so we can probably just return after read ?
     else {
-      // token = next();
-
-      // read identifier of a field
-      // std::shared_ptr<Entity> field = parsePrimary();
-      // auto left =
-      // std::shared_ptr<Expression>(dynamic_cast<Expression*>(node.get()));
       auto field_name =
           std::static_pointer_cast<VarRefEXP>(after_dot)->var_name;
       auto obj_ref = std::static_pointer_cast<VarRefEXP>(node);
       auto field_access = std::make_shared<FieldRefEXP>(field_name, obj_ref);
-      // std::static_pointer_cast<VarRefEXP>(after_dot);
-      // auto field_access_to_exp =
-      //     std::dynamic_pointer_cast<Expression>(field_access);
-      // std::shared_ptr<Expression>(field_access.get());
+
+      auto currScope = globalSymbolTable->getCurrentScope();
+
+      auto obj_decl = std::static_pointer_cast<VarDecl>(globalSymbolTable->getCurrentScope()->lookup(obj_ref->var_name));
+
+      auto field_decl = std::static_pointer_cast<FieldDecl>(globalSymbolTable->getModuleScope(currScope)->lookupInClass(
+        field_name, obj_decl->type->name));
+
+      field_access->index = field_decl->index;
+
       comp->addExpression(field_access);
     }
 
@@ -1617,6 +1652,7 @@ std::shared_ptr<Expression> Parser::parseExpression() {
       // @TEST IT
       auto left = std::static_pointer_cast<VarRefEXP>(comp->parts[0]);
       auto field_ref = std::static_pointer_cast<VarRefEXP>(comp->parts[1]);
+
       // std::shared_ptr<FieldAccessEXP>(dynamic_cast<FieldAccessEXP
       // *>(comp->parts[1].get()));
       // field_access->left = std::move(left);
@@ -1850,6 +1886,22 @@ void Parser::parseParameters(const std::shared_ptr<ConstrDecl> &constrDecl) {
     token = next();
     return;
   }
+
+  // @TODO name this param !
+  //auto className = globalSymbolTable->getCurrentScope()->prevScope()->getName();
+  // CREATING A POINTER TO CLASS, SELF REFERENCE
+  // @IMPORTANT
+  //auto classType = globalTypeTable->getType(moduleName, className);
+
+  // auto thisParamDecl = std::make_shared<ParameterDecl>(
+  //   "this", // name
+  //   nullptr // pointer to class type
+  // );
+
+  // NOTE: we add selfref type later, bacouse when we are in a class
+  // the type of a class is not yet ready
+
+  // constrDecl->args.push_back(thisParamDecl);
 
   auto paramDecl = parseParameterDecl();
 
