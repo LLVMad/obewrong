@@ -67,13 +67,10 @@ class StringLiteralEXP : public Expression {
 public:
   StringLiteralEXP(std::string val)
       : Expression(E_String_Literal), value(std::move(val)) {
-    // std::string value = std::move(val);
      value.erase(
      std::remove(value.begin(), value.end(), '\"'),
      value.end()
      );
-    // std::ranges::remove(value, '\"');
-    // std::ranges::remove(value, '\"');
   };
 
   std::string value;

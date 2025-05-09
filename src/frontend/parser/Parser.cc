@@ -4,7 +4,7 @@
 #include "frontend/TypeTable.h"
 #include "frontend/parser/Expression.h"
 #include "frontend/parser/Statement.h"
-
+#include "frontend/parser/Wrappers.h"
 #define SYNCED_TOKEN(kind)                                                     \
   ((kind == TOKEN_CLASS) || (kind == TOKEN_FUNC) || (kind == TOKEN_METHOD) ||  \
    (kind == TOKEN_ENUM))
@@ -681,6 +681,11 @@ std::shared_ptr<AssignmentSTMT> Parser::parseAssignment() {
     token = next(); // get to field name
     // @TODO expect identif
     auto var_name = std::get<std::string>(token->value);
+
+    // get index
+
+    // get index
+
     auto var_ref = std::make_shared<FieldRefEXP>(var_name, std::make_shared<VarRefEXP>(left_name));
 
     // eat ':='
@@ -722,6 +727,8 @@ std::shared_ptr<Block> Parser::parseBlock(BlockKind blockKind) {
   // if (token->kind == TOKEN_ELSE) token = peek(); // costil
   std::vector<std::shared_ptr<Entity>> block_body;
 
+  size_t fieldIndex = 0;  // track field index 4 class bl
+
   while (token->kind !=
          TOKEN_BEND /*&& token->kind != TOKEN_ELSE -> questionable but kek*/) {
     std::shared_ptr<Entity> part;
@@ -732,7 +739,7 @@ std::shared_ptr<Block> Parser::parseBlock(BlockKind blockKind) {
       if (blockKind > 0)
         part = parseVarDecl();
       else // in class
-        part = parseFieldDecl();
+        part = parseFieldDecl(fieldIndex++);
     } break;
     case TOKEN_IDENTIFIER:
     case TOKEN_PRINT: {
@@ -918,14 +925,14 @@ std::shared_ptr<ClassDecl> Parser::parseClassDecl() {
   std::vector<std::shared_ptr<MethodDecl>> methods;
   std::vector<std::shared_ptr<ConstrDecl>> constructors;
 
-  size_t index = 0; // for enumerating fields
+  // size_t index = 0; // for enumerating fields
 
   for (auto &ent : body_block->parts) {
     switch (ent->getKind()) {
     case E_Field_Decl: {
       auto field = std::dynamic_pointer_cast<FieldDecl>(ent);
-      field->index = index;
-      index++;
+      // field->index = index;
+      // index++;
       fields.push_back(field);
       fieldTypes.push_back(field->type);
     } break;
@@ -1033,7 +1040,7 @@ std::shared_ptr<EnumDecl> Parser::parseEnumDecl() {
   return enumDecl;
 }
 
-std::shared_ptr<FieldDecl> Parser::parseFieldDecl() {
+std::shared_ptr<FieldDecl> Parser::parseFieldDecl(size_t index) {
   std::unique_ptr<Token> token = peek();
   if (token == nullptr || token->kind != TOKEN_VAR_DECL)
     PARSE_ERR(sm.getLastFilePath().c_str(),
@@ -1074,7 +1081,7 @@ std::shared_ptr<FieldDecl> Parser::parseFieldDecl() {
   if (!isTypeName(token->kind) && token->kind != TOKEN_IDENTIFIER) {
     PARSE_ERR(sm.getLastFilePath().c_str(),
               "Expected type qualifier for a field\n");
-    var_type = globalTypeTable->types[moduleName].getType("byte");
+    var_type = nullptr; /* globalTypeTable->types[moduleName].getType("byte"); */
   } else {
     // token = next();
     if (isPointer) {
@@ -1090,6 +1097,7 @@ std::shared_ptr<FieldDecl> Parser::parseFieldDecl() {
   }
 
   auto ass = std::make_shared<FieldDecl>(var_name, var_type);
+  ass->index = index;  // Set the index before adding to symbol table
 
   globalSymbolTable->getCurrentScope()->addSymbol(var_name, ass);
   // this->globalSymbolTable->addToGlobalScope(this->moduleName,
@@ -1414,258 +1422,167 @@ Parser::parseBinaryOp(std::shared_ptr<Expression> firstOperand) {
 }
 
 std::shared_ptr<Expression> Parser::parseExpression() {
-  // binary operation expression
-  if (is_unary_operator(peek()->kind) || peek()->kind == TOKEN_LBRACKET) {
-    return parseBinaryOp(nullptr);
-  }
+    if (is_unary_operator(peek()->kind) || peek()->kind == TOKEN_LBRACKET) {
+        return parseBinaryOp(nullptr);
+    }
 
-  std::shared_ptr<Expression> node = parsePrimary();
+    auto node = parsePrimary();
+    if (!node) return nullptr;
 
-  // if (peek()->kind == TOKEN_ASSIGNMENT) {
-  //   return parseAssignment(node);
-  // }
+    // assignment
+    if (peek()->kind == TOKEN_ASSIGNMENT) {
+        auto assignment = parseAssignment(node);
+        // Create a wrapper expression that contains the assignment
+        auto wrapper = std::make_shared<AssignmentWrapperEXP>(assignment);
+        return wrapper;
+    }
 
-  // if (peek()->kind == TOKEN_COLON) {
-  //   PARSE_ERR(sm.getLastFilePath().c_str(), "You probably forgot to add 'var'
-  //   keyword for a variable declaration\n"); std::unique_ptr<Token> token =
-  //   peek(); while (token->kind != TOKEN_ASSIGNMENT) token = next(); next();
-  //   return parseExpression();
-  // }
+    // static access (::)
+    if (peek()->kind == TOKEN_DOUBLE_COLON) {
+        return parseStaticAccess(node);
+    }
 
-  // what it could be
-  auto comp = std::make_shared<CompoundEXP>();
+    // func/constr calls
+    if (peek()->kind == TOKEN_LBRACKET) {
+        return parseCallExpression(node);
+    }
 
-  // auto node_to_exp = std::dynamic_pointer_cast<Expression>(node);
-  comp->addExpression(node);
+    // method calls and field access
+    if (peek()->kind == TOKEN_DOT) {
+        return parseMemberAccess(node);
+    }
 
-  // std::shared_ptr<MethodCallEXP> method_call;
-  // std::shared_ptr<FieldAccessEXP> field_access;
+    // Handle binary operations
+    if (is_binary_operator(peek()->kind)) {
+        return parseBinaryOp(node);
+    }
 
-  std::unique_ptr<Token> token = peek();
-  if (token == nullptr)
     return node;
+}
 
-  // assignment
-  if (token->kind == TOKEN_ASSIGNMENT) {
-    // @TODO
-  }
+std::shared_ptr<Expression> Parser::parseStaticAccess(std::shared_ptr<Expression> left) {
+    next(); // eat '::'
 
-  // enum ref or static method call
-  if (token->kind == TOKEN_DOUBLE_COLON) {
-    token = next();
-
-    token = peek();
+    auto token = peek();
     if (token->kind != TOKEN_IDENTIFIER) {
-      PARSE_ERR(sm.getLastFilePath().c_str(),
-                "Expected an identifier after '::'\n");
-      return std::make_shared<Expression>(E_Dummy);
+        PARSE_ERR(sm.getLastFilePath().c_str(), "Expected an identifier after '::'\n");
+        return std::make_shared<DummyExpression>("unknown");
     }
     token = next();
 
-    switch (node->getKind()) {
-    case E_Enum_Decl:
-    case E_Enum_Reference: {
-      auto node_as_var =
-          std::static_pointer_cast<VarRefEXP>(comp->parts.back());
-      auto enumName = node_as_var->var_name;
-
-      auto itemName = std::get<std::string>(token->value);
-
-      comp->addExpression(std::make_shared<EnumRefEXP>(enumName, itemName));
-    } break;
-    case E_Class_Decl:
-    case E_Class_Name: {
-      auto node_as_class_name_expr =
-          std::static_pointer_cast<ClassNameEXP>(comp->parts.back());
-      auto className = node_as_class_name_expr->name;
-      auto methodName = std::get<std::string>(token->value);
-
-      auto staticMethodCall = std::make_shared<MethodCallEXP>(methodName);
-      staticMethodCall->left = node_as_class_name_expr;
-      parseArguments(staticMethodCall);
-      comp->addExpression(staticMethodCall);
-    } break;
-    default:
-      break;
+    switch (left->getKind()) {
+        case E_Enum_Decl:
+        case E_Enum_Reference: {
+            auto node_as_var = std::static_pointer_cast<VarRefEXP>(left);
+            return std::make_shared<EnumRefEXP>(node_as_var->var_name, std::get<std::string>(token->value));
+        }
+        case E_Class_Decl:
+        case E_Class_Name: {
+            auto node_as_class = std::static_pointer_cast<ClassNameEXP>(left);
+            auto methodName = std::get<std::string>(token->value);
+            auto staticMethodCall = std::make_shared<MethodCallEXP>(methodName);
+            staticMethodCall->left = node_as_class;
+            parseArguments(staticMethodCall);
+            return staticMethodCall;
+        }
+        default:
+            return left;
     }
-  }
+}
 
-  if (token->kind == TOKEN_LBRACKET) {
-    // its a function call or a constructor call
-    token = next();
+std::shared_ptr<Expression> Parser::parseCallExpression(std::shared_ptr<Expression> left) {
+    next(); // eat '('
 
-    // if (peek()->kind == TOKEN_LBRACKET) {
-    // token = next();
-    // @FIX NOT A VARREF JUST NEED A NAME
-    auto func_name = std::static_pointer_cast<VarRefEXP>(node)->var_name;
+    auto func_name = std::static_pointer_cast<VarRefEXP>(left)->var_name;
     auto func_call = std::make_shared<FuncCallEXP>();
     parseArguments(func_call);
     func_call->func_name = func_name;
 
-    // check if its a constructor call
+    // Check if it's a constructor call
     if (this->globalTypeTable->getType(moduleName, func_name) != nullptr) {
-      auto class_name_expr =
-          std::make_shared<ClassNameEXP>(func_call->func_name);
-
-      if (func_call->arguments.empty()) {
-        auto constr_call =
-            std::make_shared<ConstructorCallEXP>(class_name_expr);
-        return constr_call;
-      }
-      auto constr_call = std::make_shared<ConstructorCallEXP>(
-          class_name_expr, func_call->arguments);
-      return constr_call;
+        auto class_name_expr = std::make_shared<ClassNameEXP>(func_call->func_name);
+        if (func_call->arguments.empty()) {
+            return std::make_shared<ConstructorCallEXP>(class_name_expr);
+        }
+        return std::make_shared<ConstructorCallEXP>(class_name_expr, func_call->arguments);
     }
 
-    // auto func_call_to_exp = std::shared_ptr<Expression>(func_call.get());
-    // comp->addExpression(func_call_to_exp);
-
-    token = peek();
-    if (token == nullptr)
-      return nullptr;
-
-    if (token->kind != TOKEN_RBRACKET) {
-      PARSE_ERR(sm.getLastFilePath().c_str(),
-                "Expected `)` after functional call\n");
+    if (peek()->kind != TOKEN_RBRACKET) {
+        PARSE_ERR(sm.getLastFilePath().c_str(), "Expected `)` after function call\n");
     } else {
-      // eat closing bracket after func read
-      token = next();
+        next(); // eat ')'
     }
     return func_call;
-  }
+}
 
-  // '.' is a delimeter between entitys here
-  // a.k.a. a terminal char
-  while (token->kind == TOKEN_DOT) {
-    // if we are here
-    // it means that we expect:
-    // or a `.Identifier(..)` => MethodCallExpr
-    // or without a `(`, just ident => FieldAccessExpr
-    // or chains of them => CompoundExpr
-    //
-    // here we construct a tree
-    // of expression(-s)
+std::shared_ptr<Expression> Parser::parseMemberAccess(std::shared_ptr<Expression> left) {
+    auto comp = std::make_shared<CompoundEXP>();
+    comp->addExpression(left);
 
-    token = next(); // eat '.'
+    while (peek()->kind == TOKEN_DOT) {
+        next(); // eat '.'
 
-    // // should be an identifier
+        std::shared_ptr<Expression> after_dot;
+        if (comp->parts.back()->getKind() == E_Var_Reference) {
+            auto leftAsVar = std::static_pointer_cast<VarRefEXP>(comp->parts.back())->var_name;
+            auto calleeType = std::static_pointer_cast<ClassDecl>(
+                globalSymbolTable->getCurrentScope()->lookup(leftAsVar))->type->name;
+            after_dot = calleeType.empty() ? parsePrimary() : parsePrimary(calleeType);
+        } else {
+            after_dot = parsePrimary();
+        }
 
-    std::shared_ptr<Expression> after_dot;
-    if (comp->parts.back()->getKind() == E_Var_Reference) {
-      auto leftAsVar =
-          std::static_pointer_cast<VarRefEXP>(comp->parts.back())->var_name;
-      auto calleeType =
-          std::static_pointer_cast<ClassDecl>(
-              globalSymbolTable->getCurrentScope()->lookup(leftAsVar))
-              ->type->name;
-      if (calleeType.empty()) {
-        after_dot = parsePrimary();
-      } else {
-        after_dot = parsePrimary(calleeType); /* parsePrimary() */
-        ;
-      }
-    } else {
-      after_dot = parsePrimary();
+        if (peek()->kind == TOKEN_LBRACKET) {
+            next(); // eat '('
+            auto method_call = std::static_pointer_cast<MethodCallEXP>(after_dot);
+            parseArguments(method_call);
+            comp->addExpression(method_call);
+
+            if (peek()->kind != TOKEN_RBRACKET) {
+                PARSE_ERR(sm.getLastFilePath().c_str(), "Expected `)` after method call\n");
+            } else {
+                next(); // eat ')'
+            }
+        } else {
+            auto field_name = std::static_pointer_cast<VarRefEXP>(after_dot)->var_name;
+            auto obj_ref = std::static_pointer_cast<VarRefEXP>(left);
+            auto field_access = std::make_shared<FieldRefEXP>(field_name, obj_ref);
+
+            auto currScope = globalSymbolTable->getCurrentScope();
+            auto obj_decl = std::static_pointer_cast<VarDecl>(
+                globalSymbolTable->getCurrentScope()->lookup(obj_ref->var_name));
+            auto field_decl = std::static_pointer_cast<FieldDecl>(
+                globalSymbolTable->getModuleScope(currScope)->lookupInClass(
+                    field_name, obj_decl->type->name));
+
+            field_access->index = field_decl->index;
+            comp->addExpression(field_access);
+        }
     }
 
-    // @TODO throw error if after_dot is not an Identifier
-
-    // then we decide if our identifier is a fieldaccess or a methodcall
-    // - check for brackets -> MethodCall
-    if (peek()->kind == TOKEN_LBRACKET) {
-      token = next();
-
-      // after_dot then is a method_name in a method call
-      auto method_call = std::static_pointer_cast<MethodCallEXP>(after_dot);
-      // auto method_call = std::make_shared<MethodCallEXP>();
-      // method_call->method_name =
-      //   // ???? костыль жёсткий слишком это вообще не рев фар это имя метода
-      //   std::static_pointer_cast<VarRefEXP>(after_dot)->var_name;
-      parseArguments(method_call);
-
-      auto method_call_to_exp =
-          std::dynamic_pointer_cast<Expression>(method_call);
-      comp->addExpression(method_call_to_exp);
-
-      token = peek();
-      if (token == nullptr)
-        return method_call;
-      if (token->kind != TOKEN_RBRACKET) {
-        PARSE_ERR(sm.getLastFilePath().c_str(),
-                  "Expected `)` after method call\n");
-      } else {
-        // eat closing bracket after func read
-        token = next();
-      }
+    // Simplify compound expression if possible
+    if (comp->parts.size() == 1) {
+        return comp->parts[0];
     }
-    // - if not its a field access, than cannot be chained mind you (WHAT???)
-    //   so we can probably just return after read ?
-    else {
-      auto field_name =
-          std::static_pointer_cast<VarRefEXP>(after_dot)->var_name;
-      auto obj_ref = std::static_pointer_cast<VarRefEXP>(node);
-      auto field_access = std::make_shared<FieldRefEXP>(field_name, obj_ref);
-
-      auto currScope = globalSymbolTable->getCurrentScope();
-
-      auto obj_decl = std::static_pointer_cast<VarDecl>(globalSymbolTable->getCurrentScope()->lookup(obj_ref->var_name));
-
-      auto field_decl = std::static_pointer_cast<FieldDecl>(globalSymbolTable->getModuleScope(currScope)->lookupInClass(
-        field_name, obj_decl->type->name));
-
-      field_access->index = field_decl->index;
-
-      comp->addExpression(field_access);
+    if (comp->parts.size() == 2) {
+        switch (comp->parts[1]->getKind()) {
+            case E_Method_Call: {
+                auto method_call = std::dynamic_pointer_cast<MethodCallEXP>(comp->parts[1]);
+                method_call->left = comp->parts[0];
+                return method_call;
+            }
+            case E_Field_Reference: {
+                // auto left = std::static_pointer_cast<VarRefEXP>(comp->parts[0]);
+                // auto field_ref = std::static_pointer_cast<VarRefEXP>(comp->parts[1]);
+                // return std::make_shared<FieldRefEXP>(field_ref->var_name, left);
+                return comp->parts[1];
+            }
+            default:
+                return comp;
+        }
     }
 
-    token = peek();
-    if (token == nullptr)
-      return node;
-  }
-
-  // binary operation expression
-  if (is_binary_operator(token->kind)) {
-    return parseBinaryOp(node);
-  }
-
-  // number of expr delimitered by a dot
-  // - 0 -> cant be, a.
-  // - 1 -> methodcall or fieldaccess, a.Plus(2), Pair.first
-  // - >1 -> compound
-  size_t parts_num = comp->parts.size();
-  if (parts_num == 1) {
-    return comp->parts[0];
-  };
-  if (parts_num == 2) {
-    switch (comp->parts[1]->getKind()) {
-    case E_Method_Call: {
-      auto left = std::move(comp->parts[0]);
-      std::shared_ptr<MethodCallEXP> method_call =
-          std::dynamic_pointer_cast<MethodCallEXP>(comp->parts[1]);
-      method_call->left = left;
-      // std::shared_ptr<MethodCallEXP>(
-      //     dynamic_cast<MethodCallEXP *>(comp->parts[1].get()));
-      return method_call;
-    }
-    case E_Field_Reference: {
-      // auto field_access = ;
-      // @TEST IT
-      auto left = std::static_pointer_cast<VarRefEXP>(comp->parts[0]);
-      auto field_ref = std::static_pointer_cast<VarRefEXP>(comp->parts[1]);
-
-      // std::shared_ptr<FieldAccessEXP>(dynamic_cast<FieldAccessEXP
-      // *>(comp->parts[1].get()));
-      // field_access->left = std::move(left);
-      // field_access->field_name = field_ref->field_name;
-
-      return std::make_shared<FieldRefEXP>(field_ref->var_name, left);
-    }
-    default:
-      return comp;
-    }
-  }
-
-  return comp;
+    return comp;
 }
 
 std::shared_ptr<ParameterDecl> Parser::parseParameterDecl() {
@@ -2221,7 +2138,8 @@ Parser::parsePrimary(const std::string &classNameToSearchIn) {
       // we return it as a var to construct
       // a legit FieldRefEXP on parseExpression
       // return
-      // std::make_shared<FieldRefEXP>(std::get<std::string>(token->value), );
+      // std::make_shared<FieldRefEXP>(std::get<std::string>(token->value),
+      // ); return
       return std::make_shared<VarRefEXP>(std::get<std::string>(token->value));
     }
     case E_Variable_Decl:
@@ -2238,6 +2156,10 @@ Parser::parsePrimary(const std::string &classNameToSearchIn) {
     case E_Method_Decl: {
       return std::make_shared<MethodCallEXP>(
           std::get<std::string>(token->value));
+    }
+    case E_Enum_Decl: {
+      // @TODO
+      return std::make_shared<EnumRefEXP>(std::get<std::string>(token->value));
     }
     default:
       return nullptr;

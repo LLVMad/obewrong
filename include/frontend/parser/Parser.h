@@ -98,7 +98,7 @@ private:
 
   std::shared_ptr<ClassDecl> parseClassDecl();
 
-  std::shared_ptr<FieldDecl> parseFieldDecl();
+  std::shared_ptr<FieldDecl> parseFieldDecl(size_t index = 0);
 
   /**
    * @note WhileLoop ::= \n
@@ -141,6 +141,10 @@ private:
    * @note also parses functioncalls and compund expressions
    */
   std::shared_ptr<Expression> parseExpression();
+
+  std::shared_ptr<Expression> parseStaticAccess(std::shared_ptr<Expression> left);
+  std::shared_ptr<Expression> parseCallExpression(std::shared_ptr<Expression> left);
+  std::shared_ptr<Expression> parseMemberAccess(std::shared_ptr<Expression> left);
 
   /**
    *

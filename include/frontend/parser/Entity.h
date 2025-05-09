@@ -64,6 +64,7 @@ enum Ekind {
   E_Unary_Operator,
   E_Enum_Reference,
   E_Element_Reference,
+  E_Assignment_Wrapper, // Wraps assignments to be used in expressions
 
   // Special entities
   E_This, // current instance of object

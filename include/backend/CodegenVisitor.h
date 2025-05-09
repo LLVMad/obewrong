@@ -3,6 +3,7 @@
 
 #include "frontend/SymbolTable.h"
 #include "frontend/parser/Visitor.h"
+#include "frontend/parser/Wrappers.h"
 
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"

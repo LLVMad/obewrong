@@ -75,6 +75,10 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<Expression> &expr) {
     auto exprFieldRef = std::static_pointer_cast<FieldRefEXP>(expr);
     return visit(exprFieldRef);
   }
+  case E_Assignment_Wrapper: {
+    auto wrapper = std::static_pointer_cast<AssignmentWrapperEXP>(expr);
+    return visit(wrapper->assignment);
+  }
   default: return cgnone;
   }
 }
@@ -82,7 +86,7 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<Expression> &expr) {
 cgresult_t CodeGenVisitor::visit(const std::shared_ptr<FieldRefEXP> &node) {
   auto [decl, alloca, isInited] = *currentScope->getSymbol(node->obj->var_name);
 
-  dumpIR();
+  // dumpIR();
 
   auto varDecl = std::static_pointer_cast<VarDecl>(decl);
 
@@ -438,6 +442,61 @@ cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<ConstrDecl> &node) {
 }
 
 cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<MethodDecl> &node) {
+  currentScope = currentScope->nextScope();
+
+  // CREATE PROTOTYPE OF A FUNCTION
+  std::vector<llvm::Type*> argTypes;
+  
+  // Add all parameters including 'this' which was added by the parser
+  for (auto &arg : node->args) {
+    argTypes.push_back(arg->type->toLLVMType(*this->context));
+  }
+
+  llvm::Type *returnType = nullptr;
+  if (!node->isVoid)
+    returnType = node->signature->return_type->toLLVMType(*this->context);
+  else
+    returnType = llvm::Type::getVoidTy(*this->context);
+
+  llvm::FunctionType *FT = llvm::FunctionType::get(returnType, argTypes, false);
+
+  llvm::Function *F = llvm::Function::Create(FT, llvm::Function::InternalLinkage,
+    node->name, module.get());
+
+  // Set argument names - first one is 'this' from parser
+  size_t i = 0;
+  for (auto &arg : F->args()) {
+    arg.setName(node->args[i]->name);
+    i++;
+  }
+
+  // CREATE FUNCTION BODY
+  llvm::BasicBlock *BB = llvm::BasicBlock::Create(*context, "entry", F);
+  builder->SetInsertPoint(BB);
+
+  // Record the function arguments in the scope
+  for (auto &arg : F->args()) {
+    llvm::AllocaInst *alloca =
+      createEntryBlockAlloca(F, arg.getType(), arg.getName());
+    builder->CreateStore(&arg, alloca);
+    currentScope->addSymbol(std::string(arg.getName()), alloca);
+  }
+
+  // Generate method body
+  auto methodBody = node->body;
+  cgresult_t returnValue;
+  for (auto &el : methodBody->parts) {
+    returnValue = visitDefault(el);
+  }
+
+  if (node->isVoid) {
+    builder->CreateRetVoid();
+  }
+
+  verifyFunction(*F);
+
+  currentScope = currentScope->prevScope();
+
   return cgnone;
 }
 
