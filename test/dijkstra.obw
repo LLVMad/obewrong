@@ -1,34 +1,51 @@
+module dijkstra
+
 class Dijkstra is
     this() is end
 
     method shortestPath(graph: Array[Array[Integer]], src: Integer) : Array[Integer] is
-        var n : Integer := graph.Length
-        var dist : Array := Array(n, Integer(1000000))
-        var visited : Array := Array(n, Integer(0))
+        var n : Integer := graph.length
+        var dist : Array[Integer] := Array[Integer](n)
+        var visited : Array[Integer] := Array[Integer](n)
+        
+        // Initialize arrays
+        var i : Integer := 0
+        while i.Less(n) loop
+            dist.set(i, 1000000)
+            visited.set(i, 0)
+            i := i.Plus(1)
+        end
 
-        dist.set(src, Integer(0))
+        dist.set(src, 0)
 
-        for count in Integer(0)..n.Minus(Integer(1)) do
-            var u : Integer := Integer(0)
-            var minDist : Integer := Integer(1000000)
+        var count : Integer := 0
+        while count.Less(n) loop
+            var u : Integer := 0
+            var minDist : Integer := 1000000
 
-            for v in Integer(0)..n.Minus(Integer(1)) do
-                if visited.get(v).Equal(Integer(0)) and dist.get(v).Less(minDist) then
+            var v : Integer := 0
+            while v.Less(n) loop
+                if visited.get(v).Equal(0) and dist.get(v).Less(minDist) then
                     minDist := dist.get(v)
                     u := v
                 end
+                v := v.Plus(1)
             end
 
-            visited.set(u, Integer(1))
+            visited.set(u, 1)
 
-            for v in Integer(0)..n.Minus(Integer(1)) do
-                if graph.get(u).get(v).Greater(Integer(0)) and visited.get(v).Equal(Integer(0)) then
+            v := 0
+            while v.Less(n) loop
+                if graph.get(u).get(v).Greater(0) and visited.get(v).Equal(0) then
                     var newDist : Integer := dist.get(u).Plus(graph.get(u).get(v))
                     if newDist.Less(dist.get(v)) then
                         dist.set(v, newDist)
                     end
                 end
+                v := v.Plus(1)
             end
+
+            count := count.Plus(1)
         end
 
         return dist
@@ -37,22 +54,32 @@ end
 
 class Main is
     this() is 
-        var graph : Array[Array[Integer]] := Array(
-            Array(Integer(0), Integer(4), Integer(0), Integer(0), Integer(0), Integer(10)),
-            Array(Integer(4), Integer(0), Integer(2), Integer(0), Integer(0), Integer(0)),
-            Array(Integer(0), Integer(2), Integer(0), Integer(3), Integer(0), Integer(0)),
-            Array(Integer(0), Integer(0), Integer(3), Integer(0), Integer(5), Integer(1)),
-            Array(Integer(0), Integer(0), Integer(0), Integer(5), Integer(0), Integer(6)),
-            Array(Integer(10), Integer(0), Integer(0), Integer(1), Integer(6), Integer(0))
-        )
+        var graph : Array[Array[Integer]] := Array[Array[Integer]](3)
+        
+        // Initialize graph
+        var i : Integer := 0
+        while i.Less(3) loop
+            graph.set(i, Array[Integer](3))
+            var j : Integer := 0
+            while j.Less(3) loop
+                graph.get(i).set(j, 0)
+                j := j.Plus(1)
+            end
+            i := i.Plus(1)
+        end
+
+        // Add some edges
+        graph.get(0).set(1, 4)
+        graph.get(0).set(2, 2)
+        graph.get(1).set(2, 1)
 
         var dijkstra : Dijkstra := Dijkstra()
-        var result : Array[Integer] := dijkstra.shortestPath(graph, Integer(0))
+        var result : Array[Integer] := dijkstra.shortestPath(graph, 0)
 
-        // Bro у нас нету for loop вообще 
-        for i in Integer(0)..result.Length.Minus(Integer(1)) do
-            Console.print("Shortest distance to node ".Concat(i.ToString()).Concat(": ").Concat(result.get(i).ToString()))
+        i := 0
+        while i.Less(result.length) loop
+            printl("Shortest distance to node " + i.ToString() + ": " + result.get(i).ToString())
+            i := i.Plus(1)
         end
-        // Bro у нас нету for loop вообще 
     end
 end

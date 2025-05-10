@@ -6,45 +6,140 @@ void SymbolTable::initBuiltinFunctions(
 
   //=============== GENERAL ===============
   // - printl
-  // bool isVoid = true;
-  // // @TODO body??? args??? AnyRef ???
-  // auto printDecl = std::make_shared<FuncDecl>("printl");
-  //
-  // global_scope->addSymbol("printf", printDecl);
+  bool isVoid = true;
+  // @TODO body??? args??? AnyRef ???
+  auto printDecl = std::make_shared<FuncDecl>("printf");
+
+  global_scope->addSymbol("printf", printDecl);
 
   //========================================
 
   //========== INTEGER BUILTIN METHODS ==========
-  // enterScope(SCOPE_CLASS, "Integer");
-  // // - Plus
-  // auto intPlusTypeReturnType = typeTable->getType("", "Integer");
-  // auto intPlusTypeParamType = typeTable->getType("", "Integer");
-  // std::vector paramTypes = {intPlusTypeParamType};
-  // auto intPlusType =
-  //     std::make_shared<TypeFunc>(intPlusTypeReturnType, paramTypes);
-  // auto intPlusParamDecl =
-  //     std::make_shared<ParameterDecl>("x", intPlusTypeParamType);
-  // std::vector<std::shared_ptr<ParameterDecl>> params = {intPlusParamDecl};
-  // auto intPlusDecl =
-  //     std::make_shared<MethodDecl>("Plus", intPlusType, params, true);
-  //
-  // global_scope->addSymbol("Plus", intPlusDecl);
-  //
-  // // - Minus
-  // auto intMinusTypeReturnType = typeTable->getType("", "Integer");
-  // auto intMinusTypeParamType = typeTable->getType("", "Integer");
-  // paramTypes = {intMinusTypeParamType};
-  // auto intMinusType =
-  //     std::make_shared<TypeFunc>(intMinusTypeReturnType, paramTypes);
-  // auto intMinusParamDecl =
-  //     std::make_shared<ParameterDecl>("x", intMinusTypeParamType);
-  // params = {intPlusParamDecl};
-  // auto intMinusDecl =
-  //     std::make_shared<MethodDecl>("Minus", intMinusType, params, true);
-  //
-  // global_scope->addSymbol("Minus", intMinusDecl);
-  //
-  // exitScope();
+  enterScope(SCOPE_MODULE_BUILTIN, "Integer");
+
+  enterScope(SCOPE_CLASS, "Integer");
+  // - Plus
+  auto intPlusTypeReturnType = typeTable->getType("", "Integer");
+  auto intPlusTypeParamType = typeTable->getType("", "Integer");
+  std::vector paramTypes = {intPlusTypeParamType};
+  auto intPlusType =
+      std::make_shared<TypeFunc>(intPlusTypeReturnType, paramTypes);
+  auto intPlusParamDecl =
+      std::make_shared<ParameterDecl>("x", intPlusTypeParamType);
+  std::vector<std::shared_ptr<ParameterDecl>> params = {intPlusParamDecl};
+  auto intPlusDecl =
+      std::make_shared<MethodDecl>("Plus", intPlusType, params, true);
+  intPlusDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Plus", intPlusDecl);
+
+  // - Minus
+  auto intMinusTypeReturnType = typeTable->getType("", "Integer");
+  auto intMinusTypeParamType = typeTable->getType("", "Integer");
+  paramTypes = {intMinusTypeParamType};
+  auto intMinusType =
+      std::make_shared<TypeFunc>(intMinusTypeReturnType, paramTypes);
+  auto intMinusParamDecl =
+      std::make_shared<ParameterDecl>("x", intMinusTypeParamType);
+  params = {intPlusParamDecl};
+  auto intMinusDecl =
+      std::make_shared<MethodDecl>("Minus", intMinusType, params, true);
+  intMinusDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Minus", intMinusDecl);
+
+  // - Mult
+  auto intMultTypeReturnType = typeTable->getType("", "Integer");
+  auto intMultTypeParamType = typeTable->getType("", "Integer");
+  paramTypes = {intMultTypeParamType};
+  auto intMultType =
+      std::make_shared<TypeFunc>(intMultTypeReturnType, paramTypes);
+  auto intMultParamDecl =
+      std::make_shared<ParameterDecl>("x", intMultTypeParamType);
+  params = {intMultParamDecl};
+  auto intMultDecl =
+      std::make_shared<MethodDecl>("Mult", intMultType, params, true);
+  intMultDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Mult", intMultDecl);
+
+  // - Div
+  auto intDivTypeReturnType = typeTable->getType("", "Integer");
+  auto intDivTypeParamType = typeTable->getType("", "Integer");
+  paramTypes = {intDivTypeParamType};
+  auto intDivType =
+      std::make_shared<TypeFunc>(intDivTypeReturnType, paramTypes);
+  auto intDivParamDecl =
+      std::make_shared<ParameterDecl>("x", intDivTypeParamType);
+  params = {intDivParamDecl};
+  auto intDivDecl =
+      std::make_shared<MethodDecl>("Div", intDivType, params, true);
+  intDivDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Div", intDivDecl);
+
+  // - Rem
+  auto intRemTypeReturnType = typeTable->getType("", "Integer");
+  auto intRemTypeParamType = typeTable->getType("", "Integer");
+  paramTypes = {intRemTypeParamType};
+  auto intRemType =
+      std::make_shared<TypeFunc>(intRemTypeReturnType, paramTypes);
+  auto intRemParamDecl =
+      std::make_shared<ParameterDecl>("x", intRemTypeParamType);
+  params = {intRemParamDecl};
+  auto intRemDecl =
+      std::make_shared<MethodDecl>("Rem", intRemType, params, true);
+  intRemDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Rem", intRemDecl);
+
+  // - Less
+  auto intLessTypeReturnType = typeTable->getType("", "Boolean");
+  auto intLessTypeParamType = typeTable->getType("", "Integer");
+  paramTypes = {intLessTypeParamType};
+  auto intLessType =
+      std::make_shared<TypeFunc>(intLessTypeReturnType, paramTypes);
+  auto intLessParamDecl =
+      std::make_shared<ParameterDecl>("x", intLessTypeParamType);
+  params = {intLessParamDecl};
+  auto intLessDecl =
+      std::make_shared<MethodDecl>("Less", intLessType, params, true);
+  intLessDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Less", intLessDecl);
+
+  // - Greater
+  auto intGreaterTypeReturnType = typeTable->getType("", "Boolean");
+  auto intGreaterTypeParamType = typeTable->getType("", "Integer");
+  paramTypes = {intGreaterTypeParamType};
+  auto intGreaterType =
+      std::make_shared<TypeFunc>(intGreaterTypeReturnType, paramTypes);
+  auto intGreaterParamDecl =
+      std::make_shared<ParameterDecl>("x", intGreaterTypeParamType);
+  params = {intGreaterParamDecl};
+  auto intGreaterDecl =
+      std::make_shared<MethodDecl>("Greater", intGreaterType, params, true);
+  intGreaterDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Greater", intGreaterDecl);
+
+  // - Equal
+  auto intEqualTypeReturnType = typeTable->getType("", "Boolean");
+  auto intEqualTypeParamType = typeTable->getType("", "Integer");
+  paramTypes = {intEqualTypeParamType};
+  auto intEqualType =
+      std::make_shared<TypeFunc>(intEqualTypeReturnType, paramTypes);
+  auto intEqualParamDecl =
+      std::make_shared<ParameterDecl>("x", intEqualTypeParamType);
+  params = {intEqualParamDecl};
+  auto intEqualDecl =
+      std::make_shared<MethodDecl>("Equal", intEqualType, params, true);
+  intEqualDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Equal", intEqualDecl);
+
+  exitScope();
+  exitScope();
   //========================================
   // ... other built-in functions ...
 }

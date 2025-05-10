@@ -12,6 +12,7 @@
 enum ScopeKind {
   SCOPE_GLOBAL, // scope of all project (multiple cu's)
   SCOPE_MODULE,
+  SCOPE_MODULE_BUILTIN,
   SCOPE_CLASS,
   SCOPE_METHOD,
   SCOPE_FUNCTION,
@@ -149,6 +150,7 @@ public:
     return nullptr;
   }
 
+  // std::shared_ptr<Scope> getModuleScope
   // std::shared_ptr<Decl>
 
   std::shared_ptr<Scope> createChild(ScopeKind kind, std::string name) {

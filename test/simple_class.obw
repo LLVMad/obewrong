@@ -1,19 +1,24 @@
+module simpleclass
+
 class MyClass is
     var value : Integer
 
     this(p: Integer) is
-        value := p
+        this.value := p
     end
 
     method getValue() : Integer is
-        return value
+        return this.value
     end
 end
 
-class TestClassConstructor() is
+class Main is
     this() is
-        var obj : MyClass(42)
+        var obj : MyClass(42.Plus(2))
         var result : Integer
         result := obj.getValue()
+        printf("result: %d\n", result)
     end
 end
+
+

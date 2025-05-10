@@ -222,12 +222,6 @@ void PrinterAst::printClassDecl(const std::shared_ptr<ClassDecl> &classDecl,
       printEntity(method, indent + 4);
     }
   }
-
-  if (!classDecl->constructors.empty()) {
-    for (const auto &constr : classDecl->constructors) {
-      printEntity(constr, indent + 4);
-    }
-  }
 }
 
 void PrinterAst::printConstrDecl(const std::shared_ptr<ConstrDecl> &constrDecl,

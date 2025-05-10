@@ -255,17 +255,21 @@ public:
 
   ClassDecl(const std::string &name, std::shared_ptr<TypeClass> type,
             std::vector<std::shared_ptr<FieldDecl>> fields,
-            std::vector<std::shared_ptr<MethodDecl>> methods,
-            std::vector<std::shared_ptr<ConstrDecl>> constructors)
+            std::vector<std::shared_ptr<Decl>> methods)
       : Decl(E_Class_Decl, name), type(std::move(type)),
-        fields(std::move(fields)), methods(std::move(methods)),
-        constructors(std::move(constructors)) {}
+        fields(std::move(fields)), methods(std::move(methods))
+  {
+  }
 
   std::shared_ptr<TypeClass> type;
   std::shared_ptr<ClassDecl> base_class;
   std::vector<std::shared_ptr<FieldDecl>> fields;
-  std::vector<std::shared_ptr<MethodDecl>> methods;
-  std::vector<std::shared_ptr<ConstrDecl>> constructors;
+
+  // @NOTE: becouse methods and constructs can appear in different
+  // order we should keep the order of their declaration !
+  // std::vector<std::shared_ptr<MethodDecl>> methods;
+  // std::vector<std::shared_ptr<ConstrDecl>> constructors;
+  std::vector<std::shared_ptr<Decl>> methods; // btoh methods and constrs
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 

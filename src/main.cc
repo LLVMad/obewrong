@@ -37,6 +37,9 @@ int main(int argc, char *argv[]) {
     PrinterAst printer(globalTypeTable, globalSymbolTable);
     printer.printAST(parseTree);
 
+    // semantic
+    // if error -> exit(-1)
+
     auto global_scope = globalSymbolTable->getGlobalScope();
     CodeGenVisitor cgvisitor(global_scope, globalTypeTable);
     cgvisitor.visitDefault(parseTree);

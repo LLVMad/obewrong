@@ -172,6 +172,9 @@ public:
 
   cgresult_t visit(const std::shared_ptr<Type> &node);
 
+  cgresult_t handleBuiltinMethodCall(const std::shared_ptr<MethodCallEXP> &node,
+                                     std::string methodName);
+
   void dumpIR() const { module->print(llvm::outs(), nullptr); }
 
   void createObjFile();

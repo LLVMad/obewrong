@@ -47,7 +47,7 @@ inline unsigned int Lexer::hash(const char *str, size_t len) {
     47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
     47, 47, 47, 47, 47, 47
   };
-  register unsigned int hval = len;
+  unsigned int hval = len;
 
   switch (hval)
   {
@@ -441,12 +441,22 @@ std::unique_ptr<Token> Lexer::next() {
         }
 
         curr_state = STATE_START;
-        return std::make_unique<Token>(TOKEN_INT_NUMBER, std::stoi(token),
+        return std::make_unique<Token>(TOKEN_INT32_NUMBER, std::stoi(token),
                                        curr_line,
                                        curr_column /* - token.length() + 1 */);
       }
       if (c == '.') {
-        curr_state = STATE_READ_REAL;
+        // if there are digits after the dot
+        if (std::isdigit(peek())) {
+          curr_state = STATE_READ_REAL;
+        } else {
+          // no -> treat it as a method call
+          // 32bit number by default
+          curr_state = STATE_START;
+          return std::make_unique<Token>(TOKEN_INT32_NUMBER, std::stoi(token),
+                                         curr_line,
+                                         curr_column /* - token.length() + 1 */);
+        }
       } else {
         curr_state = STATE_READ_NUM;
       }

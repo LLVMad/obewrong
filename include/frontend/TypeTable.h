@@ -91,7 +91,7 @@ public:
   void initBuiltinTypes() {
     builtinTypes.addType("byte", std::make_shared<TypeByte>());
     // builtinTypes.addType("access", std::make_shared<TypeAccess>());
-    // builtinTypes.addType("Integer", std::make_shared<TypeInt>());
+    builtinTypes.addType("Integer", std::make_shared<TypeInt>());
     // builtinTypes.addType("Int16", std::make_shared<TypeInt16>());
     // builtinTypes.addType("Int64", std::make_shared<TypeInt64>());
     // builtinTypes.addType("Uint16", std::make_shared<TypeUint16>());
