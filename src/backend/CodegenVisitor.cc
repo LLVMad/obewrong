@@ -6,6 +6,8 @@
 #include "backend/CodegenVisitor.h"
 #include "lld/Common/Driver.h"
 #include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/IntrinsicInst.h"
+
 // #include "lld/Common/"
 
 #include "util/Logger.h"
@@ -53,6 +55,10 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<Expression> &expr) {
     auto exprArrLit = std::static_pointer_cast<ArrayLiteralExpr>(expr);
     return visit(exprArrLit);
   }
+  case E_Element_Reference: {
+    auto exprArrEl = std::static_pointer_cast<ElementRefEXP>(expr);
+    return visit(exprArrEl);
+  }
   case E_Real_Literal: {
     auto exprRealLit = std::static_pointer_cast<RealLiteralEXP>(expr);
     return visit(exprRealLit);
@@ -91,6 +97,37 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<Expression> &expr) {
   }
   default: return cgnone;
   }
+}
+
+cgresult_t CodeGenVisitor::visit(const std::shared_ptr<ElementRefEXP> &node) {
+  // load index value -> index is an Expresssion
+  auto indexVal = cggetval(visit(node->index));
+  
+  // convert index to i64 if it's not already
+  if (indexVal->getType() != llvm::Type::getInt64Ty(*context)) {
+    indexVal = builder->CreateSExt(indexVal, llvm::Type::getInt64Ty(*context));
+  }
+
+  // array type
+  // @TODO: field as `arr`
+  auto [arrDecl , arrAlloca, arrInited ] = *currentScope->getSymbol(node->arr->var_name);
+
+  // GEP with two indices: [0, index]
+  auto zero = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0);
+  auto gepToEl = builder->CreateGEP(
+    arrAlloca->getAllocatedType(),
+    arrAlloca,
+    {zero, indexVal}
+  );
+
+  // load GEP
+  auto arrType = std::static_pointer_cast<VarDecl>(arrDecl)->type;
+  auto el_type = std::static_pointer_cast<TypeArray>(arrType)->el_type;
+
+  return builder->CreateLoad(
+    el_type->toLLVMType(*context),
+    gepToEl
+  );
 }
 
 cgresult_t CodeGenVisitor::visit(const std::shared_ptr<FieldRefEXP> &node) {
@@ -275,25 +312,44 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<ArrayLiteralExpr> &node) 
   auto elType = typeTable->getType(moduleName, node->el_type);
   auto arrayTypeLLVM = llvm::ArrayType::get(elType->toLLVMType(*context), node->elements.size());
 
-  // Create constant elements
+  // create constant elements
   std::vector<llvm::Constant *> elements;
   for (const auto& el: node->elements) {
     auto valToConstant = dyn_cast<llvm::Constant>(cggetval(visit(el)));
     elements.push_back(valToConstant);
   }
 
-  // Create a global constant array
+  // create global array
   auto constArray = llvm::ConstantArray::get(arrayTypeLLVM, elements);
   auto globalArray = new llvm::GlobalVariable(
     *module,
     arrayTypeLLVM,
     true,  // isConstant
     llvm::GlobalValue::LinkageTypes::InternalLinkage,
-    constArray,
-    "array_literal"  // name
+    constArray
   );
 
-  return globalArray;
+  // create local array
+  auto localArray = builder->CreateAlloca(arrayTypeLLVM, nullptr);
+
+  // calc size in bytes
+  auto size = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 
+    node->elements.size() * elType->toLLVMType(*context)->getPrimitiveSizeInBits() / 8);
+
+  // cast to i8*
+  auto destPtr = builder->CreateBitCast(localArray, llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0));
+  auto srcPtr = builder->CreateBitCast(globalArray, llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0));
+
+  // copy data
+  std::vector<llvm::Type*> types = {
+    llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
+    llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
+    llvm::Type::getInt64Ty(*context)
+  };
+  auto memcpyFn = getOrInsertDeclaration(module.get(), llvm::Intrinsic::memcpy, types);
+  builder->CreateCall(memcpyFn, {destPtr, srcPtr, size, llvm::ConstantInt::getFalse(*context)});
+
+  return localArray;
 }
 
 cgresult_t CodeGenVisitor::visit(const std::shared_ptr<VarRefEXP> &node) {
@@ -619,7 +675,7 @@ cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<VarDecl> &node) {
   cgresult_t initVal;
   if (initializer) {
     initVal = visit(initializer);
-    if (initializer->getKind() != E_Constructor_Call) {
+    if (initializer->getKind() != E_Constructor_Call && initializer->getKind() != E_Array_Literal) {
       alloca = builder->CreateAlloca(varType, nullptr, var_name);
       builder->CreateStore(cggetval(initVal), alloca);
     } else {
@@ -627,6 +683,7 @@ cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<VarDecl> &node) {
       alloca = cggetalloc(initVal);
     }
   }
+  // @TODO: if no initialzer, check if thats allowed 
   else {
     alloca = builder->CreateAlloca(varType, nullptr, var_name);
   }

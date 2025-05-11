@@ -649,7 +649,8 @@ std::shared_ptr<VarDecl> Parser::parseVarDecl() {
 std::shared_ptr<AssignmentSTMT>
 Parser::parseAssignment(std::shared_ptr<Expression> left) {
   // auto var_name = std::get<std::string>(token->value);
-  auto var_ref = std::static_pointer_cast<VarRefEXP>(left);
+  // std::shared_ptr<Expression>
+  // auto var_ref = std::static_pointer_cast<VarRefEXP>(left);
   std::unique_ptr<Token> token = peek();
 
   // eat ':='
@@ -660,7 +661,30 @@ Parser::parseAssignment(std::shared_ptr<Expression> left) {
   // read rvalue expression
   auto initializer = parseExpression();
 
-  auto ass = std::make_shared<AssignmentSTMT>(var_ref, initializer);
+  std::shared_ptr<AssignmentSTMT> ass;
+
+  switch (left->getKind()) {
+  case E_Var_Reference: {
+    auto var_ref = std::static_pointer_cast<VarRefEXP>(left);
+    ass = std::make_shared<AssignmentSTMT>(var_ref, initializer);
+    ass->assKind = VAR_ASS;
+  } break;
+  case E_Element_Reference: {
+    auto el_ref = std::static_pointer_cast<ElementRefEXP>(left);
+    ass = std::make_shared<AssignmentSTMT>(el_ref, initializer);
+    ass->assKind = EL_ASS;
+  } break;
+  case E_Field_Reference: {
+    auto field_ref = std::static_pointer_cast<FieldRefEXP>(left);
+    ass = std::make_shared<AssignmentSTMT>(field_ref, initializer);
+    ass->assKind = FIELD_ASS;
+  } break;
+  default: {
+    auto var_ref = std::static_pointer_cast<VarRefEXP>(left);
+    ass = std::make_shared<AssignmentSTMT>(var_ref, initializer);
+    ass->assKind = VAR_ASS;
+  } break;
+  }
 
   return ass;
 }

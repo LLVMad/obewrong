@@ -2,22 +2,19 @@ module arrays
 
 class Main is
   this() is
-    // no initializer
-    var arr : Array[Integer, 5]
-    arr := [1, 2, 3, 4, 5]
+    var arr : Array[Integer, 5] := [1, 2, 3, 4, 5]
 
     printf("- integer array created: ")
 
     var i : Integer := 0
     for i, i.Less(5), i := i.Plus(1) is
-      printf("%d ", i)
+      printf("%d ", arr[i])
     end
 
-    // with initializer
-    // var arr2 : Array[Integer] := [1, 2, 0, 0]
-
     // element manipulation
-    // arr2[0] := 5
-    // var el : Integer := arr2[0]
+    arr[0] := 5
+    var el : Integer := arr[0]
+
+    printf("\n new el: %d\n", el)
   end
 end

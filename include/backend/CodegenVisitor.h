@@ -148,6 +148,7 @@ public:
   cgresult_t visit(const std::shared_ptr<CompoundEXP> &node);
   cgresult_t visit(const std::shared_ptr<ThisEXP> &node);
   cgresult_t visit(const std::shared_ptr<BinaryOpEXP> &node);
+  cgresult_t visit(const std::shared_ptr<ElementRefEXP> &node);
   // #####========================================#####
 
   // #####========== DECLARATIONS ==========#####
@@ -155,13 +156,13 @@ public:
   cgvoid_t visit(const std::shared_ptr<ModuleDecl> &node);
   cgvoid_t visit(const std::shared_ptr<FieldDecl> &node);
   cgvoid_t visit(const std::shared_ptr<VarDecl> &node);
-  cgvoid_t visit(const std::shared_ptr<ParameterDecl> &node);
+  cgvoid_t visit(const std::shared_ptr<ParameterDecl> &node); // outsorced its work to another function
   cgvoid_t visit(const std::shared_ptr<MethodDecl> &node);
   cgvoid_t visit(const std::shared_ptr<ConstrDecl> &node);
   cgvoid_t visit(const std::shared_ptr<FuncDecl> &node);
   cgvoid_t visit(const std::shared_ptr<ClassDecl> &node);
-  cgvoid_t visit(const std::shared_ptr<ArrayDecl> &node);
-  cgvoid_t visit(const std::shared_ptr<ListDecl> &node);
+  cgvoid_t visit(const std::shared_ptr<ArrayDecl> &node); // probably should be deleted
+  cgvoid_t visit(const std::shared_ptr<ListDecl> &node); // same
   // #####========================================#####
 
   // #####========== STATEMENTS ==========#####
