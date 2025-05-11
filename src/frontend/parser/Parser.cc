@@ -175,10 +175,14 @@ std::shared_ptr<Entity> Parser::parseProgram() {
 
     token = peek();
   }
-  // token = next();
 
-  // initBuiltinTypes();
-  // lastDeclaredScopeParent.emplace("Global");
+  // import builtin modules -> Integer, ...
+  globalSymbolTable->copySymbolFromModulesToCurrent(
+      "Integer", // from
+      moduleName          // to
+  );
+
+  // import builtin types
   for (const auto &[name, type] : globalTypeTable->builtinTypes.types) {
     globalTypeTable->addType(moduleName, name, type);
   }
@@ -1152,7 +1156,7 @@ std::shared_ptr<ForSTMT> Parser::parseForStatement() {
     return nullptr;
   token = next(); // eat 'for'
 
-  // assignment
+  // assignment => no, it should be a whole vardecl
   token = peek();
   if (token->kind != TOKEN_IDENTIFIER) {
     PARSE_ERR(sm.getLastFilePath().c_str(),
@@ -1163,7 +1167,10 @@ std::shared_ptr<ForSTMT> Parser::parseForStatement() {
     // token = next();
     return std::make_shared<ForSTMT>();
   }
-  auto varRef = parseAssignment();
+
+  globalSymbolTable->enterScope(SCOPE_LOOP, "for_loop");
+
+  auto varRef = std::make_shared<VarRefEXP>(std::get<std::string>(next()->value));
 
   // eat ','
   token = peek();
@@ -1176,8 +1183,12 @@ std::shared_ptr<ForSTMT> Parser::parseForStatement() {
   // condition
   auto cond = parseExpression();
 
+  // @TODO: ')' <- i hate it why is this always not eaten somehow ???
+  if (peek()->kind == TOKEN_RBRACKET) token = next();
+
   // eat ','
   token = peek();
+
   if (token->kind != TOKEN_COMMA)
     PARSE_ERR(sm.getLastFilePath().c_str(),
               "Expected comma after an expression in a for loop\n");
@@ -1188,6 +1199,8 @@ std::shared_ptr<ForSTMT> Parser::parseForStatement() {
   auto post = parseAssignment();
 
   auto block_body = parseBlock(BLOCK_IN_FOR);
+
+  globalSymbolTable->exitScope();
 
   return std::make_shared<ForSTMT>(varRef, cond, post, block_body);
 
@@ -1910,6 +1923,8 @@ void Parser::parseArguments(const std::shared_ptr<MethodCallEXP> &method_name) {
     if (token == nullptr)
       return;
   }
+
+  if (peek()->kind == TOKEN_RBRACKET) next();
 }
 
 void Parser::parseArguments(

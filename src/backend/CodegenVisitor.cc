@@ -49,6 +49,10 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<Expression> &expr) {
     auto exprIntLit = std::static_pointer_cast<IntLiteralEXP>(expr);
     return visit(exprIntLit);
   }
+  case E_Array_Literal: {
+    auto exprArrLit = std::static_pointer_cast<ArrayLiteralExpr>(expr);
+    return visit(exprArrLit);
+  }
   case E_Real_Literal: {
     auto exprRealLit = std::static_pointer_cast<RealLiteralEXP>(expr);
     return visit(exprRealLit);
@@ -186,7 +190,19 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<ConstructorCallEXP> &node
   auto Args = node->arguments;
 
   // Create a pointer to the class instance
-  auto classType = llvm::StructType::getTypeByName(*context, node->left->name);
+
+  // @TODO ?!
+  // llvm::Type *classType;
+  // if (node->left->name == "Integer") {
+  //   classType = typeTable->getType(moduleName, "Integer");
+  // }
+
+  llvm::Type *classType = llvm::StructType::getTypeByName(*context, node->left->name);
+
+  if (!classType) {
+    classType = typeTable->getType(moduleName, "Integer")->toLLVMType(*context);
+  }
+
   auto objInstanceRef = builder->CreateAlloca(classType);
   ArgsV.push_back(objInstanceRef);
 
@@ -208,7 +224,23 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<ConstructorCallEXP> &node
 }
 
 cgresult_t CodeGenVisitor::visit(const std::shared_ptr<StringLiteralEXP> &node) {
-  return builder->CreateGlobalString(node->value);
+  std::string processed;
+  for (size_t i = 0; i < node->value.length(); i++) {
+    if (node->value[i] == '\\' && i + 1 < node->value.length()) {
+      switch (node->value[i + 1]) {
+        case 'n': processed += '\n'; break;
+        case 't': processed += '\t'; break;
+        case 'r': processed += '\r'; break;
+        case '\\': processed += '\\'; break;
+        case '"': processed += '"'; break;
+        default: processed += node->value[i + 1]; break;
+      }
+      i++; // Skip the next character since we've processed it
+    } else {
+      processed += node->value[i];
+    }
+  }
+  return builder->CreateGlobalString(processed);
 }
 
 cgresult_t CodeGenVisitor::visit(const std::shared_ptr<IntLiteralEXP> &node) {
@@ -239,6 +271,31 @@ CodeGenVisitor::visit(const std::shared_ptr<RealLiteralEXP> &node) {
   return llvm::ConstantFP::get(*context, llvm::APFloat(node->getValue()));
 }
 
+cgresult_t CodeGenVisitor::visit(const std::shared_ptr<ArrayLiteralExpr> &node) {
+  auto elType = typeTable->getType(moduleName, node->el_type);
+  auto arrayTypeLLVM = llvm::ArrayType::get(elType->toLLVMType(*context), node->elements.size());
+
+  // Create constant elements
+  std::vector<llvm::Constant *> elements;
+  for (const auto& el: node->elements) {
+    auto valToConstant = dyn_cast<llvm::Constant>(cggetval(visit(el)));
+    elements.push_back(valToConstant);
+  }
+
+  // Create a global constant array
+  auto constArray = llvm::ConstantArray::get(arrayTypeLLVM, elements);
+  auto globalArray = new llvm::GlobalVariable(
+    *module,
+    arrayTypeLLVM,
+    true,  // isConstant
+    llvm::GlobalValue::LinkageTypes::InternalLinkage,
+    constArray,
+    "array_literal"  // name
+  );
+
+  return globalArray;
+}
+
 cgresult_t CodeGenVisitor::visit(const std::shared_ptr<VarRefEXP> &node) {
   // llvm::AllocaInst *alloca = currentScope->lookupAlloca(node->var_name); /* varEnv[node->var_name]; */
   // bool isInited = currentScope->isDeclInitialized(no);
@@ -260,7 +317,13 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<Type> &node) {
     return llvm::Type::getInt8Ty(*context);
   }
   case TYPE_CLASS: {
-    return llvm::StructType::getTypeByName(*context, llvm::StringRef(node->name))->getPointerTo();
+    // ->pointer ??/ @TODO
+    return llvm::StructType::getTypeByName(*context, llvm::StringRef(node->name));
+  }
+  case TYPE_ARRAY: {
+    // pointer to first el type
+    auto asArr = std::static_pointer_cast<TypeArray>(node);
+    return asArr->toLLVMType(*context);
   }
   default:
     return cgnone;
@@ -654,7 +717,78 @@ cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<Statement> &node) {
       auto rtAss = std::static_pointer_cast<ReturnSTMT>(node);
       visit(rtAss);
     } break;
+    case E_For_Loop: {
+      auto forAss = std::static_pointer_cast<ForSTMT>(node);
+      visit(forAss);
+    }
   }
+
+  return cgnone;
+}
+
+cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<ForSTMT> &node) {
+  currentScope = currentScope->nextScope();
+
+  // Generate initial assignment
+  volatile auto startCode = visit(node->varWithAss);
+
+  // Get the loop variable
+  auto iteratorVar = node->varWithAss;
+  auto [iterDecl, iterAlloca, iterInited] = *currentScope->getSymbol(iteratorVar->var_name);
+  auto iteratorType = std::static_pointer_cast<VarDecl>(iterDecl)->type;
+  auto iterTypeLLVM = iteratorType->toLLVMType(*this->context);
+
+  // Create the loop header block
+  llvm::Function *TheFunction = builder->GetInsertBlock()->getParent();
+  llvm::BasicBlock *PreheaderBB = builder->GetInsertBlock();
+  llvm::BasicBlock *LoopBB = llvm::BasicBlock::Create(*context, "loop", TheFunction);
+  llvm::BasicBlock *AfterBB = llvm::BasicBlock::Create(*context, "afterloop", TheFunction);
+
+  // Load initial value before creating phi node
+  auto initialValue = builder->CreateLoad(iterTypeLLVM, iterAlloca);
+
+  // Branch to loop header
+  builder->CreateBr(LoopBB);
+
+  // Start insertion in LoopBB
+  builder->SetInsertPoint(LoopBB);
+
+  // Create the PHI node for the loop variable
+  llvm::PHINode *Variable = builder->CreatePHI(iterTypeLLVM, 2, iteratorVar->var_name);
+  
+  // Add the initial value from the preheader
+  Variable->addIncoming(initialValue, PreheaderBB);
+
+  // Store the phi node value back to the alloca
+  builder->CreateStore(Variable, iterAlloca);
+
+  // Generate loop body
+  // volatile auto bodyCode = visitDefault(node->body);
+  auto forBody = node->body;
+  cgresult_t returnValue;
+  for (auto &el : forBody->parts) {
+    returnValue = visitDefault(el);
+  }
+
+  // Generate step code
+  volatile auto stepCode = visit(node->post);
+
+  // Load the current value after the step
+  auto currentValue = builder->CreateLoad(iterTypeLLVM, iterAlloca);
+
+  // Generate condition
+  auto condCode = cggetval(visit(node->condition));
+
+  // Add the current value as incoming to phi node
+  Variable->addIncoming(currentValue, builder->GetInsertBlock());
+
+  // Create conditional branch
+  builder->CreateCondBr(condCode, LoopBB, AfterBB);
+
+  // Start insertion in AfterBB
+  builder->SetInsertPoint(AfterBB);
+
+  currentScope = currentScope->prevScope();
 
   return cgnone;
 }
@@ -825,6 +959,54 @@ llvm::AllocaInst *CodeGenVisitor::createEntryBlockAlloca(llvm::Function *TheFunc
 //#####=========================================#####
 //#####=========================================#####
 
+cgresult_t CodeGenVisitor::handleBuiltinMethodCall(
+    const std::shared_ptr<MethodCallEXP> &node,
+    std::string methodName) {
+  
+  // get left operand
+  llvm::Value *L = cggetval(visit(node->left));
+  if (!L)
+    return cgnone;
+
+  // only one arg for builtin methods
+  if (node->arguments.size() != 1) {
+    return cgnone;
+  }
+
+  // get right operand
+  llvm::Value *R = cggetval(visit(node->arguments[0]));
+  if (!R)
+    return cgnone;
+
+  // handle different methods
+  if (methodName == "Plus") {
+    return builder->CreateAdd(L, R, "addtmp");
+  }
+  else if (methodName == "Minus") {
+    return builder->CreateSub(L, R, "subtmp");
+  }
+  else if (methodName == "Mult") {
+    return builder->CreateMul(L, R, "multmp");
+  }
+  else if (methodName == "Div") {
+    return builder->CreateSDiv(L, R, "divtmp");
+  }
+  else if (methodName == "Rem") {
+    return builder->CreateSRem(L, R, "remtmp");
+  }
+  else if (methodName == "Less") {
+    return builder->CreateICmpSLT(L, R, "cmptmp");
+  }
+  else if (methodName == "Greater") {
+    return builder->CreateICmpSGT(L, R, "cmptmp");
+  }
+  else if (methodName == "Equal") {
+    return builder->CreateICmpEQ(L, R, "cmptmp");
+  }
+
+  return cgnone;
+}
+
 cgresult_t CodeGenVisitor::visit(const std::shared_ptr<MethodCallEXP> &node) {
   // check if this is a built-in method call
   std::string className;
@@ -844,7 +1026,8 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<MethodCallEXP> &node) {
   std::shared_ptr<Decl> decl;
   for (auto child : globalScope->getChildren()) {
     if (child->getKind() == SCOPE_MODULE_BUILTIN) {
-      decl = child->lookupInClass(node->method_name, className);
+      auto classBTScope = child->getChildren()[0]; // ? single module - single class : Integer - Integer
+      decl = classBTScope->lookup(node->method_name);
     }
   }
 
@@ -876,54 +1059,7 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<MethodCallEXP> &node) {
   if (CalleeF->getReturnType()->isVoidTy()) {
     return builder->CreateCall(CalleeF, ArgsV);
   }
-  else
+  else {
     return builder->CreateCall(CalleeF, ArgsV, "calltmp");
-}
-
-cgresult_t CodeGenVisitor::handleBuiltinMethodCall(
-    const std::shared_ptr<MethodCallEXP> &node,
-    std::string methodName) {
-  
-  // Get the left operand (the value we're operating on)
-  llvm::Value *L = cggetval(visit(node->left));
-  if (!L)
-    return cgnone;
-
-  // For built-in methods, we only expect one argument
-  if (node->arguments.size() != 1) {
-    return cgnone;
   }
-
-  // Get the right operand (the argument)
-  llvm::Value *R = cggetval(visit(node->arguments[0]));
-  if (!R)
-    return cgnone;
-
-  // Handle different built-in methods
-  if (methodName == "Plus") {
-    return builder->CreateAdd(L, R, "addtmp");
-  }
-  else if (methodName == "Minus") {
-    return builder->CreateSub(L, R, "subtmp");
-  }
-  else if (methodName == "Mult") {
-    return builder->CreateMul(L, R, "multmp");
-  }
-  else if (methodName == "Div") {
-    return builder->CreateSDiv(L, R, "divtmp");
-  }
-  else if (methodName == "Rem") {
-    return builder->CreateSRem(L, R, "remtmp");
-  }
-  else if (methodName == "Less") {
-    return builder->CreateICmpSLT(L, R, "cmptmp");
-  }
-  else if (methodName == "Greater") {
-    return builder->CreateICmpSGT(L, R, "cmptmp");
-  }
-  else if (methodName == "Equal") {
-    return builder->CreateICmpEQ(L, R, "cmptmp");
-  }
-
-  return cgnone;
 }

@@ -17,7 +17,10 @@ void SymbolTable::initBuiltinFunctions(
   //========== INTEGER BUILTIN METHODS ==========
   enterScope(SCOPE_MODULE_BUILTIN, "Integer");
 
-  enterScope(SCOPE_CLASS, "Integer");
+  std::vector<std::shared_ptr<Decl>> methods;
+  std::vector<std::shared_ptr<TypeFunc>> method_types;
+
+  enterScope(SCOPE_CLASS_BUILTIN, "Integer");
   // - Plus
   auto intPlusTypeReturnType = typeTable->getType("", "Integer");
   auto intPlusTypeParamType = typeTable->getType("", "Integer");
@@ -32,6 +35,8 @@ void SymbolTable::initBuiltinFunctions(
   intPlusDecl->isBuiltin = true;
 
   current_scope->addSymbol("Plus", intPlusDecl);
+  methods.push_back(intPlusDecl);
+  method_types.push_back(intPlusType);
 
   // - Minus
   auto intMinusTypeReturnType = typeTable->getType("", "Integer");
@@ -47,6 +52,8 @@ void SymbolTable::initBuiltinFunctions(
   intMinusDecl->isBuiltin = true;
 
   current_scope->addSymbol("Minus", intMinusDecl);
+  methods.push_back(intMinusDecl);
+  method_types.push_back(intMinusType);
 
   // - Mult
   auto intMultTypeReturnType = typeTable->getType("", "Integer");
@@ -62,6 +69,8 @@ void SymbolTable::initBuiltinFunctions(
   intMultDecl->isBuiltin = true;
 
   current_scope->addSymbol("Mult", intMultDecl);
+  methods.push_back(intMultDecl);
+  method_types.push_back(intMultType);
 
   // - Div
   auto intDivTypeReturnType = typeTable->getType("", "Integer");
@@ -77,6 +86,8 @@ void SymbolTable::initBuiltinFunctions(
   intDivDecl->isBuiltin = true;
 
   current_scope->addSymbol("Div", intDivDecl);
+  methods.push_back(intDivDecl);
+  method_types.push_back(intDivType);
 
   // - Rem
   auto intRemTypeReturnType = typeTable->getType("", "Integer");
@@ -92,6 +103,8 @@ void SymbolTable::initBuiltinFunctions(
   intRemDecl->isBuiltin = true;
 
   current_scope->addSymbol("Rem", intRemDecl);
+  methods.push_back(intRemDecl);
+  method_types.push_back(intRemType);
 
   // - Less
   auto intLessTypeReturnType = typeTable->getType("", "Boolean");
@@ -107,6 +120,8 @@ void SymbolTable::initBuiltinFunctions(
   intLessDecl->isBuiltin = true;
 
   current_scope->addSymbol("Less", intLessDecl);
+  methods.push_back(intLessDecl);
+  method_types.push_back(intLessType);
 
   // - Greater
   auto intGreaterTypeReturnType = typeTable->getType("", "Boolean");
@@ -122,6 +137,8 @@ void SymbolTable::initBuiltinFunctions(
   intGreaterDecl->isBuiltin = true;
 
   current_scope->addSymbol("Greater", intGreaterDecl);
+  methods.push_back(intGreaterDecl);
+  method_types.push_back(intGreaterType);
 
   // - Equal
   auto intEqualTypeReturnType = typeTable->getType("", "Boolean");
@@ -137,8 +154,17 @@ void SymbolTable::initBuiltinFunctions(
   intEqualDecl->isBuiltin = true;
 
   current_scope->addSymbol("Equal", intEqualDecl);
+  methods.push_back(intEqualDecl);
+  method_types.push_back(intEqualType);
 
   exitScope();
+
+  // - Integer class decl
+  auto integerClassType = std::make_shared<TypeClass>("Integer", std::vector<std::shared_ptr<Type>>(), method_types);
+  auto integerDecl = std::make_shared<ClassDecl>("Integer", integerClassType, std::vector<std::shared_ptr<FieldDecl>>(), methods);
+
+  current_scope->addSymbol("Integer", integerDecl);
+
   exitScope();
   //========================================
   // ... other built-in functions ...

@@ -73,6 +73,13 @@ public:
     return ((it != types.end()) ? it->second : nullptr);
   }
 
+  std::shared_ptr<Type> getType(TypeKind kind) {
+    auto type = std::ranges::find_if(
+      types,
+      [&kind](auto pair) { return pair.second->kind == kind; });
+    return (type == types.end()) ? nullptr : type->second;
+  }
+
   bool exists(const std::string &name) const { return types.contains(name); }
 
   // ~TypeTable() = default;
@@ -128,6 +135,19 @@ public:
     }
 
     return it_bins;
+  }
+
+  /**
+   * For builtins
+   * @TODO add not builtin
+   * @param moduleName
+   * @param kind
+   * @return
+   */
+  std::shared_ptr<Type> getType(const std::string &moduleName, TypeKind kind) {
+    auto it = builtinTypes.getType(kind);
+    if (it) return it;
+    return nullptr;
   }
 
   // ~GlobalTypeTable() = default;

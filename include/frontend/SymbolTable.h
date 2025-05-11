@@ -12,11 +12,14 @@
 enum ScopeKind {
   SCOPE_GLOBAL, // scope of all project (multiple cu's)
   SCOPE_MODULE,
-  SCOPE_MODULE_BUILTIN,
   SCOPE_CLASS,
   SCOPE_METHOD,
   SCOPE_FUNCTION,
   SCOPE_ENUM,
+  SCOPE_LOOP,
+  SCOPE_MODULE_BUILTIN, // >= 7
+  SCOPE_METHOD_BUILTIN,
+  SCOPE_CLASS_BUILTIN,
 };
 
 struct SymbolInfo {
@@ -86,6 +89,12 @@ public:
   std::shared_ptr<Scope> nextScope() {
     depth++;
     if (depth > static_cast<int>(children.size() - 1)) return std::shared_ptr(parent);
+
+    // skip builtins
+    while (children[depth]->kind >= 7) {
+      depth++;
+    }
+
     return children[depth];
   }
 

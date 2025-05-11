@@ -261,8 +261,8 @@ public:
   TypeArray() : Type(TYPE_ARRAY, "Array"), el_type(nullptr), size(0) {}
 
   llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
-    (void)lc;
-    return nullptr;
+    return llvm::ArrayType::get(el_type->toLLVMType(lc), size);
+    // return el_type->toLLVMType(lc);
   }
 
   ~TypeArray() override = default;

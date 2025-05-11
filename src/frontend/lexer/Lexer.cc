@@ -401,7 +401,6 @@ std::unique_ptr<Token> Lexer::next() {
         }
         return std::make_unique<Token>(TOKEN_IDENTIFIER, token, curr_line,
                                        curr_column /* - token.length() + 1 */);
-        // @TODO add to symbol table
       } else
         curr_state = STATE_FAIL;
     } break;
@@ -468,7 +467,6 @@ std::unique_ptr<Token> Lexer::next() {
         curr_state = STATE_START;
         return std::make_unique<Token>(TOKEN_IDENTIFIER, token, curr_line,
                                        curr_column);
-        // @TODO add to symbol table ?
       } else
         curr_state = STATE_FAIL;
     } break;

@@ -49,7 +49,12 @@ public:
     context = std::make_unique<llvm::LLVMContext>();
     builder = std::make_unique<llvm::IRBuilder<>>(*context);
 
-    moduleName = globalScope->getChildren()[0]->getName();
+    auto children = globalScope->getChildren();
+    for (auto child : children) {
+      if (child->getKind() == SCOPE_MODULE) moduleName = child->getName();
+    }
+
+    // moduleName = globalScope->getChildren()[0]->getName();
     module = std::make_unique<llvm::Module>(
       moduleName,
       *context

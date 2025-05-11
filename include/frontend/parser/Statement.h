@@ -186,7 +186,7 @@ public:
 
 class ForSTMT : public Statement {
 public:
-  explicit ForSTMT(std::shared_ptr<AssignmentSTMT> varWithAss,
+  explicit ForSTMT(std::shared_ptr<VarRefEXP> varWithAss,
                    std::shared_ptr<Expression> condition,
                    std::shared_ptr<AssignmentSTMT> post,
                    std::shared_ptr<Block> body)
@@ -198,7 +198,7 @@ public:
   ForSTMT()
       : Statement(E_Dummy) {}
 
-  std::shared_ptr<AssignmentSTMT> varWithAss;
+  std::shared_ptr<VarRefEXP> varWithAss;
   std::shared_ptr<Expression> condition;
   std::shared_ptr<AssignmentSTMT> post;
   std::shared_ptr<Block> body;

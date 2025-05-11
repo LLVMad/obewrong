@@ -100,14 +100,25 @@ private:
 class ArrayLiteralExpr : public Expression {
 public:
   ArrayLiteralExpr(std::vector<std::shared_ptr<Expression>> elements)
-      : Expression(E_Array_Literal), elements(std::move(elements)) {};
+      : Expression(E_Array_Literal), elements(std::move(elements))
+  {
+    switch (this->elements[0]->getKind()) {
+      case E_Integer_Literal: el_type = TYPE_INT; break;
+      case E_Real_Literal: el_type = TYPE_FLOAT; break;
+      case E_String_Literal: el_type = TYPE_STRING; break;
+      case E_Boolean_Literal: el_type = TYPE_BOOL; break;
+      case E_Array_Literal: el_type = TYPE_ARRAY; break;
+      default: el_type = TYPE_UNKNOWN; break;
+    }
+  };
 
   // children should be
   std::vector<std::shared_ptr<Expression>> elements;
-
   // void addElement(std::shared_ptr<Expression> expr) {
   //
   // }
+
+  TypeKind el_type;
 
   std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
 
