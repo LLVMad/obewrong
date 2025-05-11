@@ -1,0 +1,11 @@
+module whilecheck
+
+func example() is 
+  var i : Integer(10)
+
+  while i loop  // Ошибка: условие имеет тип Integer вместо Bool
+    i := i - 1
+  end
+
+  printl("res = %d\n", i)
+end

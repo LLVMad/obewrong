@@ -1,0 +1,17 @@
+module ifelif 
+
+class Main is 
+  method checkIf() : String is 
+    var a : String("2")
+
+    if "hello" then    // Ошибка 1: тип условия не bool
+      return 3         // Ошибка 2: неверный тип, ожидается string
+    end
+    else if a % 2 == 0 then 
+      return "mod 2"
+    end
+    else 
+      return "no mod"
+    end
+  end 
+end
