@@ -55,6 +55,24 @@ void SymbolTable::initBuiltinFunctions(
   methods.push_back(intMinusDecl);
   method_types.push_back(intMinusType);
 
+  // - UnaryMinus
+  auto intUMinusTypeReturnType = typeTable->getType("", "Integer");
+  // auto intUMinusTypeParamType = typeTable->getType("", "Integer");
+  // paramTypes = {intMinusTypeParamType};
+  auto intUMinusType =
+      std::make_shared<TypeFunc>(intMinusTypeReturnType);
+  // auto intUMinusParamDecl =
+  //     std::make_shared<ParameterDecl>("x", intMinusTypeParamType);
+  params = {};
+  auto intUMinusDecl =
+      std::make_shared<MethodDecl>("Minus", intMinusType, params, true);
+  intUMinusDecl->isBuiltin = true;
+
+
+  current_scope->addSymbol("UnaryMinus", intUMinusDecl);
+  methods.push_back(intUMinusDecl);
+  method_types.push_back(intUMinusType);
+
   // - Mult
   auto intMultTypeReturnType = typeTable->getType("", "Integer");
   auto intMultTypeParamType = typeTable->getType("", "Integer");

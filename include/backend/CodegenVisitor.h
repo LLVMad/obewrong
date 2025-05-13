@@ -185,13 +185,18 @@ public:
 
   void createObjFile();
 
+  // helper method to resolve types with old API present (@TODO remove old api) 
+  std::shared_ptr<Type> resolveType(const std::shared_ptr<Entity>& node);
+
 private:
   // #####========== UTILLITY ==========#####
   llvm::Function *getFunction(std::string name);
   llvm::AllocaInst *createEntryBlockAlloca(llvm::Function *TheFunction,
                                            llvm::Type *Type,
                                            llvm::StringRef VarName);
-  // llvm::StructType* getStructType(const std::string &name);
+
+  // creates load instruction to load a pointer type value
+  cgresult_t unwrapPointerReference(const std::shared_ptr<Expression>& node, llvm::Value *val);
   // #####========================================#####
 
   // entry for a symboltable (actually a tree of scopes)

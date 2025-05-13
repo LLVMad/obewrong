@@ -1,0 +1,15 @@
+class Foo is
+    pub this() is 
+      _length := 0
+    end
+
+    pub method GetLength() : byte is
+      return _length
+    end 
+
+    pub method SetLength(value : byte) is 
+      this._length = value
+    end
+
+   var _length : byte
+end

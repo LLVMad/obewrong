@@ -1,0 +1,36 @@
+module point
+
+class Point is
+  var x : Integer
+  var y : Integer
+
+  this() is
+    this.x := 0
+    this.y := 0
+  end
+
+  this(x : Integer, y : Integer) is
+    this.x := x
+    this.y := y
+  end
+
+  method xByy() : Integer is
+    var _x : Integer := this.x
+    var _y : Integer := this.y
+    return _x.Mult(_y)
+  end
+end
+
+class Main is
+  this() is
+    var p1 : Point()
+    printf("- p1 : %d %d\n", p1.x, p1.y)
+
+    var p2 : Point(2, 2.UnaryMinus())
+    printf("- p2: %d %d \n", p2.x, p2.y)
+
+    var xByy : Integer := p2.xByy()
+    var xbyy : Integer := xByy.Plus(p2.y)
+    printf("x * y + y: %d\n", xbyy)
+  end
+end

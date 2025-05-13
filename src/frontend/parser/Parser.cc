@@ -861,7 +861,6 @@ std::shared_ptr<ConstrDecl> Parser::parseConstructorDecl() {
   globalSymbolTable->enterScope(SCOPE_METHOD, className + "_Create");
 
   // read parameters
-  // @TODO name constructor
   auto constr = std::make_shared<ConstrDecl>(className + "_Create");
 
   // read params
@@ -876,6 +875,8 @@ std::shared_ptr<ConstrDecl> Parser::parseConstructorDecl() {
       // to make different constructors distinguishable
       // we add param names to it
       globalSymbolTable->getCurrentScope()->appendToName(param_decl->name);
+
+      constr->name += param_decl->type->name;
     }
   }
 
