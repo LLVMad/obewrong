@@ -4,6 +4,9 @@
 #include "frontend/SymbolTable.h"
 #include "frontend/TypeTable.h"
 #include "frontend/parser/Entity.h"
+#include "frontend/parser/Expression.h"
+#include "frontend/parser/Statement.h"
+#include "frontend/types/Decl.h"
 #include <string>
 #include <vector>
 

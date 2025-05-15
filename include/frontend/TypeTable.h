@@ -68,12 +68,12 @@ public:
     types[name] = std::move(type);
   }
 
-  std::shared_ptr<Type> getType(const std::string &name) {
-    auto it = types.find(str_tolower(name));
+  std::shared_ptr<Type> getType(const std::string &name) const {
+    auto it = types.find(name);
     return ((it != types.end()) ? it->second : nullptr);
   }
 
-  std::shared_ptr<Type> getType(TypeKind kind) {
+  std::shared_ptr<Type> getType(TypeKind kind) const {
     auto type = std::ranges::find_if(
       types,
       [&kind](auto pair) { return pair.second->kind == kind; });
@@ -117,21 +117,21 @@ public:
 
   void addType(const std::string &moduleName, const std::string &typeName,
                std::shared_ptr<Type> type) {
-    auto tName = str_tolower(typeName);
-    types[moduleName].addType(tName, type);
+    // auto tName = str_tolower(typeName);
+    types[moduleName].addType(typeName, type);
   }
 
   std::shared_ptr<Type> getType(const std::string &moduleName,
                                 const std::string &typeName) {
     // first search through builtins
-    auto tName = str_tolower(typeName);
-    auto it_bins = builtinTypes.getType(tName);
+    // auto tName = str_tolower(typeName);
+    auto it_bins = builtinTypes.getType(typeName);
     if (it_bins == nullptr) {
       auto it = types.find(moduleName);
       if (it == types.end()) {
         return nullptr;
       }
-      return it->second.getType(tName);
+      return it->second.getType(typeName);
     }
 
     return it_bins;

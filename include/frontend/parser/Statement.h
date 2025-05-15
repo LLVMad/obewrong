@@ -18,7 +18,7 @@ class Statement : public Entity {
 public:
   explicit Statement(Ekind kind) : Entity(kind) {}
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
   // std::string name;
@@ -29,6 +29,7 @@ enum AssKind {
   VAR_ASS,
   FIELD_ASS,
   EL_ASS, // a[0] :=
+  NONE,
 };
 
 // Identifier := Expression
@@ -48,6 +49,41 @@ public:
                  std::shared_ptr<Expression> rhs)
       : Statement(E_Assignment), assKind(EL_ASS), variable(nullptr), field(nullptr),
         element(std::move(lhs)), expression(std::move(rhs)) {}
+
+  AssignmentSTMT(std::shared_ptr<Expression> lhs,
+    std::shared_ptr<Expression> rhs)
+      : Statement(E_Assignment) {
+    switch (lhs->getKind()) {
+      case E_Element_Reference: {
+        element = std::static_pointer_cast<ElementRefEXP>(std::move(lhs));
+        variable = nullptr;
+        field = nullptr;
+        assKind = EL_ASS;
+        expression = std::move(rhs);
+      } break;
+      case E_Field_Reference: {
+        field = std::static_pointer_cast<FieldRefEXP>(std::move(lhs));
+        variable = nullptr;
+        element = nullptr;
+        assKind = FIELD_ASS;
+        expression = std::move(rhs);
+      } break;
+      case E_Var_Reference: {
+        variable = std::static_pointer_cast<VarRefEXP>(std::move(lhs));
+        field = nullptr;
+        element = nullptr;
+        assKind = VAR_ASS;
+        expression = std::move(rhs);
+      } break;
+      default: {
+        variable = nullptr;
+        field = nullptr;
+        element = nullptr;
+        assKind = NONE;
+        expression = std::move(rhs);
+      } break;
+    }
+  }
 
   // children are
   AssKind assKind;

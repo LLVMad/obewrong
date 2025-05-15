@@ -43,7 +43,7 @@
 
 class CodeGenVisitor {
 public:
-  CodeGenVisitor(const std::shared_ptr<Scope> &globalScope,
+  CodeGenVisitor(const std::shared_ptr<Scope<Entity>> &globalScope,
                  const std::shared_ptr<GlobalTypeTable> &typeTable)
       : globalScope(globalScope), typeTable(typeTable) {
     context = std::make_unique<llvm::LLVMContext>();
@@ -185,9 +185,6 @@ public:
 
   void createObjFile();
 
-  // helper method to resolve types with old API present (@TODO remove old api) 
-  std::shared_ptr<Type> resolveType(const std::shared_ptr<Entity>& node);
-
 private:
   // #####========== UTILLITY ==========#####
   llvm::Function *getFunction(std::string name);
@@ -200,7 +197,7 @@ private:
   // #####========================================#####
 
   // entry for a symboltable (actually a tree of scopes)
-  std::shared_ptr<Scope> globalScope;
+  std::shared_ptr<Scope<Entity>> globalScope;
   // global type table
   std::shared_ptr<GlobalTypeTable> typeTable;
   // root &node of an AST
@@ -214,7 +211,7 @@ private:
   // std::map<std::string, llvm::AllocaInst*> varEnv;
   // std::map<std::string, bool> varInitialized;
 
-  std::shared_ptr<Scope> currentScope;
+  std::shared_ptr<Scope<Entity>> currentScope;
   size_t currDepth;
 
   std::string moduleName;

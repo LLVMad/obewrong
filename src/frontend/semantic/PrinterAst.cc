@@ -167,13 +167,13 @@ void PrinterAst::printExpression(const std::shared_ptr<Expression> &expr,
                                  int indent) {
   if (auto methodCall = std::dynamic_pointer_cast<MethodCallEXP>(expr)) {
     std::cout << std::string(indent, ' ')
-              << "MethodCall: " << methodCall->method_name << "\n";
+              << "MethodCall: " << methodCall->getName() << "\n";
     printExpression(methodCall->left, indent + 2);
     for (const auto &arg : methodCall->arguments) {
       printExpression(arg, indent + 2);
     }
   } else if (auto varRef = std::dynamic_pointer_cast<VarRefEXP>(expr)) {
-    std::cout << std::string(indent, ' ') << "VarRef: " << varRef->var_name
+    std::cout << std::string(indent, ' ') << "VarRef: " << varRef->getName()
               << "\n";
   }
   // ... другие типы выражений ...
@@ -181,7 +181,7 @@ void PrinterAst::printExpression(const std::shared_ptr<Expression> &expr,
 
 void PrinterAst::printVarDecl(const std::shared_ptr<VarDecl> &varDecl,
                               int indent) {
-  std::cout << std::string(indent, ' ') << "VarDecl | " << varDecl->name
+  std::cout << std::string(indent, ' ') << "VarDecl | " << varDecl->getName()
             << " : " << varDecl->type->name << "\n";
   if (varDecl->initializer) {
     std::cout << std::string(indent, ' ') << "Initializer:\n";
@@ -191,7 +191,7 @@ void PrinterAst::printVarDecl(const std::shared_ptr<VarDecl> &varDecl,
 
 void PrinterAst::printModuleDecl(const std::shared_ptr<ModuleDecl> &moduleDecl,
                                  int indent) {
-  std::cout << std::string(indent, ' ') << "ModuleDecl | \"" << moduleDecl->name
+  std::cout << std::string(indent, ' ') << "ModuleDecl | \"" << moduleDecl->getName()
             << "\"\n";
 
   for (const auto &decl : moduleDecl->children) {
@@ -201,12 +201,12 @@ void PrinterAst::printModuleDecl(const std::shared_ptr<ModuleDecl> &moduleDecl,
 
 void PrinterAst::printClassDecl(const std::shared_ptr<ClassDecl> &classDecl,
                                 int indent) {
-  std::cout << std::string(indent, ' ') << "ClassDecl | \"" << classDecl->name
+  std::cout << std::string(indent, ' ') << "ClassDecl | \"" << classDecl->getName()
             << "\"\n";
 
   if (classDecl->base_class) {
     // for (const auto &base : classDecl->base_classes) {
-    std::cout << std::string(indent + 4, ' ') << classDecl->base_class->name
+    std::cout << std::string(indent + 4, ' ') << classDecl->base_class->getName()
               << "\n";
     // }
   }
@@ -226,7 +226,7 @@ void PrinterAst::printClassDecl(const std::shared_ptr<ClassDecl> &classDecl,
 
 void PrinterAst::printConstrDecl(const std::shared_ptr<ConstrDecl> &constrDecl,
                                  int indent) {
-  std::cout << std::string(indent, ' ') << "ConstrDecl | " << constrDecl->name
+  std::cout << std::string(indent, ' ') << "ConstrDecl | " << constrDecl->getName()
             << "\n";
 
   if (!constrDecl->args.empty()) {
@@ -242,19 +242,19 @@ void PrinterAst::printConstrDecl(const std::shared_ptr<ConstrDecl> &constrDecl,
 
 void PrinterAst::printParamDecl(const std::shared_ptr<ParameterDecl> &paramDecl,
                                 int indent) {
-  std::cout << std::string(indent, ' ') << "ParamDecl | " << paramDecl->name
+  std::cout << std::string(indent, ' ') << "ParamDecl | " << paramDecl->getName()
             << " : " << paramDecl->type->name << "\n";
 }
 
 void PrinterAst::printFieldDecl(const std::shared_ptr<FieldDecl> &fieldDecl,
                                 int indent) {
-  std::cout << std::string(indent, ' ') << "FieldDecl | " << fieldDecl->name
+  std::cout << std::string(indent, ' ') << "FieldDecl | " << fieldDecl->getName()
             << " : " << fieldDecl->type->name << "\n";
 }
 
 void PrinterAst::printMethodDecl(const std::shared_ptr<MethodDecl> &methodDecl,
                                  int indent) {
-  std::cout << std::string(indent, ' ') << "MethodDecl | " << methodDecl->name
+  std::cout << std::string(indent, ' ') << "MethodDecl | " << methodDecl->getName()
             << " : " << methodDecl->signature->name << "\n";
 
   if (!methodDecl->args.empty()) {
@@ -293,14 +293,14 @@ void PrinterAst::printAssignment(
 
 void PrinterAst::printVarRef(const std::shared_ptr<VarRefEXP> &varRef,
                              int indent) {
-  std::cout << std::string(indent, ' ') << "VarRef: " << varRef->var_name
+  std::cout << std::string(indent, ' ') << "VarRef: " << varRef->getName()
             << "\n";
 }
 
 void PrinterAst::printMethodCall(
     const std::shared_ptr<MethodCallEXP> &methodCall, int indent) {
   std::cout << std::string(indent, ' ')
-            << "MethodCall: " << methodCall->method_name << "\n";
+            << "MethodCall: " << methodCall->getName() << "\n";
 
   std::cout << std::string(indent + 2, ' ') << "Object:\n";
   printEntity(methodCall->left, indent + 4);
@@ -320,7 +320,7 @@ void PrinterAst::printIntLiteral(
 
 void PrinterAst::printFuncDecl(const std::shared_ptr<FuncDecl> &funcDecl,
                                int indent) {
-  std::cout << std::string(indent, ' ') << "FuncDecl | " << funcDecl->name
+  std::cout << std::string(indent, ' ') << "FuncDecl | " << funcDecl->getName()
             << "\n";
 
   if (!funcDecl->args.empty()) {
@@ -338,7 +338,7 @@ void PrinterAst::printFuncDecl(const std::shared_ptr<FuncDecl> &funcDecl,
 
 void PrinterAst::printFuncCall(const std::shared_ptr<FuncCallEXP> &funcCall,
                                int indent) {
-  std::cout << std::string(indent, ' ') << "FuncCall: " << funcCall->func_name
+  std::cout << std::string(indent, ' ') << "FuncCall: " << funcCall->getName()
             << "\n";
 
   if (!funcCall->arguments.empty()) {
@@ -351,7 +351,7 @@ void PrinterAst::printFuncCall(const std::shared_ptr<FuncCallEXP> &funcCall,
 
 void PrinterAst::printFieldRef(const std::shared_ptr<FieldRefEXP> &fieldRef,
                                int indent) {
-  std::cout << std::string(indent, ' ') << "FieldRef: " << fieldRef->field_name
+  std::cout << std::string(indent, ' ') << "FieldRef: " << fieldRef->getName()
             << "\n";
   if (fieldRef->obj) {
     std::cout << std::string(indent + 2, ' ') << "Object:\n";
@@ -411,7 +411,7 @@ void PrinterAst::printBinaryOp(const std::shared_ptr<BinaryOpEXP> &op,
 
 void PrinterAst::printClassName(
     const std::shared_ptr<ClassNameEXP> &classNameExp, int indent) {
-  std::cout << std::string(indent, ' ') << "ClassName: " << classNameExp->name
+  std::cout << std::string(indent, ' ') << "ClassName: " << classNameExp->getName()
             << "\n";
 }
 
@@ -501,7 +501,7 @@ void PrinterAst::printWhileSTMT(const std::shared_ptr<WhileSTMT> &whileStmt,
 
 void PrinterAst::printEnumDecl(const std::shared_ptr<EnumDecl> &enumDecl,
                                int indent) {
-  std::cout << std::string(indent, ' ') << "EnumDecl | " << enumDecl->name
+  std::cout << std::string(indent, ' ') << "EnumDecl | " << enumDecl->getName()
             << ")\n";
 
   if (!enumDecl->items.empty()) {
@@ -521,7 +521,7 @@ void PrinterAst::printEnumRef(const std::shared_ptr<EnumRefEXP> &enumRef,
 
 void PrinterAst::printArrayDecl(const std::shared_ptr<ArrayDecl> &arrDecl,
                                 int indent) {
-  std::cout << std::string(indent, ' ') << "ArrayDecl | " << arrDecl->name
+  std::cout << std::string(indent, ' ') << "ArrayDecl | " << arrDecl->getName()
             << " : " << arrDecl->type->name << "\n";
 
   if (arrDecl->initializer) {

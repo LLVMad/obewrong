@@ -1,6 +1,7 @@
 #ifndef OBW_EINFO_H
 #define OBW_EINFO_H
 
+#include "../Scope.h"
 #include "../TypeTable.h"
 #include "frontend/lexer/Lexer.h"
 
@@ -88,24 +89,17 @@ enum Ekind {
 class Entity {
 public:
   virtual ~Entity() = default;
-  explicit Entity(Ekind kind) : location() { this->kind = kind; };
+  explicit Entity(Ekind kind) : kind(kind), name(), location() {}
+
+  explicit Entity(Ekind kind, std::string name) : kind(kind), name(std::move(name)), location() {}
 
   Ekind getKind() const { return kind; };
   Loc getLoc() const { return location; };
+  std::string getName() const { return name; };
+  void appendToName(const std::string &name) { this->name += name; };
 
-  virtual std::shared_ptr<Type> resolveType(TypeTable typeTable) = 0;
+  virtual std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) = 0;
   virtual bool validate() = 0;
-
-  // ======== NODE LINKS ========
-  // different types of connection
-  // between nodes in a AAST
-  // type, attributes are defined in children classes
-
-  // SCOPE LINK
-  // points to a declaration in which scope this decl is
-  // i.e. some ClassDecl or FuncDecl
-  // std::shared_ptr<Entity> scope;
-  // @deprecated now we use symbol table for scope
 
   // STRUCTURAL LINK
   // children nodes
@@ -113,7 +107,7 @@ public:
 
 protected:
   Ekind kind;
-
+  std::string name;
   Loc location;
 };
 
@@ -135,7 +129,7 @@ public:
   std::vector<std::shared_ptr<Entity>> parts;
   BlockKind kind;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override {
     (void)typeTable;
     return nullptr;
   }
@@ -157,18 +151,12 @@ public:
   std::shared_ptr<Type> assumedType;
   TokenKind expectedKind;
   std::string valueIfPresent;
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override {
     (void)typeTable;
     return nullptr;
   }
 
   bool validate() override { return false; }
 };
-/**
- * @TODO construct classes for each entitys
- * i.e. `class ClassDeclaration : Entity`
- * this will make it possible to return `Entity*` from some
- * `parse*` functions like for example from parseParameters()
- */
 
 #endif

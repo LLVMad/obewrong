@@ -18,8 +18,8 @@ public:
 
     std::shared_ptr<AssignmentSTMT> assignment;
 
-    std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
-        return assignment->expression->resolveType(typeTable);
+    std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override {
+        return assignment->expression->resolveType(typeTable, currentScope);
     }
 
     bool validate() override {

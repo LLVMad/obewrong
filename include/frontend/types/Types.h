@@ -14,6 +14,14 @@
 
 #include <llvm/IR/DerivedTypes.h>
 
+// Can we apply resolveType() to construct
+// -> is typable construct
+template<typename T, typename = void>
+struct is_typeable : std::false_type {};
+
+template<typename T>
+struct is_typeable<T, std::void_t<decltype(std::declval<T>().resolveType())>> : std::true_type {};
+
 enum AccessKind {
   ACC_GENERAL,
   ACC_NOT_NULL,
@@ -285,7 +293,9 @@ public:
       : Type(TYPE_FUNC, "Function"), return_type(std::move((return_type))),
         args(std::move((args))), isVoided(false), isVoid(false) {}
 
-  TypeFunc(const std::shared_ptr<Type> &return_type)
+
+  // can move @TODO
+  TypeFunc(std::shared_ptr<Type> return_type)
       : Type(TYPE_FUNC, "Function"), return_type(return_type), isVoided(true),
         isVoid(false) {}
 

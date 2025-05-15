@@ -11,27 +11,19 @@
 #include <vector>
 
 #include "Types.h"
+#include "frontend/parser/Entity.h"
 #include "frontend/parser/Expression.h"
 #include "frontend/parser/Statement.h"
 
 #include <filesystem>
 #include <map>
 
-// enum DeclKind {
-//   DECL_VAR,
-//   DECL_FUNC,
-//   DECL_CLASS,
-//   DECL_ARRAY,
-//   DECL_LIST,
-// };
-
 class Decl : public Entity {
 public:
   explicit Decl(Ekind kind, std::string name)
-      : Entity(kind), name(std::move(name)) {}
-  std::string name;
+      : Entity(kind, std::move(name)) {}
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -56,7 +48,7 @@ public:
 
   std::shared_ptr<Type> type;
   size_t index; // index of a field in a class
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -87,7 +79,7 @@ public:
   //                 ^^^^
   std::shared_ptr<Expression> initializer;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -108,7 +100,7 @@ public:
 
   std::shared_ptr<Type> type;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -167,7 +159,7 @@ public:
   bool isPrivate;
   std::shared_ptr<Block> body;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -189,7 +181,7 @@ public:
 
   std::shared_ptr<Block> body;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -224,7 +216,7 @@ public:
   bool isVoid;
   std::shared_ptr<Block> body;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -271,7 +263,7 @@ public:
   // std::vector<std::shared_ptr<ConstrDecl>> constructors;
   std::vector<std::shared_ptr<Decl>> methods; // btoh methods and constrs
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -298,7 +290,7 @@ public:
 
   size_t size;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -321,7 +313,7 @@ public:
   //                          ^^^^^^^^^
   std::shared_ptr<ArrayLiteralExpr> initializer;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 

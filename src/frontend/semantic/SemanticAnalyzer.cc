@@ -2,6 +2,7 @@
 #include "frontend/parser/Expression.h"
 #include <iostream>
 
+/*
 bool SemanticAnalyzer::analyze(std::shared_ptr<Entity> root) {
   currentScope = symbolTable->getGlobalScope();
   checkEntity(root);
@@ -99,7 +100,7 @@ void SemanticAnalyzer::reportError(const std::string &message, const Loc &loc) {
                    " (Line: " + std::to_string(loc.line) +
                    ", Col: " + std::to_string(loc.col) + ")");
   std::cerr << errors.back() << std::endl;
-}
+} */
 
 // void SemanticAnalyzer::checkAssignment(const std::shared_ptr<AssignmentSTMT>&
 // assignment) {
