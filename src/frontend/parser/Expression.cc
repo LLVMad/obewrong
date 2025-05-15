@@ -67,8 +67,15 @@ bool VarRefEXP::validate() {
 }
 
 std::shared_ptr<Type> MethodCallEXP::resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) {
-  auto varRef = std::static_pointer_cast<VarRefEXP>(left);
-  auto [decl, _, __] = *currentScope->getSymbol(varRef->getName());
+  // auto varRef = std::static_pointer_cast<VarRefEXP>(left);
+
+  // nested
+  auto leftOp = left;
+  while (leftOp->getKind() == E_Method_Call) {
+    leftOp = std::static_pointer_cast<MethodCallEXP>(leftOp)->left;
+  }
+
+  auto [decl, _, __] = *currentScope->getSymbol(leftOp->getName());
   auto typeNameOfLeftOperand = decl->resolveType(typeTable, currentScope)->name;
 
   auto [typeDecl, ___, ____] = *currentScope->getSymbol(typeNameOfLeftOperand);

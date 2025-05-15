@@ -37,7 +37,7 @@ enum TypeKind {
   TYPE_U16,
   TYPE_U64,
   TYPE_U32,
-  TYPE_FLOAT,
+  TYPE_REAL,
   TYPE_F64,
   TYPE_STRING,
   TYPE_ARRAY,
@@ -223,12 +223,12 @@ public:
   float min = std::numeric_limits<float>::min();
   float eps = std::numeric_limits<float>::epsilon();
 
-  TypeReal() : TypeBuiltin(TYPE_FLOAT, "Real", 32) {}
+  TypeReal() : TypeBuiltin(TYPE_REAL, "Real", 32) {}
 
   ~TypeReal() override = default;
 
   llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
-    (void)lc;
+    return llvm::Type::getDoubleTy(lc);
     return nullptr;
   }
 };

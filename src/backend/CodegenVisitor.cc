@@ -32,7 +32,7 @@ cgresult_t CodeGenVisitor::visitDefault(const std::shared_ptr<Entity> &node) {
     // DISTINCT node themselfs
     return cgnone;
   }
-  if (node->getKind() >= 16 && node->getKind() < 37) {
+  if (node->getKind() >= 16 && node->getKind() < 38) {
     return visit(std::static_pointer_cast<Expression>(node));
   }
   else {
@@ -95,8 +95,41 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<Expression> &expr) {
     auto wrapper = std::static_pointer_cast<AssignmentWrapperEXP>(expr);
     return visit(wrapper->assignment);
   }
+  case E_Chained_Functions: {
+    auto compExp = std::static_pointer_cast<CompoundEXP>(expr);
+    cgresult_t res;
+    for (auto &part : compExp->parts) {
+      res = visit(part);
+    }
+    return res;
+  }
+  case E_Conversion: {
+    auto exprConv = std::static_pointer_cast<ConversionEXP>(expr);
+    return visit(exprConv);
+  }
   default: return cgnone;
   }
+}
+
+cgresult_t CodeGenVisitor::visit(const std::shared_ptr<ConversionEXP> &node) {
+  auto fromExpr = node->from;
+
+  auto fromVal = cggetval(visit(fromExpr));
+
+  auto fromType = fromExpr->resolveType(typeTable->types[moduleName], currentScope);
+  auto toType = node->to;
+
+  auto itof = fromType->kind == TYPE_INT;
+
+  // auto cast = llvm::CastInst::Create(
+  //
+  // );
+
+  return builder->CreateCast(
+    itof ? llvm::CastInst::CastOps::SIToFP : llvm::CastInst::CastOps::FPToSI,
+    fromVal,
+    toType->toLLVMType(*context)
+  );
 }
 
 cgresult_t CodeGenVisitor::visit(const std::shared_ptr<ElementRefEXP> &node) {
@@ -130,6 +163,7 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<ElementRefEXP> &node) {
   // );
 }
 
+// a.x
 cgresult_t CodeGenVisitor::visit(const std::shared_ptr<FieldRefEXP> &node) {
   auto [decl, alloca, isInited] = *currentScope->getSymbol(node->obj->getName());
 
@@ -389,6 +423,9 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<Type> &node) {
   case TYPE_CLASS: {
     // ->pointer ??/ @TODO
     return llvm::StructType::getTypeByName(*context, llvm::StringRef(node->name));
+  }
+  case TYPE_REAL: {
+    return llvm::Type::getDoubleTy(*context);
   }
   case TYPE_ARRAY: {
     // pointer to first el type
@@ -801,8 +838,74 @@ cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<Statement> &node) {
     case E_For_Loop: {
       auto forAss = std::static_pointer_cast<ForSTMT>(node);
       visit(forAss);
+    } break;
+    case E_If_Statement: {
+      auto ifStmt = std::static_pointer_cast<IfSTMT>(node);
+      visit(ifStmt);
+    } break;
+  }
+
+  return cgnone;
+}
+
+cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<IfSTMT> &node) {
+  currentScope = currentScope->nextScope();
+
+  // gen condition first
+  volatile auto startCode = cggetval(visit(node->condition));
+  auto type = node->condition->resolveType(typeTable->types[moduleName], currentScope);
+
+  llvm::Function *TheFunction = builder->GetInsertBlock()->getParent();
+
+  // Create blocks for the then and else cases.  Insert the 'then' block at the
+  // end of the function.
+  llvm::BasicBlock *ThenBB =
+      llvm::BasicBlock::Create(*context, "then", TheFunction);
+  llvm::BasicBlock *ElseBB = llvm::BasicBlock::Create(*context, "else");
+  llvm::BasicBlock *MergeBB = llvm::BasicBlock::Create(*context, "ifcont");
+  builder->CreateCondBr(startCode, ThenBB, ElseBB);
+
+  builder->SetInsertPoint(ThenBB);
+
+  // if True body
+  // volatile auto thenCode = visit(node->ifTrue);
+  auto trueBody = node->ifTrue;
+  llvm::Value* retTrueBody;
+  for (auto &part : trueBody->parts) {
+    retTrueBody = cggetval(visitDefault(part));
+  }
+
+  builder->CreateBr(MergeBB);
+
+  ThenBB = builder->GetInsertBlock();
+
+  // Emit else block.
+  TheFunction->insert(TheFunction->end(), ElseBB);
+  builder->SetInsertPoint(ElseBB);
+
+  // gen Else
+  llvm::Value *elsB;
+  if (node->ifFalse->getKind() == E_Block) {
+    auto blockFalse = std::static_pointer_cast<Block>(node->ifFalse);
+    for (auto &part : blockFalse->parts) {
+      elsB = cggetval(visitDefault(part));
     }
   }
+  // volatile auto elsB = cggetval(visitDefault(node->ifFalse));
+
+
+  builder->CreateBr(MergeBB);
+  // codegen of 'Else' can change the current block, update ElseBB for the PHI.
+  ElseBB = builder->GetInsertBlock();
+
+  // Emit merge block.
+  TheFunction->insert(TheFunction->end(), MergeBB);
+  builder->SetInsertPoint(MergeBB);
+  // llvm::PHINode *PN =
+  //   builder->CreatePHI(type->toLLVMType(*context), 2, "iftmp");
+
+  // PN->addIncoming(retTrueBody, ThenBB);
+  // PN->addIncoming(elsB, ElseBB);
 
   return cgnone;
 }
@@ -810,40 +913,40 @@ cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<Statement> &node) {
 cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<ForSTMT> &node) {
   currentScope = currentScope->nextScope();
 
-  // Generate initial assignment
+  // initial assignment
   volatile auto startCode = visit(node->varWithAss);
 
-  // Get the loop variable
+  // get loop variable
   auto iteratorVar = node->varWithAss;
   auto [iterDecl, iterAlloca, iterInited] = *currentScope->getSymbol<VarDecl>(iteratorVar->getName());
   auto iteratorType = iterDecl->type;
   auto iterTypeLLVM = iteratorType->toLLVMType(*this->context);
 
-  // Create the loop header block
+  // loop header block
   llvm::Function *TheFunction = builder->GetInsertBlock()->getParent();
   llvm::BasicBlock *PreheaderBB = builder->GetInsertBlock();
   llvm::BasicBlock *LoopBB = llvm::BasicBlock::Create(*context, "loop", TheFunction);
   llvm::BasicBlock *AfterBB = llvm::BasicBlock::Create(*context, "afterloop", TheFunction);
 
-  // Load initial value before creating phi node
+  // load value for phi node
   auto initialValue = builder->CreateLoad(iterTypeLLVM, iterAlloca);
 
-  // Branch to loop header
+  // Branch _> header
   builder->CreateBr(LoopBB);
 
-  // Start insertion in LoopBB
+  // start insertion -> LoopBB
   builder->SetInsertPoint(LoopBB);
 
-  // Create the PHI node for the loop variable
+  // Create the PHI node <= the loop variable
   llvm::PHINode *Variable = builder->CreatePHI(iterTypeLLVM, 2, iteratorVar->getName());
   
-  // Add the initial value from the preheader
+  // add the initial value from the
   Variable->addIncoming(initialValue, PreheaderBB);
 
-  // Store the phi node value back to the alloca
+  // store the phi node value back to the alloca
   builder->CreateStore(Variable, iterAlloca);
 
-  // Generate loop body
+  // generate loop body
   // volatile auto bodyCode = visitDefault(node->body);
   auto forBody = node->body;
   cgresult_t returnValue;
@@ -1085,34 +1188,74 @@ cgresult_t CodeGenVisitor::handleBuiltinMethodCall(
     //   return cgnone;
   }
 
+  auto leftType = node->left->resolveType(typeTable->types[moduleName], currentScope);
+  auto className = leftType->name;
+
   // handle different methods
   if (methodName == "Plus") {
-    return builder->CreateAdd(L, R, "addtmp");
+    if (className == "Integer") {
+      return builder->CreateAdd(L, R, "addtmp");
+    } else if (className == "Real") {
+      return builder->CreateFAdd(L, R, "faddtmp");
+    }
   }
   else if (methodName == "Minus") {
-    return builder->CreateSub(L, R, "subtmp");
+    if (className == "Integer") {
+      return builder->CreateSub(L, R, "subtmp");
+    } else if (className == "Real") {
+      return builder->CreateFSub(L, R, "fsubtmp");
+    }
   }
   else if (methodName == "Mult") {
-    return builder->CreateMul(L, R, "multmp");
+    if (className == "Integer") {
+      return builder->CreateMul(L, R, "multmp");
+    } else if (className == "Real") {
+      return builder->CreateFMul(L, R, "fmultmp");
+    }
   }
   else if (methodName == "Div") {
-    return builder->CreateSDiv(L, R, "divtmp");
+    if (className == "Integer") {
+      return builder->CreateSDiv(L, R, "divtmp");
+    } else if (className == "Real") {
+      return builder->CreateFDiv(L, R, "fdivtmp");
+    }
   }
   else if (methodName == "Rem") {
-    return builder->CreateSRem(L, R, "remtmp");
+    if (className == "Integer") {
+      return builder->CreateSRem(L, R, "remtmp");
+    } else if (className == "Real") {
+      return builder->CreateFRem(L, R, "fremtmp");
+    }
   }
   else if (methodName == "Less") {
-    return builder->CreateICmpSLT(L, R, "cmptmp");
+    if (className == "Integer") {
+      return builder->CreateICmpSLT(L, R, "cmptmp");
+    } else if (className == "Real") {
+      return builder->CreateFCmpOLT(L, R, "fcmptmp");
+    }
   }
   else if (methodName == "Greater") {
-    return builder->CreateICmpSGT(L, R, "cmptmp");
+    if (className == "Integer") {
+      return builder->CreateICmpSGT(L, R, "cmptmp");
+    } else if (className == "Real") {
+      return builder->CreateFCmpOGT(L, R, "fcmptmp");
+    }
   }
   else if (methodName == "Equal") {
-    return builder->CreateICmpEQ(L, R, "cmptmp");
+    if (className == "Integer") {
+      return builder->CreateICmpEQ(L, R, "cmptmp");
+    } else if (className == "Real") {
+      return builder->CreateFCmpOEQ(L, R, "fcmptmp");
+    }
   }
   else if (methodName == "UnaryMinus") {
-    auto one = llvm::ConstantInt::getSigned((llvm::Type::getInt32Ty(*context)), -1);
-    return builder->CreateMul(L, one, "uminus");
+    if (className == "Integer") {
+      auto one = llvm::ConstantInt::getSigned((llvm::Type::getInt32Ty(*context)), -1);
+      return builder->CreateMul(L, one, "uminus");
+    } else if (className == "Real") {
+      auto negOne = llvm::ConstantFP::get(llvm::Type::getFloatTy(*context), -1.0);
+      return builder->CreateFMul(L, negOne, "fuminus");
+    }
   }
 
   return cgnone;
@@ -1122,8 +1265,7 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<MethodCallEXP> &node) {
   // check if this is a built-in method call
   std::string className;
   if (node->left->getKind() == E_Var_Reference) {
-    auto varRefLeft = std::static_pointer_cast<VarRefEXP>(node->left);
-    auto leftDecl = currentScope->lookup<VarDecl>(varRefLeft->getName());
+    auto leftDecl = currentScope->lookup<VarDecl>(node->left->getName());
     className = leftDecl->type->name;
   }
   else if (node->left->getKind() == E_Integer_Literal) {

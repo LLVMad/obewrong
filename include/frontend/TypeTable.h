@@ -104,11 +104,11 @@ public:
     // builtinTypes.addType("Uint16", std::make_shared<TypeUint16>());
     // builtinTypes.addType("Uint32", std::make_shared<TypeUint32>());
     // builtinTypes.addType("Uint64", std::make_shared<TypeUint64>());
-    // builtinTypes.addType("Real", std::make_shared<TypeReal>());
+    builtinTypes.addType("Real", std::make_shared<TypeReal>());
     // builtinTypes.addType("Float64", std::make_shared<TypeFloat64>());
     // // builtinTypes.addType("Bool", std::make_shared<TypeBool>());
-    // builtinTypes.addType("Boolean", std::make_shared<TypeBool>());
-    // builtinTypes.addType("String", std::make_shared<TypeString>());
+    builtinTypes.addType("Boolean", std::make_shared<TypeBool>());
+    builtinTypes.addType("String", std::make_shared<TypeString>());
     // builtinTypes.addType("Array", std::make_shared<TypeArray>());
   }
 

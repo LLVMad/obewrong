@@ -66,6 +66,7 @@ enum Ekind {
   E_Enum_Reference,
   E_Element_Reference,
   E_Assignment_Wrapper, // Wraps assignments to be used in expressions
+  E_Conversion,
 
   // Special entities
   E_This, // current instance of object

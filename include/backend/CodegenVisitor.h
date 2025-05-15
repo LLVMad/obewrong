@@ -144,6 +144,7 @@ public:
   cgresult_t visit(const std::shared_ptr<MethodCallEXP> &node);
   cgresult_t visit(const std::shared_ptr<FuncCallEXP> &node);
   cgresult_t visit(const std::shared_ptr<ClassNameEXP> &node);
+  cgresult_t visit(const std::shared_ptr<ConversionEXP> &node);
   cgresult_t visit(const std::shared_ptr<ConstructorCallEXP> &node);
   cgresult_t visit(const std::shared_ptr<CompoundEXP> &node);
   cgresult_t visit(const std::shared_ptr<ThisEXP> &node);

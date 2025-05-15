@@ -1,28 +1,23 @@
-import IO
+module listdemo
 
 class Main is
   this() is
-    var list : List[Integer]
-    list.append(10)
-    list.append(20)
-    list.append(30)
+    var list : List[Integer, 3] := [1, 2, 3]
+    
+    printf("List head: %d\n", list.head())
+    
+    var tail : List[Integer] := list.tail()
 
-    Console.print("List head: ")
-    Console.print(list.head())
-
-    Console.print("List tail: ")
-    var tail : List[Integer](list.tail())
-    var i : Integer(0)
+    var i : Integer := 0
     while i.Less(tail.Length) loop
-      Console.print(tail.get(i))
+      printf("- tail el: %d\n", tail[i])
       i := i.Plus(1)
     end
 
-    while tail.Empty().Not() loop
+    while tail.empty().Not() loop
       tail.pop()
     end
 
-    IO.Console.print("Size of a list: ")
-    IO.Console.print(tail.Size())
+    printf("Size of a list: %d\n", tail.length())
   end
 end

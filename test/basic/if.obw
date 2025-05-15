@@ -1,11 +1,13 @@
 module ifstatement
 
-func main() is 
-  var a : Integer(2)
+class Main is 
+  this() is 
+    var a : Integer := 3
 
-  if a % 2 == 0 then 
-    printl("even")
-  else 
-    printl("odd")
+    if a.Rem(2).Equal(0) then 
+      printf("even %d\n", a)
+    end else 
+      printf("odd %d\n", a)
+    end
   end
 end

@@ -90,6 +90,8 @@ private:
 
   std::shared_ptr<VarDecl> parseVarDecl();
 
+  std::shared_ptr<ConversionEXP> parseConversionOperator(std::shared_ptr<Expression> from);
+
   std::shared_ptr<ConstrDecl> parseConstructorDecl();
 
   std::shared_ptr<MethodDecl> parseMethodDecl();

@@ -3,13 +3,13 @@ module ifelif
 func main() is 
   var a : Integer(2)
 
-  if a % 3 == 0 then
-    printl("mod 3")
+  if a.Mod(3).Equal(0) then
+    printf("mod 3\n")
   end
-  else if a % 2 == 0 then 
-    printl("mod 2")
+  else if a.Mod(2).Equal(0) then 
+    printf("mod 2\n")
   end
   else 
-    printl("no mod")
+    printf("no mod\n")
   end 
 end

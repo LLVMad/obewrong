@@ -108,7 +108,7 @@ public:
   {
     switch (this->elements[0]->getKind()) {
       case E_Integer_Literal: el_type = TYPE_INT; break;
-      case E_Real_Literal: el_type = TYPE_FLOAT; break;
+      case E_Real_Literal: el_type = TYPE_REAL; break;
       case E_String_Literal: el_type = TYPE_STRING; break;
       case E_Boolean_Literal: el_type = TYPE_BOOL; break;
       case E_Array_Literal: el_type = TYPE_ARRAY; break;
@@ -343,6 +343,20 @@ public:
   std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
+};
+
+class ConversionEXP : public Expression {
+public:
+  ConversionEXP(const std::shared_ptr<Expression> &from, const std::shared_ptr<Type> &to)
+      : Expression(E_Conversion, "conversion"), to(to), from(from) {};
+
+  std::shared_ptr<Type> to;
+  std::shared_ptr<Expression> from;
+
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override {
+    return to;
+  };
+  bool validate() override { return true; };
 };
 
 // TOKEN_EQUAL,           // * ==

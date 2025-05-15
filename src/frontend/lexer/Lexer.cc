@@ -438,15 +438,20 @@ std::unique_ptr<Token> Lexer::next() {
                                          curr_line,
                                          curr_column /* - token.length() + 1 */);
         }
-
         curr_state = STATE_START;
-        return std::make_unique<Token>(TOKEN_INT32_NUMBER, std::stoi(token),
-                                       curr_line,
-                                       curr_column /* - token.length() + 1 */);
+
+        if (peek() == '.') {
+          curr_state = STATE_READ_REAL;
+        }
+        else {
+          return std::make_unique<Token>(TOKEN_INT32_NUMBER, std::stoi(token),
+                                         curr_line,
+                                         curr_column /* - token.length() + 1 */);
+        }
       }
       if (c == '.') {
         // if there are digits after the dot
-        if (std::isdigit(peek())) {
+        if (std::isdigit(buffer[1])) {
           curr_state = STATE_READ_REAL;
         } else {
           // no -> treat it as a method call

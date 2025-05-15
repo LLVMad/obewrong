@@ -467,6 +467,8 @@ std::shared_ptr<IfSTMT> Parser::parseIfStatement() {
     return nullptr;
   token = next(); // eat 'if'
 
+  globalSymbolTable->enterScope(SCOPE_LOOP, "if_else");
+
   auto condition = parseExpression();
 
   auto ifTrue = parseBlock(BLOCK_IN_IF);
@@ -481,8 +483,12 @@ std::shared_ptr<IfSTMT> Parser::parseIfStatement() {
       ifFalse = parseBlock(BLOCK_IN_IF);
     }
 
+    globalSymbolTable->exitScope();
+
     return std::make_shared<IfSTMT>(condition, ifTrue, ifFalse);
   }
+
+  globalSymbolTable->exitScope();
 
   return std::make_shared<IfSTMT>(condition, ifTrue);
 }
@@ -1445,6 +1451,11 @@ std::shared_ptr<Expression> Parser::parseExpression() {
         return parseMemberAccess(node);
     }
 
+    // conversion
+    if (peek()->kind == TOKEN_ARROW) {
+      return parseConversionOperator(node);
+    }
+
     // Handle binary operations
     if (is_binary_operator(peek()->kind)) {
         return parseBinaryOp(node);
@@ -1452,6 +1463,21 @@ std::shared_ptr<Expression> Parser::parseExpression() {
 
     return node;
 }
+
+std::shared_ptr<ConversionEXP>
+Parser::parseConversionOperator(std::shared_ptr<Expression> from) {
+  next(); // eat '=>'
+
+  // exprect TypeName
+  std::string toTypeName = std::get<std::string>(next()->value);
+
+  auto type = globalTypeTable->getType(moduleName, toTypeName);
+
+  auto conv = std::make_shared<ConversionEXP>(from, type);
+
+  return conv;
+}
+
 
 std::shared_ptr<Expression> Parser::parseStaticAccess(std::shared_ptr<Expression> left) {
     next(); // eat '::'
