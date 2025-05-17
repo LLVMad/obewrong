@@ -35,14 +35,15 @@ int main(int argc, char *argv[]) {
     std::cout << parseTree->getKind() << std::endl;
 
     PrinterAst printer(globalTypeTable, globalSymbolTable);
-    printer.printAST(parseTree);
+    parseTree->accept(printer);
 
     // semantic
     // if error -> exit(-1)
 
     auto global_scope = globalSymbolTable->getGlobalScope();
     CodeGenVisitor cgvisitor(global_scope, globalTypeTable);
-    cgvisitor.visitDefault(parseTree);
+    parseTree->accept(cgvisitor);
+    // cgvisitor.visitDefault(parseTree);
     cgvisitor.dumpIR();
     cgvisitor.createObjFile();
 

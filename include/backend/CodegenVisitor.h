@@ -4,6 +4,7 @@
 #include "frontend/SymbolTable.h"
 #include "frontend/parser/Statement.h"
 #include "frontend/parser/Wrappers.h"
+#include "frontend/parser/Visitor.h"
 
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
@@ -29,19 +30,53 @@
 #include "llvm/TargetParser/Host.h"
 
 #include <map>
+#include <queue>
 #include <variant>
 
-#define cgresult_t  std::variant<std::monostate, llvm::Value*, llvm::Type*, llvm::AllocaInst*>
-#define cgvoid_t    std::monostate
-#define cgnone      std::monostate {}
 
-#define cggetval(var)    std::get<llvm::Value*>(var)
-#define cggettype(var)   std::get<llvm::Type*>(var)
-#define cggetalloc(var)  std::get<llvm::AllocaInst*>(var)
-
-#define LIBC_PATH "../lib/libc.ll"
-
-class CodeGenVisitor {
+class CodeGenVisitor : public BaseVisitor,
+                  public Visitor<Entity, void>,
+                  public Visitor<Block, void>,
+                  public Visitor<EDummy, void>,
+                  public Visitor<Statement, void>,
+                  public Visitor<AssignmentSTMT, void>,
+                  public Visitor<ReturnSTMT, void>,
+                  public Visitor<IfSTMT, void>,
+                  public Visitor<CaseSTMT, void>,
+                  public Visitor<SwitchSTMT, void>,
+                  public Visitor<WhileSTMT, void>,
+                  public Visitor<ForSTMT, void>,
+                  public Visitor<Expression, void>,
+                  public Visitor<IntLiteralEXP, void>,
+                  public Visitor<RealLiteralEXP, void>,
+                  public Visitor<StringLiteralEXP, void>,
+                  public Visitor<BoolLiteralEXP, void>,
+                  public Visitor<ArrayLiteralExpr, void>,
+                  public Visitor<VarRefEXP, void>,
+                  public Visitor<FieldRefEXP, void>,
+                  public Visitor<ElementRefEXP, void>,
+                  public Visitor<MethodCallEXP, void>,
+                  public Visitor<FuncCallEXP, void>,
+                  public Visitor<ClassNameEXP, void>,
+                  public Visitor<ConstructorCallEXP, void>,
+                  public Visitor<CompoundEXP, void>,
+                  public Visitor<ThisEXP, void>,
+                  public Visitor<ConversionEXP, void>,
+                  public Visitor<BinaryOpEXP, void>,
+                  public Visitor<UnaryOpEXP, void>,
+                  public Visitor<EnumRefEXP, void>,
+                  public Visitor<Decl, void>,
+                  public Visitor<FieldDecl, void>,
+                  public Visitor<VarDecl, void>,
+                  public Visitor<ParameterDecl, void>,
+                  public Visitor<MethodDecl, void>,
+                  public Visitor<ConstrDecl, void>,
+                  public Visitor<FuncDecl, void>,
+                  public Visitor<ClassDecl, void>,
+                  public Visitor<ArrayDecl, void>,
+                  public Visitor<ListDecl, void>,
+                  public Visitor<ModuleDecl, void>,
+                  public Visitor<EnumDecl, void> {
 public:
   CodeGenVisitor(const std::shared_ptr<Scope<Entity>> &globalScope,
                  const std::shared_ptr<GlobalTypeTable> &typeTable)
@@ -128,58 +163,65 @@ public:
   }
 
   // starting point of the code generation
-  // cgvoid_t visitDefault(const std::shared_ptr<Entity> &node);
+  // void visitDefault(Entity &node) override;
 
-  cgresult_t visitDefault(const std::shared_ptr<Entity> &node);
+  void visit(Entity &node) override;
 
   // #####========== EXPRESSIONS ==========#####
-  cgresult_t visit(const std::shared_ptr<Expression> &expr);
-  cgresult_t visit(const std::shared_ptr<IntLiteralEXP> &node);
-  cgresult_t visit(const std::shared_ptr<RealLiteralEXP> &node);
-  cgresult_t visit(const std::shared_ptr<StringLiteralEXP> &node);
-  cgresult_t visit(const std::shared_ptr<BoolLiteralEXP> &node);
-  cgresult_t visit(const std::shared_ptr<ArrayLiteralExpr> &node);
-  cgresult_t visit(const std::shared_ptr<VarRefEXP> &node);
-  cgresult_t visit(const std::shared_ptr<FieldRefEXP> &node);
-  cgresult_t visit(const std::shared_ptr<MethodCallEXP> &node);
-  cgresult_t visit(const std::shared_ptr<FuncCallEXP> &node);
-  cgresult_t visit(const std::shared_ptr<ClassNameEXP> &node);
-  cgresult_t visit(const std::shared_ptr<ConversionEXP> &node);
-  cgresult_t visit(const std::shared_ptr<ConstructorCallEXP> &node);
-  cgresult_t visit(const std::shared_ptr<CompoundEXP> &node);
-  cgresult_t visit(const std::shared_ptr<ThisEXP> &node);
-  cgresult_t visit(const std::shared_ptr<BinaryOpEXP> &node);
-  cgresult_t visit(const std::shared_ptr<ElementRefEXP> &node);
+  void visit(Expression &node) override;
+  void visit(IntLiteralEXP &node) override;
+  void visit(RealLiteralEXP &node) override;
+  void visit(StringLiteralEXP &node) override;
+  void visit(BoolLiteralEXP &node) override;
+  void visit(ArrayLiteralExpr &node) override;
+  void visit(VarRefEXP &node) override;
+  void visit(FieldRefEXP &node) override;
+  void visit(MethodCallEXP &node) override;
+  void visit(FuncCallEXP &node) override;
+  void visit(ClassNameEXP &node) override;
+  void visit(ConversionEXP &node) override;
+  void visit(ConstructorCallEXP &node) override;
+  void visit(CompoundEXP &node) override;
+  void visit(ThisEXP &node) override;
+  void visit(BinaryOpEXP &node) override;
+  void visit(ElementRefEXP &node) override;
   // #####========================================#####
 
   // #####========== DECLARATIONS ==========#####
-  cgvoid_t visit(const std::shared_ptr<Decl> &node);
-  cgvoid_t visit(const std::shared_ptr<ModuleDecl> &node);
-  cgvoid_t visit(const std::shared_ptr<FieldDecl> &node);
-  cgvoid_t visit(const std::shared_ptr<VarDecl> &node);
-  cgvoid_t visit(const std::shared_ptr<ParameterDecl> &node); // outsorced its work to another function
-  cgvoid_t visit(const std::shared_ptr<MethodDecl> &node);
-  cgvoid_t visit(const std::shared_ptr<ConstrDecl> &node);
-  cgvoid_t visit(const std::shared_ptr<FuncDecl> &node);
-  cgvoid_t visit(const std::shared_ptr<ClassDecl> &node);
-  cgvoid_t visit(const std::shared_ptr<ArrayDecl> &node); // probably should be deleted
-  cgvoid_t visit(const std::shared_ptr<ListDecl> &node); // same
+  void visit(Decl &node) override;
+  void visit(ModuleDecl &node) override;
+  void visit(FieldDecl &node) override;
+  void visit(VarDecl &node) override;
+  void visit(ParameterDecl &node) override; // outsorced its work to another function
+  void visit(MethodDecl &node) override;
+  void visit(ConstrDecl &node) override;
+  void visit(FuncDecl &node) override;
+  void visit(ClassDecl &node) override;
+  void visit(ArrayDecl &node) override; // probably should be deleted
+  void visit(ListDecl &node) override; // same
   // #####========================================#####
 
   // #####========== STATEMENTS ==========#####
-  cgvoid_t visit(const std::shared_ptr<Statement> &node);
-  cgvoid_t visit(const std::shared_ptr<AssignmentSTMT> &node);
-  cgvoid_t visit(const std::shared_ptr<ReturnSTMT> &node);
-  cgvoid_t visit(const std::shared_ptr<IfSTMT> &node);
-  cgvoid_t visit(const std::shared_ptr<CaseSTMT> &node);
-  cgvoid_t visit(const std::shared_ptr<SwitchSTMT> &node);
-  cgvoid_t visit(const std::shared_ptr<WhileSTMT> &node);
-  cgvoid_t visit(const std::shared_ptr<ForSTMT> &node);
+  void visit(Statement &node) override;
+  void visit(AssignmentSTMT &node) override;
+  void visit(ReturnSTMT &node) override;
+  void visit(IfSTMT &node) override;
+  void visit(CaseSTMT &node) override;
+  void visit(SwitchSTMT &node) override;
+  void visit(WhileSTMT &node) override;
+  void visit(ForSTMT &node) override;
   // #####========================================#####
 
-  cgresult_t visit(const std::shared_ptr<Type> &node);
+  // UNUSED
+  void visit(Block& block) override {};
+  void visit(EDummy& dummy) override {}
+  void visit(EnumDecl& node) override {}
+  void visit(EnumRefEXP& node) override {}
+  void visit(UnaryOpEXP &node) override {}
 
-  cgresult_t handleBuiltinMethodCall(const std::shared_ptr<MethodCallEXP> &node,
+  // void visit(Type &node) override;
+
+  void handleBuiltinMethodCall(MethodCallEXP &node,
                                      std::string methodName);
 
   void dumpIR() const { module->print(llvm::outs(), nullptr); }
@@ -194,7 +236,7 @@ private:
                                            llvm::StringRef VarName);
 
   // creates load instruction to load a pointer type value
-  cgresult_t unwrapPointerReference(const std::shared_ptr<Expression>& node, llvm::Value *val);
+  llvm::Value* unwrapPointerReference(Expression *node, llvm::Value *val);
   // #####========================================#####
 
   // entry for a symboltable (actually a tree of scopes)
@@ -212,6 +254,8 @@ private:
   // std::map<std::string, llvm::AllocaInst*> varEnv;
   // std::map<std::string, bool> varInitialized;
 
+  std::queue<llvm::Value*> values;
+  llvm::Value* lastValue;
   std::shared_ptr<Scope<Entity>> currentScope;
   size_t currDepth;
 

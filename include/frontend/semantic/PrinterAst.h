@@ -34,59 +34,59 @@ inline std::string blockKindToString(BlockKind kind) {
   }
 }
 
-class PrinterAst : public VisitorBase,
-                  public Visitor<Entity>,
-                  public Visitor<Block>,
-                  public Visitor<EDummy>,
-                  public Visitor<Statement>,
-                  public Visitor<AssignmentSTMT>,
-                  public Visitor<ReturnSTMT>,
-                  public Visitor<IfSTMT>,
-                  public Visitor<CaseSTMT>,
-                  public Visitor<SwitchSTMT>,
-                  public Visitor<WhileSTMT>,
-                  public Visitor<ForSTMT>,
-                  public Visitor<Expression>,
-                  public Visitor<IntLiteralEXP>,
-                  public Visitor<RealLiteralEXP>,
-                  public Visitor<StringLiteralEXP>,
-                  public Visitor<BoolLiteralEXP>,
-                  public Visitor<ArrayLiteralExpr>,
-                  public Visitor<VarRefEXP>,
-                  public Visitor<FieldRefEXP>,
-                  public Visitor<ElementRefEXP>,
-                  public Visitor<MethodCallEXP>,
-                  public Visitor<FuncCallEXP>,
-                  public Visitor<ClassNameEXP>,
-                  public Visitor<ConstructorCallEXP>,
-                  public Visitor<CompoundEXP>,
-                  public Visitor<ThisEXP>,
-                  public Visitor<ConversionEXP>,
-                  public Visitor<BinaryOpEXP>,
-                  public Visitor<UnaryOpEXP>,
-                  public Visitor<EnumRefEXP>,
-                  public Visitor<Decl>,
-                  public Visitor<FieldDecl>,
-                  public Visitor<VarDecl>,
-                  public Visitor<ParameterDecl>,
-                  public Visitor<MethodDecl>,
-                  public Visitor<ConstrDecl>,
-                  public Visitor<FuncDecl>,
-                  public Visitor<ClassDecl>,
-                  public Visitor<ArrayDecl>,
-                  public Visitor<ListDecl>,
-                  public Visitor<ModuleDecl>,
-                  public Visitor<EnumDecl> {
+class PrinterAst : public BaseVisitor,
+                  public Visitor<Entity, void>,
+                  public Visitor<Block, void>,
+                  public Visitor<EDummy, void>,
+                  public Visitor<Statement, void>,
+                  public Visitor<AssignmentSTMT, void>,
+                  public Visitor<ReturnSTMT, void>,
+                  public Visitor<IfSTMT, void>,
+                  public Visitor<CaseSTMT, void>,
+                  public Visitor<SwitchSTMT, void>,
+                  public Visitor<WhileSTMT, void>,
+                  public Visitor<ForSTMT, void>,
+                  public Visitor<Expression, void>,
+                  public Visitor<IntLiteralEXP, void>,
+                  public Visitor<RealLiteralEXP, void>,
+                  public Visitor<StringLiteralEXP, void>,
+                  public Visitor<BoolLiteralEXP, void>,
+                  public Visitor<ArrayLiteralExpr, void>,
+                  public Visitor<VarRefEXP, void>,
+                  public Visitor<FieldRefEXP, void>,
+                  public Visitor<ElementRefEXP, void>,
+                  public Visitor<MethodCallEXP, void>,
+                  public Visitor<FuncCallEXP, void>,
+                  public Visitor<ClassNameEXP, void>,
+                  public Visitor<ConstructorCallEXP, void>,
+                  public Visitor<CompoundEXP, void>,
+                  public Visitor<ThisEXP, void>,
+                  public Visitor<ConversionEXP, void>,
+                  public Visitor<BinaryOpEXP, void>,
+                  public Visitor<UnaryOpEXP, void>,
+                  public Visitor<EnumRefEXP, void>,
+                  public Visitor<Decl, void>,
+                  public Visitor<FieldDecl, void>,
+                  public Visitor<VarDecl, void>,
+                  public Visitor<ParameterDecl, void>,
+                  public Visitor<MethodDecl, void>,
+                  public Visitor<ConstrDecl, void>,
+                  public Visitor<FuncDecl, void>,
+                  public Visitor<ClassDecl, void>,
+                  public Visitor<ArrayDecl, void>,
+                  public Visitor<ListDecl, void>,
+                  public Visitor<ModuleDecl, void>,
+                  public Visitor<EnumDecl, void> {
 public:
   PrinterAst(std::shared_ptr<GlobalTypeTable> globalTypeTable,
              std::shared_ptr<SymbolTable> symbolTable)
       : globalTypeTable(globalTypeTable), symbolTable(symbolTable), indent(0) {}
 
-  void printAST(const std::shared_ptr<ModuleDecl> &root) {
-    root->acceptAGuestVisitor(this);
-  }
+  // void printAST(const std::shared_ptr<ModuleDecl> &root) {
+  //   root->accept(*this);
+  // }
 
-  // Entity visit methods
+  // not used !
   void visit(Entity& entity) override {
     printIndent();
     std::cout << "Entity: " << entity.getName() << std::endl;
@@ -96,9 +96,6 @@ public:
     printIndent();
     std::cout << "Block: " << blockKindToString(block.kind) << std::endl;
     indent += 2;
-    for (auto& part : block.parts) {
-      DERIVED(part, this);
-    }
     indent -= 2;
   }
 
@@ -107,7 +104,6 @@ public:
     std::cout << "Dummy" << std::endl;
   }
 
-  // Statement visit methods
   void visit(Statement& stmt) override {
     printIndent();
     std::cout << "Statement" << std::endl;
@@ -117,10 +113,10 @@ public:
     printIndent();
     std::cout << "Assignment" << std::endl;
     indent += 2;
-    if (stmt.variable) stmt.variable->acceptAGuestVisitor(this);
-    if (stmt.field) stmt.field->acceptAGuestVisitor(this);
-    if (stmt.element) stmt.element->acceptAGuestVisitor(this);
-    if (stmt.expression) stmt.expression->acceptAGuestVisitor(this);
+    if (stmt.variable) stmt.variable->accept(*this);
+    if (stmt.field) stmt.field->accept(*this);
+    if (stmt.element) stmt.element->accept(*this);
+    if (stmt.expression) stmt.expression->accept(*this);
     indent -= 2;
   }
 
@@ -129,7 +125,7 @@ public:
     std::cout << "Return" << std::endl;
     if (stmt.expr) {
       indent += 2;
-      stmt.expr->acceptAGuestVisitor(this);
+      stmt.expr->accept(*this);
       indent -= 2;
     }
   }
@@ -138,11 +134,11 @@ public:
     printIndent();
     std::cout << "If" << std::endl;
     indent += 2;
-    stmt.condition->acceptAGuestVisitor(this);
-    stmt.ifTrue->acceptAGuestVisitor(this);
+    stmt.condition->accept(*this);
+    stmt.ifTrue->accept(*this);
     if (stmt.ifFalse) {
-      DERIVED(stmt.ifFalse, this)
-      // stmt.ifFalse->acceptAGuestVisitor(this);
+      // DERIVED(stmt.ifFalse, this)
+      stmt.ifFalse->accept(*this);
     }
     indent -= 2;
   }
@@ -151,8 +147,8 @@ public:
     printIndent();
     std::cout << "Case" << std::endl;
     indent += 2;
-    if (stmt.condition_literal) stmt.condition_literal->acceptAGuestVisitor(this);
-    stmt.body->acceptAGuestVisitor(this);
+    if (stmt.condition_literal) stmt.condition_literal->accept(*this);
+    stmt.body->accept(*this);
     indent -= 2;
   }
 
@@ -160,9 +156,9 @@ public:
     printIndent();
     std::cout << "Switch" << std::endl;
     indent += 2;
-    stmt.condition->acceptAGuestVisitor(this);
+    stmt.condition->accept(*this);
     for (const auto& case_stmt : stmt.cases) {
-      case_stmt->acceptAGuestVisitor(this);
+      case_stmt->accept(*this);
     }
     indent -= 2;
   }
@@ -171,8 +167,8 @@ public:
     printIndent();
     std::cout << "While" << std::endl;
     indent += 2;
-    stmt.condition->acceptAGuestVisitor(this);
-    stmt.body->acceptAGuestVisitor(this);
+    stmt.condition->accept(*this);
+    stmt.body->accept(*this);
     indent -= 2;
   }
 
@@ -180,14 +176,13 @@ public:
     printIndent();
     std::cout << "For" << std::endl;
     indent += 2;
-    stmt.varWithAss->acceptAGuestVisitor(this);
-    stmt.condition->acceptAGuestVisitor(this);
-    stmt.post->acceptAGuestVisitor(this);
-    stmt.body->acceptAGuestVisitor(this);
+    stmt.varWithAss->accept(*this);
+    stmt.condition->accept(*this);
+    stmt.post->accept(*this);
+    stmt.body->accept(*this);
     indent -= 2;
   }
 
-  // Expression visit methods
   void visit(Expression& expr) override {
     printIndent();
     std::cout << "Expression" << std::endl;
@@ -218,7 +213,7 @@ public:
     std::cout << "ArrayLiteral" << std::endl;
     indent += 2;
     for (const auto& element : expr.elements) {
-      element->acceptAGuestVisitor(this);
+      element->accept(*this);
     }
     indent -= 2;
   }
@@ -233,7 +228,7 @@ public:
     std::cout << "FieldRef: " << expr.getName() << std::endl;
     if (expr.obj) {
       indent += 2;
-      expr.obj->acceptAGuestVisitor(this);
+      expr.obj->accept(*this);
       indent -= 2;
     }
   }
@@ -242,8 +237,8 @@ public:
     printIndent();
     std::cout << "ElementRef" << std::endl;
     indent += 2;
-    if (expr.arr) expr.arr->acceptAGuestVisitor(this);
-    if (expr.index) expr.index->acceptAGuestVisitor(this);
+    if (expr.arr) expr.arr->accept(*this);
+    if (expr.index) expr.index->accept(*this);
     indent -= 2;
   }
 
@@ -251,9 +246,9 @@ public:
     printIndent();
     std::cout << "MethodCall: " << expr.getName() << std::endl;
     indent += 2;
-    if (expr.left) expr.left->acceptAGuestVisitor(this);
+    if (expr.left) expr.left->accept(*this);
     for (const auto& arg : expr.arguments) {
-      arg->acceptAGuestVisitor(this);
+      arg->accept(*this);
     }
     indent -= 2;
   }
@@ -263,7 +258,7 @@ public:
     std::cout << "FuncCall: " << expr.getName() << std::endl;
     indent += 2;
     for (const auto& arg : expr.arguments) {
-      arg->acceptAGuestVisitor(this);
+      arg->accept(*this);
     }
     indent -= 2;
   }
@@ -277,9 +272,9 @@ public:
     printIndent();
     std::cout << "ConstructorCall" << std::endl;
     indent += 2;
-    expr.left->acceptAGuestVisitor(this);
+    expr.left->accept(*this);
     for (const auto& arg : expr.arguments) {
-      arg->acceptAGuestVisitor(this);
+      arg->accept(*this);
     }
     indent -= 2;
   }
@@ -289,7 +284,7 @@ public:
     std::cout << "Compound" << std::endl;
     indent += 2;
     for (const auto& part : expr.parts) {
-      part->acceptAGuestVisitor(this);
+      part->accept(*this);
     }
     indent -= 2;
   }
@@ -303,7 +298,7 @@ public:
     printIndent();
     std::cout << "Conversion" << std::endl;
     indent += 2;
-    expr.from->acceptAGuestVisitor(this);
+    expr.from->accept(*this);
     indent -= 2;
   }
 
@@ -311,8 +306,8 @@ public:
     printIndent();
     std::cout << "BinaryOp" << std::endl;
     indent += 2;
-    expr.left->acceptAGuestVisitor(this);
-    expr.right->acceptAGuestVisitor(this);
+    expr.left->accept(*this);
+    expr.right->accept(*this);
     indent -= 2;
   }
 
@@ -320,7 +315,7 @@ public:
     printIndent();
     std::cout << "UnaryOp" << std::endl;
     indent += 2;
-    expr.operand->acceptAGuestVisitor(this);
+    expr.operand->accept(*this);
     indent -= 2;
   }
 
@@ -345,7 +340,7 @@ public:
     std::cout << "VarDecl: " << decl.getName() << std::endl;
     if (decl.initializer) {
       indent += 2;
-      decl.initializer->acceptAGuestVisitor(this);
+      decl.initializer->accept(*this);
       indent -= 2;
     }
   }
@@ -360,9 +355,9 @@ public:
     std::cout << "MethodDecl: " << decl.getName() << std::endl;
     indent += 2;
     for (const auto& arg : decl.args) {
-      arg->acceptAGuestVisitor(this);
+      arg->accept(*this);
     }
-    if (decl.body) decl.body->acceptAGuestVisitor(this);
+    if (decl.body) decl.body->accept(*this);
     indent -= 2;
   }
 
@@ -371,9 +366,9 @@ public:
     std::cout << "ConstrDecl: " << decl.getName() << std::endl;
     indent += 2;
     for (const auto& arg : decl.args) {
-      arg->acceptAGuestVisitor(this);
+      arg->accept(*this);
     }
-    if (decl.body) decl.body->acceptAGuestVisitor(this);
+    if (decl.body) decl.body->accept(*this);
     indent -= 2;
   }
 
@@ -382,9 +377,9 @@ public:
     std::cout << "FuncDecl: " << decl.getName() << std::endl;
     indent += 2;
     for (const auto& arg : decl.args) {
-      arg->acceptAGuestVisitor(this);
+      arg->accept(*this);
     }
-    if (decl.body) decl.body->acceptAGuestVisitor(this);
+    if (decl.body) decl.body->accept(*this);
     indent -= 2;
   }
 
@@ -393,12 +388,12 @@ public:
     std::cout << "ClassDecl: " << decl.getName() << std::endl;
     indent += 2;
     for (const auto& field : decl.fields) {
-      field->acceptAGuestVisitor(this);
+      field->accept(*this);
     }
     for (auto& method : decl.methods) {
-      auto m = std::static_pointer_cast<Entity>(method);
-      DERIVED(m, this)
-      // method->acceptAGuestVisitor(this);
+      // auto m = std::static_pointer_cast<Entity>(method);
+      // DERIVED(m, this)
+      method->accept(*this);
     }
     indent -= 2;
   }
@@ -408,7 +403,7 @@ public:
     std::cout << "ArrayDecl: " << decl.getName() << std::endl;
     if (decl.initializer) {
       indent += 2;
-      decl.initializer->acceptAGuestVisitor(this);
+      decl.initializer->accept(*this);
       indent -= 2;
     }
   }
@@ -418,7 +413,7 @@ public:
     std::cout << "ListDecl: " << decl.getName() << std::endl;
     if (decl.initializer) {
       indent += 2;
-      decl.initializer->acceptAGuestVisitor(this);
+      decl.initializer->accept(*this);
       indent -= 2;
     }
   }
@@ -428,8 +423,8 @@ public:
     std::cout << "ModuleDecl: " << decl.getName() << std::endl;
     indent += 2;
     for (auto& child : decl.children) {
-      DERIVED(child, this)
-      // child->acceptAGuestVisitor(this);
+      // DERIVED(child, this)
+      child->accept(*this);
     }
     indent -= 2;
   }

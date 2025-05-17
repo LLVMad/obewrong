@@ -88,7 +88,7 @@ enum Ekind {
 /**
  * Foundation for obewrong entities
  */
-class Entity : public VisitableBase {
+class Entity : public BaseVisitable<> {
 public:
   virtual ~Entity() = default;
   explicit Entity(Ekind kind) : kind(kind), name(), location() {}
@@ -107,7 +107,7 @@ public:
   // children nodes
   std::shared_ptr<Entity> next;
 
-  // DEFINE_VISITABLE()
+  DEFINE_VISITABLE()
 
 protected:
   Ekind kind;
@@ -140,7 +140,13 @@ public:
 
   bool validate() override { return false; }
 
-  DEFINE_VISITABLE()
+  // DEFINE_VISITABLE()
+  virtual ReturnType accept(BaseVisitor &guest) {
+    for (auto part: parts) {
+      part->accept(guest);
+    }
+    // return acceptImpl(*this, guest);
+  }
 
   ~Block() override = default;
 };
@@ -171,42 +177,5 @@ template<typename T>
 std::shared_ptr<T> castEntity(const std::shared_ptr<Entity>& node) {
     return std::static_pointer_cast<T>(node);
 }
-
-#define DERIVED(node, visitor) \
-    switch (node->getKind()) { \
-      /* Expressions */ \
-      case E_Integer_Literal: std::static_pointer_cast<IntLiteralEXP>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Real_Literal: std::static_pointer_cast<RealLiteralEXP>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_String_Literal: std::static_pointer_cast<StringLiteralEXP>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Array_Literal: std::static_pointer_cast<ArrayLiteralExpr>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Element_Reference: std::static_pointer_cast<ElementRefEXP>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Binary_Operator: std::static_pointer_cast<BinaryOpEXP>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Function_Call: std::static_pointer_cast<FuncCallEXP>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Constructor_Call: std::static_pointer_cast<ConstructorCallEXP>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Method_Call: std::static_pointer_cast<MethodCallEXP>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Var_Reference: std::static_pointer_cast<VarRefEXP>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Field_Reference: std::static_pointer_cast<FieldRefEXP>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Assignment_Wrapper: std::static_pointer_cast<AssignmentWrapperEXP>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Chained_Functions: std::static_pointer_cast<CompoundEXP>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Conversion: std::static_pointer_cast<ConversionEXP>(node)->acceptAGuestVisitor(visitor); break; \
-      /* Declarations */ \
-      case E_Field_Decl: std::static_pointer_cast<FieldDecl>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Variable_Decl: std::static_pointer_cast<VarDecl>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Parameter_Decl: std::static_pointer_cast<ParameterDecl>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Method_Decl: std::static_pointer_cast<MethodDecl>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Constructor_Decl: std::static_pointer_cast<ConstrDecl>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Function_Decl: std::static_pointer_cast<FuncDecl>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Main_Decl: std::static_pointer_cast<FuncDecl>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Class_Decl: std::static_pointer_cast<ClassDecl>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Module_Decl: std::static_pointer_cast<ModuleDecl>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Enum_Decl: std::static_pointer_cast<EnumDecl>(node)->acceptAGuestVisitor(visitor); break; \
-      /* Statements */ \
-      case E_Assignment: std::static_pointer_cast<AssignmentSTMT>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Return_Statement: std::static_pointer_cast<ReturnSTMT>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_For_Loop: std::static_pointer_cast<ForSTMT>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_If_Statement: std::static_pointer_cast<IfSTMT>(node)->acceptAGuestVisitor(visitor); break; \
-      case E_Block: std::static_pointer_cast<Block>(node)->acceptAGuestVisitor(visitor); break; \
-      default: node = node; \
-    } \
 
 #endif
