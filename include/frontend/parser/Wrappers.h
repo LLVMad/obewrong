@@ -25,6 +25,8 @@ public:
     bool validate() override {
         return assignment->validate();
     }
+
+    DEFINE_VISITABLE()
 };
 
 #endif

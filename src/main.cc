@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
 
     Parser parser(sm, std::move(tokens), globalSymbolTable, globalTypeTable);
 
-    std::shared_ptr<Entity> parseTree = parser.parseProgram();
+    std::shared_ptr<ModuleDecl> parseTree = parser.parseProgram();
 
     std::cout << parseTree->getKind() << std::endl;
 

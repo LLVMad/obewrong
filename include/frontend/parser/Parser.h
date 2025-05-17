@@ -41,7 +41,7 @@ public:
    * @brief Main function for parsing a program
    * @return pointer to a root of an AAST tree
    */
-  std::shared_ptr<Entity> parseProgram();
+  std::shared_ptr<ModuleDecl> parseProgram();
 
 private:
   std::vector<std::unique_ptr<Token>> tokens;

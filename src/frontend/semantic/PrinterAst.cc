@@ -2,6 +2,7 @@
 #include "frontend/parser/Expression.h"
 #include <iostream>
 
+/*
 void PrinterAst::printAST(const std::shared_ptr<Entity> &root) {
   printEntity(root, 0);
 }
@@ -551,4 +552,4 @@ void PrinterAst::printArrayLiteral(
   for (const auto &element : arrLit->elements) {
     printEntity(element, indent + 2);
   }
-}
+} */

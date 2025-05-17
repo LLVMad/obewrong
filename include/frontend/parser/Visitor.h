@@ -1,84 +1,99 @@
 #ifndef OBW_VISITOR_H
 #define OBW_VISITOR_H
-#include "Expression.h"
-#include "frontend/types/Decl.h"
 
-#include <iostream>
+// The idea is taken from the book:
+//
+// Modern C++ Design: Generic Programming and Design Patterns Applied
+// By Andrei Alexandrescu
+//
+// All Credentials go to the Andrei
+//
+// Please see the Copyright notice in the book
+//
 
-/**
- * Interface for Visitors
- */
-class Visitor {
-public:
-  virtual ~Visitor() = default;
+// ------------------------------------------------------------------------------------------------------------------------------------------------
+// 1. Visitor part
 
-  //=============== EXPRESSIONS ===============
-  virtual void visit(std::shared_ptr<IntLiteralEXP> node) = 0;
-  virtual void visit(std::shared_ptr<RealLiteralEXP> node) = 0;
-  virtual void visit(std::shared_ptr<StringLiteralEXP> node) = 0;
-  virtual void visit(std::shared_ptr<BoolLiteralEXP> node) = 0;
-  virtual void visit(std::shared_ptr<ArrayLiteralExpr> node) = 0;
-  virtual void visit(std::shared_ptr<VarRefEXP> node) = 0;
-  virtual void visit(std::shared_ptr<FieldRefEXP> node) = 0;
-  virtual void visit(std::shared_ptr<MethodCallEXP> node) = 0;
-  virtual void visit(std::shared_ptr<FuncCallEXP> node) = 0;
-  virtual void visit(std::shared_ptr<ClassNameEXP> node) = 0;
-  virtual void visit(std::shared_ptr<ConstructorCallEXP> node) = 0;
-  // virtual void visit(std::shared_ptr<FieldAccessEXP> node) = 0; ??
-  virtual void visit(std::shared_ptr<CompoundEXP> node) = 0;
-  virtual void visit(std::shared_ptr<ThisEXP> node) = 0;
-  virtual void visit(std::shared_ptr<BinaryOpEXP> node) = 0;
-  //=============================================
+	// You need to derive a Visitor class from VisitorBase. That is mandatory
+	class VisitorBase
+	{
+		public:
+			VisitorBase(void) {}
+			virtual ~VisitorBase(void) {}
+	};
 
-  //=============== DECLARATIONS ===============
-  virtual void visit(std::shared_ptr<FieldDecl> node) = 0;
-  virtual void visit(std::shared_ptr<VarDecl> node) = 0;
-  virtual void visit(std::shared_ptr<ParameterDecl> node) = 0;
-  virtual void visit(std::shared_ptr<MethodDecl> node) = 0;
-  virtual void visit(std::shared_ptr<ConstrDecl> node) = 0;
-  virtual void visit(std::shared_ptr<FuncDecl> node) = 0;
-  virtual void visit(std::shared_ptr<ClassDecl> node) = 0;
-  virtual void visit(std::shared_ptr<ArrayDecl> node) = 0;
-  virtual void visit(std::shared_ptr<ListDecl> node) = 0;
-  //=============================================
 
-  //=============== STATEMENTS ===============
-  virtual void visit(std::shared_ptr<AssignmentSTMT> node) = 0;
-  virtual void visit(std::shared_ptr<ReturnSTMT> node) = 0;
-  virtual void visit(std::shared_ptr<IfSTMT> node) = 0;
-  virtual void visit(std::shared_ptr<CaseSTMT> node) = 0;
-  virtual void visit(std::shared_ptr<SwitchSTMT> node) = 0;
-  virtual void visit(std::shared_ptr<WhileSTMT> node) = 0;
-  virtual void visit(std::shared_ptr<ForSTMT> node) = 0;
-  //=============================================
-};
+	// Additionally you need to derive your visitor class from this class
+	// and as many times as you want to visit specific classes that you must define
+	// as template parameters.
+	//
+	// So a typical visitor class definition looks like
+	//
+	// class AVisitorForSomeOtherTypes : 	public VisitorBase
+	//										public Visitor<VisitibleType1>,
+	//										public Visitor<VisitibleType2>,
+	//										public Visitor<VisitibleTypex>
+	//
+	// With such a Visitor you can visit the classes specified in the template parameters
+	//
+	template <class T>
+	class Visitor
+	{
+		public:
+			Visitor(void) {}
+			virtual ~Visitor(void) {}
 
-/**
- * Prints AST tree
- *
- * @example \n
- * ModuleSTMT | "simple" \n
- *   ClassDecl | "Simple" \n
- *     FieldDecl | "a Integer" \n
- *
- *     MethodDecl | "add" \n
- *       ParameterDecl | "a" \n
- *         AssignmentSTMT | "b := .." \n
- *           VarRefEXP | "a" \n
- *           MethodCallEXPR | "a.UnaryMinus()" \n
- *         MethodCallEXPR | "a.Plus(b)" \n
- *
- *     ConstrDecl | "..." \n
- *       ParamDecl | "b" \n
- *         AssignemtnEXPR \n
- *           FieldRefEXPR | "a" \n
- *           ...
- */
-class PrintVisitor : public Visitor {
-public:
-  void visit(std::shared_ptr<IntLiteralEXP> node) override {
-    std::cout << node->getValue() << std::endl;
-  };
-};
+			virtual void visit(T&) = 0;
+	};
+
+
+// ------------------------------------------------------------------------------------------------------------------------------------------------
+// 2. Visitable part
+
+	class VisitableBase
+	{
+		public:
+			VisitableBase(void) {}
+			virtual ~VisitableBase() {}
+			// Will be overridden by macro
+			// If somebody forgets to insert the macro, we will do nothing
+			virtual void acceptAGuestVisitor(VisitorBase&) { };
+		protected:
+
+			// Because the DEFINE_VISITABLE macro will be used to finally call this function
+			// Type T, set to "this" of the class where the macro was defined, T will be
+			// of the type of the class where the macro was defined
+			// This is just a redirector. And it avoids circular forward declarations
+			// Hence "Acyclic"
+
+			template <class TypeOfClassThatWillBeVisited>
+			static void acceptDecoupled(TypeOfClassThatWillBeVisited& visited, VisitorBase* guestVisitorWhoWillVisitSomeOtherClass)
+			{
+				// Apply the Acyclic Visitor
+				// Since Visitor classes are always derived from VisitorBase
+				// and specific Visitor <templated> classes, the dynamic cast will
+				// work, if the guest, is also in the list of Base Classes from which
+				// the visitor is derived
+				//
+				// The visit function will not be called for unknown Visitors
+				// in the example above, not for a "VisitibleTypekkk"
+
+				if (Visitor<TypeOfClassThatWillBeVisited>* visitorGuest =	dynamic_cast<Visitor< TypeOfClassThatWillBeVisited>*>(guestVisitorWhoWillVisitSomeOtherClass))
+				{
+					// Call the Visitors visit function (if existing)
+					visitorGuest->visit(visited);
+				}
+				return;
+			}
+	};
+
+
+// This Macro hast to be defined in the class that shall be visited.
+// So, in the visitable class.
+// It will define the accept function which is typical for the visitor pattern.
+// Accept will then call the "static acceptDecoupled" function, which
+// calls the visit function with "*this" (of the class where the macro was defined)
+// as parameter.
+#define DEFINE_VISITABLE() virtual void acceptAGuestVisitor(VisitorBase* guestVisitorWhoWillVisitSomeOtherClass) { acceptDecoupled(*this, guestVisitorWhoWillVisitSomeOtherClass); }
 
 #endif

@@ -23,6 +23,8 @@ public:
   bool validate() override;
   // std::string name;
   ~Statement() override;
+
+  DEFINE_VISITABLE()
 };
 
 enum AssKind {
@@ -103,6 +105,8 @@ public:
   // void addExpression(std::shared_ptr<Expression> expression) {
   //   this->children.push_back(std::move(expression));
   // }
+
+  DEFINE_VISITABLE()
 };
 
 // return [ Expression ]
@@ -121,6 +125,8 @@ public:
   // void addExpression(std::shared_ptr<Expression> expression) {
   //   this->children.push_back(std::move(expression));
   // }
+
+  DEFINE_VISITABLE()
 };
 
 // class ElseSTMT : public Statement {
@@ -152,6 +158,8 @@ public:
   bool isElsed;
 
   ~IfSTMT() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 class CaseSTMT : public Statement {
@@ -168,6 +176,8 @@ public:
   bool isDefault;
 
   ~CaseSTMT() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 class SwitchSTMT : public Statement {
@@ -194,6 +204,8 @@ public:
   void addCase(std::shared_ptr<CaseSTMT> cas) {
     cases.push_back(std::move(cas));
   }
+
+  DEFINE_VISITABLE()
 };
 
 /**
@@ -218,6 +230,8 @@ public:
   std::shared_ptr<Block> body;
 
   ~WhileSTMT() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 class ForSTMT : public Statement {
@@ -240,6 +254,8 @@ public:
   std::shared_ptr<Block> body;
 
   ~ForSTMT() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 #endif

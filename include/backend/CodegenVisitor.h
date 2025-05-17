@@ -2,7 +2,7 @@
 #define OBW_CODEGENVISITOR_H
 
 #include "frontend/SymbolTable.h"
-#include "frontend/parser/Visitor.h"
+#include "frontend/parser/Statement.h"
 #include "frontend/parser/Wrappers.h"
 
 #include "llvm/IR/Function.h"

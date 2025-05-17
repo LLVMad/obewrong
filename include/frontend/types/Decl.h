@@ -28,6 +28,8 @@ public:
   bool validate() override;
 
   ~Decl() override;
+
+  DEFINE_VISITABLE()
 };
 
 /**
@@ -53,6 +55,8 @@ public:
   bool validate() override;
 
   ~FieldDecl() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 /**
@@ -84,6 +88,8 @@ public:
   bool validate() override;
 
   ~VarDecl() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 /**
@@ -105,6 +111,8 @@ public:
   bool validate() override;
 
   ~ParameterDecl() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 /**
@@ -164,6 +172,8 @@ public:
   bool validate() override;
 
   ~MethodDecl() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 class ConstrDecl : public Decl {
@@ -189,6 +199,8 @@ public:
   bool isDefault;
 
   ~ConstrDecl() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 class FuncDecl : public Decl {
@@ -221,6 +233,8 @@ public:
   bool validate() override;
 
   ~FuncDecl() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 /**
@@ -268,6 +282,8 @@ public:
   bool validate() override;
 
   ~ClassDecl() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 // @TODO maybe get rid of Array and List decls
@@ -295,6 +311,8 @@ public:
   bool validate() override;
 
   ~ArrayDecl() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 class ListDecl : public Decl {
@@ -318,6 +336,8 @@ public:
   bool validate() override;
 
   ~ListDecl() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 class ModuleDecl : public Decl {
@@ -330,6 +350,8 @@ public:
 
   std::vector<std::string> importedModules;
   std::vector<std::shared_ptr<Entity>> children;
+
+  DEFINE_VISITABLE()
 };
 
 class EnumDecl : public Decl {
@@ -341,6 +363,8 @@ public:
 
   size_t size;
   std::map<std::string, uint32_t> items;
+
+  DEFINE_VISITABLE()
 };
 
 #endif

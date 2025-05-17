@@ -23,12 +23,16 @@ public:
   // add evaluate method
   bool validate() override { return false; };
   ~Expression() override;
+
+  DEFINE_VISITABLE()
 };
 
 class DummyExpression : public Expression {
 public:
   explicit DummyExpression(const std::string &name)
       : Expression(E_Dummy, name) {}
+
+  DEFINE_VISITABLE()
 };
 
 /**
@@ -49,6 +53,8 @@ public:
 
   std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
+  DEFINE_VISITABLE()
+
 private:
   size_t bytesize;
   int _value;
@@ -62,6 +68,8 @@ public:
   double getValue() { return _value; }
 
   std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+
+  DEFINE_VISITABLE()
 
 private:
   double _value;
@@ -80,6 +88,8 @@ public:
   std::string value;
 
   std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+
+  DEFINE_VISITABLE()
 };
 
 class BoolLiteralEXP : public Expression {
@@ -89,6 +99,8 @@ public:
   bool getValue() const { return _value; }
 
   std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+
+  DEFINE_VISITABLE()
 
 private:
   bool _value;
@@ -127,6 +139,8 @@ public:
   std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
+
+  DEFINE_VISITABLE()
 };
 
 /**
@@ -149,6 +163,8 @@ public:
   std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
+
+  DEFINE_VISITABLE()
 };
 
 /**
@@ -179,6 +195,8 @@ public:
 
   std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
   bool validate() override;
+
+  DEFINE_VISITABLE()
 };
 
 // class ArrayRefEXP : public Expression {
@@ -197,6 +215,8 @@ public:
 
   std::shared_ptr<VarRefEXP> arr;
   std::shared_ptr<Expression> index;
+
+  DEFINE_VISITABLE()
 };
 
 /**
@@ -225,6 +245,8 @@ public:
 
   std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
   bool validate() override;
+
+  DEFINE_VISITABLE()
 };
 
 class FuncCallEXP : public Expression {
@@ -251,6 +273,8 @@ public:
   std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
+
+  DEFINE_VISITABLE()
 };
 
 /**
@@ -275,6 +299,8 @@ public:
   std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
+
+  DEFINE_VISITABLE()
 };
 
 /**
@@ -308,6 +334,8 @@ public:
   std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
+
+  DEFINE_VISITABLE()
 };
 
 /**
@@ -330,6 +358,8 @@ public:
   std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
+
+  DEFINE_VISITABLE()
 };
 
 // @TODO
@@ -343,6 +373,8 @@ public:
   std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
+
+  DEFINE_VISITABLE()
 };
 
 class ConversionEXP : public Expression {
@@ -357,6 +389,8 @@ public:
     return to;
   };
   bool validate() override { return true; };
+
+  DEFINE_VISITABLE()
 };
 
 // TOKEN_EQUAL,           // * ==
@@ -420,6 +454,8 @@ public:
   std::shared_ptr<Expression> left;
   std::shared_ptr<Expression> right;
   OperatorKind op;
+
+  DEFINE_VISITABLE()
 };
 
 class UnaryOpEXP : public Expression {
@@ -429,6 +465,8 @@ public:
 
   std::shared_ptr<Expression> operand;
   OperatorKind op;
+
+  DEFINE_VISITABLE()
 };
 
 class EnumRefEXP : public Expression {
@@ -440,6 +478,8 @@ public:
       : Expression(E_Enum_Reference), enumName(enumName) {};
   std::string enumName;
   std::string itemName;
+
+  DEFINE_VISITABLE()
 };
 
 #endif

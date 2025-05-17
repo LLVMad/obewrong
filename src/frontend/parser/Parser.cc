@@ -5,6 +5,7 @@
 #include "frontend/parser/Expression.h"
 #include "frontend/parser/Statement.h"
 #include "frontend/parser/Wrappers.h"
+
 #define SYNCED_TOKEN(kind)                                                     \
   ((kind == TOKEN_CLASS) || (kind == TOKEN_FUNC) || (kind == TOKEN_METHOD) ||  \
    (kind == TOKEN_ENUM))
@@ -120,7 +121,7 @@ std::unique_ptr<Token> Parser::expect(TokenKind expectedToken,
   return std::move(token);
 }
 
-std::shared_ptr<Entity> Parser::parseProgram() {
+std::shared_ptr<ModuleDecl> Parser::parseProgram() {
   // return parseExpression();
   std::unique_ptr<Token> token = peek();
   if (token == nullptr || token->kind != TOKEN_MODULE_DECL)
