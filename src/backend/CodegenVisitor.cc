@@ -103,6 +103,11 @@ void CodeGenVisitor::visit(ElementRefEXP &node) {
   // );
 }
 
+void CodeGenVisitor::visit(AssignmentWrapperEXP &node) {
+  node.assignment->accept(*this);
+}
+
+
 // a.x
 void CodeGenVisitor::visit(FieldRefEXP &node) {
   auto [decl, alloca, isInited] = *currentScope->getSymbol(node.obj->getName());
@@ -475,6 +480,62 @@ void CodeGenVisitor::visit(ConstrDecl &node) {
 
 void CodeGenVisitor::visit(MethodDecl &node) {
   currentScope = currentScope->nextScope();
+
+  // CREATE PROTOTYPE OF A FUNCTION
+  std::vector<llvm::Type*> argTypes;
+
+  // Add all parameters including 'this' which was added by the parser
+  for (auto &arg : node.args) {
+    argTypes.push_back(arg->type->toLLVMType(*this->context));
+  }
+
+  llvm::Type *returnType = nullptr;
+  if (!node.isVoid)
+    returnType = node.signature->return_type->toLLVMType(*this->context);
+  else
+    returnType = llvm::Type::getVoidTy(*this->context);
+
+  llvm::FunctionType *FT = llvm::FunctionType::get(returnType, argTypes, false);
+
+  llvm::Function *F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage,
+    node.getName(), module.get());
+
+  // Set argument names - first one is 'this' from parser
+  size_t i = 0;
+  for (auto &arg : F->args()) {
+    arg.setName(node.args[i]->getName());
+    i++;
+  }
+
+  // CREATE FUNCTION BODY
+  llvm::BasicBlock *BB = llvm::BasicBlock::Create(*context, "entry", F);
+  builder->SetInsertPoint(BB);
+
+  // Record the function arguments in the scope
+  for (auto &arg : F->args()) {
+    llvm::AllocaInst *alloca =
+      createEntryBlockAlloca(F, arg.getType(), arg.getName());
+    builder->CreateStore(&arg, alloca);
+    currentScope->addSymbol(std::string(arg.getName()), alloca);
+  }
+
+  // Generate method body
+  auto methodBody = node.body;
+  for (auto &el : methodBody->parts) {
+    el->accept(*this);
+  }
+
+  if (node.isVoid) {
+    builder->CreateRetVoid();
+  }
+
+  verifyFunction(*F);
+
+  currentScope = currentScope->prevScope();
+}
+
+void CodeGenVisitor::genericMethodDecl(MethodDecl &node) {
+  // currentScope = currentScope->nextScope();
 
   // CREATE PROTOTYPE OF A FUNCTION
   std::vector<llvm::Type*> argTypes;
@@ -1195,4 +1256,9 @@ void CodeGenVisitor::visit(SwitchSTMT &node) {
 
 void CodeGenVisitor::visit(WhileSTMT &node) {
   
+}
+
+// ======== GENERICS =========
+void CodeGenVisitor::createOpaqueStruct() {
+  llvm::StructType::create(*context, "obw.opaque");
 }

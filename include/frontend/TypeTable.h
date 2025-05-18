@@ -1,6 +1,7 @@
 #ifndef TYPE_TABLE_H
 #define TYPE_TABLE_H
 
+#include "types/Generics.h"
 #include "types/Types.h"
 
 #include <algorithm>
@@ -109,6 +110,7 @@ public:
     // // builtinTypes.addType("Bool", std::make_shared<TypeBool>());
     builtinTypes.addType("Boolean", std::make_shared<TypeBool>());
     builtinTypes.addType("String", std::make_shared<TypeString>());
+    builtinTypes.addType("Opaque", std::make_shared<TypeOpaque>());
     // builtinTypes.addType("Array", std::make_shared<TypeArray>());
   }
 

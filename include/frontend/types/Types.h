@@ -50,6 +50,7 @@ enum TypeKind {
   TYPE_GENERIC,
   TYPE_POINTER,
   TYPE_ACCESS,
+  TYPE_OPAQUE
 };
 
 class Type {
@@ -389,18 +390,18 @@ public:
  *    - `own` - unique pointer, move semantic 
  *    - `not_null` - cannot be nulled 
  */
-class TypePointer : public Type {
-public:
-  TypePointer(const std::shared_ptr<Type> &toType, size_t depth,
-              bool allowsNull, bool isLimited, bool isGeneral)
-      : Type(TYPE_POINTER, "Pointer"), toType(toType), depth(depth),
-        allowsNull(allowsNull), isLimited(isLimited), isGeneral(isGeneral) {}
-
-  std::shared_ptr<Type> toType; // type that it points to
-  size_t depth;
-  bool allowsNull;
-  bool isLimited;
-  bool isGeneral;
-};
+// class TypePointer : public Type {
+// public:
+//   TypePointer(const std::shared_ptr<Type> &toType, size_t depth,
+//               bool allowsNull, bool isLimited, bool isGeneral)
+//       : Type(TYPE_POINTER, "Pointer"), toType(toType), depth(depth),
+//         allowsNull(allowsNull), isLimited(isLimited), isGeneral(isGeneral) {}
+//
+//   std::shared_ptr<Type> toType; // type that it points to
+//   size_t depth;
+//   bool allowsNull;
+//   bool isLimited;
+//   bool isGeneral;
+// };
 
 #endif

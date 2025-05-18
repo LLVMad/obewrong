@@ -66,6 +66,7 @@ class CodeGenVisitor : public BaseVisitor,
                   public Visitor<BinaryOpEXP, void>,
                   public Visitor<UnaryOpEXP, void>,
                   public Visitor<EnumRefEXP, void>,
+                  public Visitor<AssignmentWrapperEXP, void>,
                   public Visitor<Decl, void>,
                   public Visitor<FieldDecl, void>,
                   public Visitor<VarDecl, void>,
@@ -141,6 +142,9 @@ public:
       }
     );
 
+    // create opaque type for generics
+    createOpaqueStruct();
+
     // if(llvm::verifyModule(*module, &llvm::outs())) {
     //   throw std::runtime_error("Linker failed");
     // }
@@ -206,6 +210,7 @@ public:
   void visit(ThisEXP &node) override;
   void visit(BinaryOpEXP &node) override;
   void visit(ElementRefEXP &node) override;
+  void visit(AssignmentWrapperEXP &node) override;
   // #####========================================#####
 
   // #####========== DECLARATIONS ==========#####
@@ -259,6 +264,11 @@ private:
   // creates load instruction to load a pointer type value
   llvm::Value* unwrapPointerReference(Expression *node, llvm::Value *val);
   // #####========================================#####
+
+  // ####=========== GENERICS ==========#####
+
+  void createOpaqueStruct();
+  void genericMethodDecl(MethodDecl &node);
 
   // entry for a symboltable (actually a tree of scopes)
   std::shared_ptr<Scope<Entity>> globalScope;

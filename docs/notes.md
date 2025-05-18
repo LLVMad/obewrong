@@ -210,8 +210,10 @@ Todo:
   - [ ] Char
   - [ ] String
   - [ ] Array
+  - [ ] Boolean
   - [ ] sizeof(...) operator
   - [ ] add copying all these to current module
+- [ ] Method overloading
 
 ## MEDIUM
 - [ ] Inheritence
