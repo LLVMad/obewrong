@@ -6,254 +6,393 @@
 #include "backend/CodegenVisitor.h"
 #include "lld/Common/Driver.h"
 #include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/IntrinsicInst.h"
+
 // #include "lld/Common/"
 
 #include "util/Logger.h"
 
+#include <complex>
+#include <llvm/Support/Chrono.h>
+
 #define CG_ERR(path, msg)                                                   \
 ERR("%s: %s\n", path, msg)
 
-cgresult_t CodeGenVisitor::visitDefault(const std::shared_ptr<Entity> &node) {
-  // Because E_Kind enum values
-  // go in ORDER we can just check
-  // their numeric values
-  if (node->getKind() >= 0 && node->getKind() < 12) {
-    return visit(std::static_pointer_cast<Decl>(node));
-  }
- 
-  if (node->getKind() >= 12 && node->getKind() < 17) {
-    // types visit
-    // can it happen actually?
-    // i think they cannot appear as a
-    // DISTINCT node themselfs
-    return cgnone;
-  }
-  if (node->getKind() >= 16 && node->getKind() < 37) {
-    return visit(std::static_pointer_cast<Expression>(node));
-  }
-  else {
-    return visit(std::static_pointer_cast<Statement>(node));
-  }
-  return cgnone;
+
+void CodeGenVisitor::visit(Entity &node) {
+  // // Because E_Kind enum values
+  // // go in ORDER we can just check
+  // // their numeric values
+  // if (node.getKind() >= 0 && node.getKind() < 12) {
+  //   return visit(std::static_pointer_cast<Decl>(node));
+  // }
+  //
+  // if (node.getKind() >= 12 && node.getKind() < 17) {
+  //   // types visit
+  //   // can it happen actually?
+  //   // i think they cannot appear as a
+  //   // DISTINCT node themselfs
+  //   return cgnone;
+  // }
+  // if (node.getKind() >= 16 && node.getKind() < 38) {
+  //   return visit(std::static_pointer_cast<Expression>(node));
+  // }
+  // else {
+  //   return visit(std::static_pointer_cast<Statement>(node));
+  // }
+  // return cgnone;
 }
 
 //#####===========================================#####
 //#####=============== EXPRESSIONS ===============#####
 //#####===========================================#####
 
-cgresult_t CodeGenVisitor::visit(const std::shared_ptr<Expression> &expr) {
-  switch (expr->getKind()) {
-  case E_Integer_Literal: {
-    auto exprIntLit = std::static_pointer_cast<IntLiteralEXP>(expr);
-    return visit(exprIntLit);
-  }
-  case E_Real_Literal: {
-    auto exprRealLit = std::static_pointer_cast<RealLiteralEXP>(expr);
-    return visit(exprRealLit);
-  }
-  case E_Binary_Operator: {
-    auto exprBinOp = std::static_pointer_cast<BinaryOpEXP>(expr);
-    return visit(exprBinOp);
-  }
-  case E_String_Literal: {
-    auto exprStringLit = std::static_pointer_cast<StringLiteralEXP>(expr);
-    return visit(exprStringLit);
-  }
-  case E_Function_Call: {
-    auto exprFuncCall = std::static_pointer_cast<FuncCallEXP>(expr);
-    return visit(exprFuncCall);
-  }
-  case E_Constructor_Call: {
-    auto exprConstrCall = std::static_pointer_cast<ConstructorCallEXP>(expr);
-    return visit(exprConstrCall);
-  }
-  case E_Var_Reference: {
-    auto exprVarRef = std::static_pointer_cast<VarRefEXP>(expr);
-    return visit(exprVarRef);
-  }
-  case E_Field_Reference: {
-    auto exprFieldRef = std::static_pointer_cast<FieldRefEXP>(expr);
-    return visit(exprFieldRef);
-  }
-  default: return cgnone;
-  }
+void CodeGenVisitor::visit(Expression &node) {
+  // ???
 }
 
-cgresult_t CodeGenVisitor::visit(const std::shared_ptr<FieldRefEXP> &node) {
-  // llvm::AllocaInst *alloca = currentScope->lookupAlloca(node->var_name); /* varEnv[node->var_name]; */
-  // bool isInited = currentScope->isDeclInitialized(no);
-  auto [_, alloca, isInited] = *currentScope->getSymbol(node->field_name);
+void CodeGenVisitor::visit(ConversionEXP &node) {
+  auto fromExpr = node.from;
 
-  // if (!isInited) {
-  //   return alloc;
-  // }
+  // fromExpr->acceptAGuestVisitor(this);
+  fromExpr->accept(*this);
+  auto fromVal = lastValue;
+  // if (!fromVal) return nul/lptr;
 
-  // auto objName = node->obj->var_name;
-  // auto [varDecl, varAlloca, varIsInited] = *currentScope->getSymbol(objName);
-  // llvm::Type* classType = llvm::StructType::getTypeByName(
-  //   *context,
-  //   std::static_pointer_cast<VarDecl>(varDecl)->type->name
+  auto fromType = fromExpr->resolveType(typeTable->types[moduleName], currentScope);
+  auto toType = node.to;
+
+  auto itof = fromType->kind == TYPE_INT;
+
+  lastValue = builder->CreateCast(
+    itof ? llvm::CastInst::CastOps::SIToFP : llvm::CastInst::CastOps::FPToSI,
+    fromVal,
+    toType->toLLVMType(*context)
+  );
+}
+
+void CodeGenVisitor::visit(ElementRefEXP &node) {
+  node.index->accept(*this);
+  // load index value -> index is an Expresssion
+  auto indexVal = lastValue;
+
+  // convert index to i64 if it's not already
+  if (indexVal->getType() != llvm::Type::getInt64Ty(*context)) {
+    indexVal = builder->CreateSExt(indexVal, llvm::Type::getInt64Ty(*context));
+  }
+
+  // array type
+  // @TODO: field as `arr`
+  auto [arrDecl , arrAlloca, arrInited ] = *currentScope->getSymbol(node.arr->getName());
+
+  // GEP with two indices: [0, index]
+  auto zero = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0);
+  lastValue = builder->CreateGEP(
+    arrAlloca->getAllocatedType(),
+    arrAlloca,
+    {zero, indexVal}
+  );
+
+  // load GEP
+  // auto arrType = std::static_pointer_cast<VarDecl>(arrDecl)->type;
+  // auto el_type = std::static_pointer_cast<TypeArray>(arrType)->el_type;
+  //
+  // return builder->CreateLoad(
+  //   el_type->toLLVMType(*context),
+  //   gepToEl
   // );
-
-  auto gep = llvm::GetElementPtrInst::Create(
-    alloca->getAllocatedType(), )
-
-  return builder->CreateStructGEP(
-    alloca->getAllocatedType()
-        ->getPointerElementType() /* get type of element on heap*/,
-    builder->CreateLoad(alloca) /*get heap ptr */,
-    objField.fieldIndex +
-        NUM_RESERVED_FIELDS /* offset pointer by reserved fields */);
 }
 
-cgresult_t CodeGenVisitor::visit(const std::shared_ptr<FuncCallEXP> &node) {
+void CodeGenVisitor::visit(AssignmentWrapperEXP &node) {
+  node.assignment->accept(*this);
+}
+
+
+// a.x
+void CodeGenVisitor::visit(FieldRefEXP &node) {
+  auto [decl, alloca, isInited] = *currentScope->getSymbol(node.obj->getName());
+
+  auto varType = decl->resolveType(typeTable->types[moduleName], currentScope);
+
+  if (varType->kind == TYPE_ACCESS) {
+    auto ptrType = std::static_pointer_cast<TypeAccess>(varType);
+    auto classTypeLLVM = ptrType->to->toLLVMType(*context);
+    auto ptrAlloca = builder->CreateLoad(alloca->getAllocatedType(), alloca);
+
+    // construct GEP
+    lastValue = builder->CreateStructGEP(
+      classTypeLLVM,
+      ptrAlloca,
+      node.index,
+      node.getName()
+    );
+  } else {
+    auto classTypeLLVM = varType->toLLVMType(*context);
+
+    // construct GEP
+    lastValue = builder->CreateStructGEP(
+      classTypeLLVM,
+      alloca,
+      node.index,
+      node.getName()
+    );
+  }
+}
+
+void CodeGenVisitor::visit(FuncCallEXP &node) {
   // Look up the name in the global module table.
-  llvm::Function *CalleeF = getFunction(node->func_name);
+  llvm::Function *CalleeF = getFunction(node.getName());
   // if (!CalleeF)
   //   return cgnone;
     // return LogErrorV("Unknown function referenced");
 
   std::vector<llvm::Value *> ArgsV;
-  auto Args = node->arguments;
+  auto Args = node.arguments;
   // auto FArgs = CalleeF->args();
   for (unsigned i = 0, e = Args.size(); i != e; ++i) {
-    cgresult_t arg = visit(Args[i]);
-    ArgsV.push_back(cggetval(arg));
+    // void arg = visit(Args[i]);
+    Args[i]->accept(*this);
+    auto val = unwrapPointerReference(Args[i].get(), lastValue);
+
+    // load an argument
+    // @TODO probably shoulnt do it here???
+    // becouse we shouldnt do load:
+    // - in assignment
+    // val = cggetval(unwrapPointerReference(Args[i], val));
+    // if (Args[i]->getKind() == E_Field_Reference) {
+    //   auto fieldRef = std::static_pointer_cast<FieldRefEXP>(Args[i]);
+    //   auto [decl, alloca, isInited] = *currentScope->getSymbol(fieldRef->obj->getName());
+    //   auto varDecl = std::static_pointer_cast<VarDecl>(decl);
+    //
+    //   auto classTypeLLVM = varDecl->type->toLLVMType(*context);
+    //   val = builder->CreateLoad(
+    //     classTypeLLVM->getStructElementType(fieldRef->index),
+    //     val
+    //   );
+    // }
+    // // @TODO costil (needs a general case)
+    // if (Args[i]->getKind() == E_Element_Reference) {
+    //   auto elementRef = std::static_pointer_cast<ElementRefEXP>(Args[i]);
+    //   auto arrType = std::static_pointer_cast<VarDecl>(currentScope->lookup(elementRef->arr->getName()))->type;
+    //   auto el_type = std::static_pointer_cast<TypeArray>(arrType)->el_type;
+    //
+    //   val = builder->CreateLoad(
+    //     el_type->toLLVMType(*context),
+    //     val
+    //   );
+    // }
+
+    // @TODO
+    // if (val->getType()->isPointerTy()) {
+    //   val = builder->CreateLoad(
+    //     val->getType()->getStructElementType(),
+    //     val
+    //   );
+    // }
+
+    ArgsV.push_back(val);
 
     if (!ArgsV.back())
-      return cgnone;
+      return;
   }
 
   if (CalleeF->getReturnType()->isVoidTy()) {
-    return builder->CreateCall(CalleeF, ArgsV);
+    lastValue = builder->CreateCall(CalleeF, ArgsV);
   }
   else
-    return builder->CreateCall(CalleeF, ArgsV, "calltmp");
+    lastValue = builder->CreateCall(CalleeF, ArgsV, "calltmp");
 }
 
-cgresult_t CodeGenVisitor::visit(const std::shared_ptr<ConstructorCallEXP> &node) {
-  // Look up the name in the global module table.
-  auto constrName = node->left->name + "_Create";
-  llvm::Function *CalleeF = getFunction(constrName);
-  // if (!CalleeF)
-  //   return cgnone;
-  // return LogErrorV("Unknown function referenced");
-
+void CodeGenVisitor::visit(ConstructorCallEXP &node) {
   std::vector<llvm::Value *> ArgsV;
-  auto Args = node->arguments;
-  // auto FArgs = CalleeF->args();
+  auto Args = node.arguments;
+
+  // Create a pointer to the class instance
+
+  // @TODO ?!
+  // llvm::Type *classType;
+  // if (node->left->getName() == "Integer") {
+  //   classType = typeTable->getType(moduleName, "Integer");
+  // }
+
+  llvm::Type *classType = llvm::StructType::getTypeByName(*context, node.left->getName());
+
+  // @TODO
+  if (!classType) {
+    classType = typeTable->getType(moduleName, "Integer")->toLLVMType(*context);
+  }
+
+  auto objInstanceRef = builder->CreateAlloca(classType);
+  ArgsV.push_back(objInstanceRef);
+
+  std::string typeNames;
   for (unsigned i = 0, e = Args.size(); i != e; ++i) {
-    cgresult_t arg = visit(Args[i]);
-    ArgsV.push_back(cggetval(arg));
+    // void arg = visit(Args[i]);
+    Args[i]->accept(*this);
+    ArgsV.push_back(lastValue);
+
+    typeNames += Args[i]->resolveType(typeTable->types[moduleName], currentScope)->name;
+
+    // i wish we could just do
+    // ... Args[i]->resolveType()...
+    // NOW WE CAN!!!!!!!! yeeaaaahhh
+    // T_T
 
     if (!ArgsV.back())
-      return cgnone;
+      return;
   }
+
+  // Look up the name in the global module table.
+  auto constrName = node.left->getName() + "_Create" + typeNames;
+
+  llvm::Function *CalleeF = getFunction(constrName);
 
   if (CalleeF->getReturnType()->isVoidTy()) {
-    return builder->CreateCall(CalleeF, ArgsV);
+    builder->CreateCall(CalleeF, ArgsV);
   }
   else
-    return builder->CreateCall(CalleeF, ArgsV, "calltmp");
+    builder->CreateCall(CalleeF, ArgsV, "calltmp");
+
+  // return objInstanceRef;
+  lastValue = objInstanceRef;
 }
 
-cgresult_t CodeGenVisitor::visit(const std::shared_ptr<StringLiteralEXP> &node) {
-  return builder->CreateGlobalString(node->value);
+void CodeGenVisitor::visit(StringLiteralEXP &node) {
+  std::string processed;
+  for (size_t i = 0; i < node.value.length(); i++) {
+    if (node.value[i] == '\\' && i + 1 < node.value.length()) {
+      switch (node.value[i + 1]) {
+        case 'n': processed += '\n'; break;
+        case 't': processed += '\t'; break;
+        case 'r': processed += '\r'; break;
+        case '\\': processed += '\\'; break;
+        case '"': processed += '"'; break;
+        default: processed += node.value[i + 1]; break;
+      }
+      i++; // skip next
+    } else {
+      processed += node.value[i];
+    }
+  }
+  lastValue = builder->CreateGlobalString(processed);
 }
 
-cgresult_t CodeGenVisitor::visit(const std::shared_ptr<IntLiteralEXP> &node) {
-  switch (node->getByteSize()) {
+void CodeGenVisitor::visit(IntLiteralEXP &node) {
+  switch (node.getByteSize()) {
     case 8: {
-      return llvm::ConstantInt::getSigned((llvm::Type::getInt8Ty(*context)),
-                                    node->getValue());
+      lastValue = llvm::ConstantInt::getSigned((llvm::Type::getInt8Ty(*context)),
+                                    node.getValue());
+      break;
     }
     case 16: {
-      return llvm::ConstantInt::getSigned((llvm::Type::getInt16Ty(*context)), node->getValue());
+      lastValue = llvm::ConstantInt::getSigned((llvm::Type::getInt16Ty(*context)), node.getValue());
+      break;
     }
     case 32: {
-      return llvm::ConstantInt::getSigned((llvm::Type::getInt32Ty(*context)), node->getValue());
+      lastValue = llvm::ConstantInt::getSigned((llvm::Type::getInt32Ty(*context)), node.getValue());
+      break;
     }
     case 64: {
-      return llvm::ConstantInt::getSigned((llvm::Type::getInt64Ty(*context)), node->getValue());
+      lastValue = llvm::ConstantInt::getSigned((llvm::Type::getInt64Ty(*context)), node.getValue());
+      break;
     }
     default: {
-      return llvm::ConstantInt::getSigned((llvm::Type::getInt64Ty(*context)),
-                                  node->getValue());
+      lastValue = llvm::ConstantInt::getSigned((llvm::Type::getInt64Ty(*context)),
+                                  node.getValue());
+      break;
     }
   }
 
 }
 
-cgresult_t 
-CodeGenVisitor::visit(const std::shared_ptr<RealLiteralEXP> &node) {
-  return llvm::ConstantFP::get(*context, llvm::APFloat(node->getValue()));
+void CodeGenVisitor::visit(RealLiteralEXP &node) {
+  lastValue = llvm::ConstantFP::get(*context, llvm::APFloat(node.getValue()));
 }
 
-cgresult_t CodeGenVisitor::visit(const std::shared_ptr<VarRefEXP> &node) {
-  // llvm::AllocaInst *alloca = currentScope->lookupAlloca(node->var_name); /* varEnv[node->var_name]; */
+void CodeGenVisitor::visit(ArrayLiteralExpr &node) {
+  auto elType = typeTable->getType(moduleName, node.el_type);
+  auto arrayTypeLLVM = llvm::ArrayType::get(elType->toLLVMType(*context), node.elements.size());
+
+  // create constant elements
+  std::vector<llvm::Constant *> elements;
+  for (const auto& el: node.elements) {
+    // auto valToConstant = dyn_cast<llvm::Constant>(cggetval(visit(el)));
+    el->accept(*this);
+    auto valToConstant = dyn_cast<llvm::Constant>(lastValue);
+    elements.push_back(valToConstant);
+  }
+
+  // create global array
+  auto constArray = llvm::ConstantArray::get(arrayTypeLLVM, elements);
+  auto globalArray = new llvm::GlobalVariable(
+    *module,
+    arrayTypeLLVM,
+    true,  // isConstant
+    llvm::GlobalValue::LinkageTypes::ExternalLinkage,
+    constArray
+  );
+
+  // create local array
+  auto localArray = builder->CreateAlloca(arrayTypeLLVM, nullptr);
+
+  // calc size in bytes
+  auto size = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context),
+    node.elements.size() * elType->toLLVMType(*context)->getPrimitiveSizeInBits() / 8);
+
+  // cast to i8*
+  auto destPtr = builder->CreateBitCast(localArray, llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0));
+  auto srcPtr = builder->CreateBitCast(globalArray, llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0));
+
+  // copy data
+  std::vector<llvm::Type*> types = {
+    llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
+    llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
+    llvm::Type::getInt64Ty(*context)
+  };
+  auto memcpyFn = getOrInsertDeclaration(module.get(), llvm::Intrinsic::memcpy, types);
+  builder->CreateCall(memcpyFn, {destPtr, srcPtr, size, llvm::ConstantInt::getFalse(*context)});
+
+  lastValue = localArray;
+}
+
+void CodeGenVisitor::visit(VarRefEXP &node) {
+  // llvm::AllocaInst *alloca = currentScope->lookupAlloca(node.getName()); /* varEnv[node.getName()]; */
   // bool isInited = currentScope->isDeclInitialized(no);
-  auto [_, alloc, isInited] = *currentScope->getSymbol(node->var_name);
+  auto [_, alloc, isInited] = *currentScope->getSymbol(node.getName());
 
   // if (!isInited) {
   //   return alloc;
   // }
 
-  return builder->CreateLoad(alloc->getAllocatedType(), alloc, node->var_name.c_str());
+  lastValue = builder->CreateLoad(alloc->getAllocatedType(), alloc, node.getName().c_str());
 }
 
-cgresult_t CodeGenVisitor::visit(const std::shared_ptr<Type> &node) {
-  switch (node->kind) {
-  case TYPE_INT: {
-    return llvm::Type::getInt32Ty(*context);
-  }
-  case TYPE_BYTE: {
-    return llvm::Type::getInt8Ty(*context);
-  }
-  case TYPE_CLASS: {
-    return llvm::StructType::getTypeByName(*context, llvm::StringRef(node->name))->getPointerTo();
-  }
-  default:
-    return cgnone;
-  }
-}
+void CodeGenVisitor::visit(BinaryOpEXP &node) {
+  node.left->accept(*this);
+  llvm::Value *L = lastValue;
 
-// cgresult_t CodeGenVisitor::visit(const std::shared_ptr<ClassNameEXP> &node) {
-//   auto resolvedType = typeTable->getType(moduleName, node->name);
-//   switch (resolvedType->kind) {
-//   case TYPE_INT: {
-//     return llvm::Type::getInt32Ty(*context);
-//   }
-//   case TYPE_BYTE: {
-//     return llvm::Type::getInt8Ty(*context);
-//   }
-//   case TYPE_CLASS: {
-//     return llvm::StructType::getTypeByName(*context, llvm::StringRef(node->name))->getPointerTo();
-//   }
-//   default:
-//     return cgnone;
-//   }
-// }
-
-cgresult_t CodeGenVisitor::visit(const std::shared_ptr<BinaryOpEXP> &node) {
-  llvm::Value *L = cggetval(visit(node->left));
-  llvm::Value *R = cggetval(visit(node->right));
+  node.right->accept(*this);
+  llvm::Value *R = lastValue;
   if (!L || !R)
-    return cgnone;
+    return;
 
-  switch (node->op) {
+  switch (node.op) {
   case OP_PLUS:
-    return builder->CreateAdd(L, R, "addtmp");
+    lastValue = builder->CreateAdd(L, R, "addtmp");
+    break;
   case OP_MINUS:
-    return builder->CreateSub(L, R, "subtmp");
+    lastValue = builder->CreateSub(L, R, "subtmp");
+    break;
   case OP_MULTIPLY:
-    return builder->CreateMul(L, R, "multmp");
+    lastValue = builder->CreateMul(L, R, "multmp");
   case OP_LESS:
     L = builder->CreateFCmpULT(L, R, "cmptmp");
     // Convert bool 0/1 to double 0.0 or 1.0
-    return builder->CreateUIToFP(L, llvm::Type::getDoubleTy(*context),
+    lastValue = builder->CreateUIToFP(L, llvm::Type::getDoubleTy(*context),
                                  "booltmp");
+    break;
   default:
-    return cgnone;
+    return;
   }
 }
 
@@ -261,97 +400,54 @@ cgresult_t CodeGenVisitor::visit(const std::shared_ptr<BinaryOpEXP> &node) {
 //#####=============== DECLARATIONS ===============#####
 //#####============================================#####
 
-cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<Decl> &node) {
-  switch (node->getKind()) {
-  case E_Field_Decl: {
-    auto fieldDecl = std::static_pointer_cast<FieldDecl>(node);
-    visit(fieldDecl);
-  } break;
-  case E_Variable_Decl: {
-    auto varDecl = std::static_pointer_cast<VarDecl>(node);
-    visit(varDecl);
-  }
-  case E_Parameter_Decl: {
-    // auto paramDecl = std::static_pointer_cast<ParameterDecl>(node);
-    // visit(paramDecl);
-  } break;
-  case E_Method_Decl: {
-    auto methodDecl = std::static_pointer_cast<MethodDecl>(node);
-    visit(methodDecl);
-  } break;
-  case E_Constructor_Decl: {
-    auto constrDecl = std::static_pointer_cast<ConstrDecl>(node);
-    visit(constrDecl);
-  } break;
-  case E_Function_Decl: case E_Main_Decl: {
-    auto funcDecl = std::static_pointer_cast<FuncDecl>(node);
-    visit(funcDecl);
-  } break;
-  case E_Class_Decl: {
-    auto classDecl = std::static_pointer_cast<ClassDecl>(node);
-    visit(classDecl);
-  } break;
-  // case E_Array_Decl: {
-  //
-  // }
-  case E_Module_Decl: {
-    auto moduleDecl = std::static_pointer_cast<ModuleDecl>(node);
-    visit(moduleDecl);
-  } break;
-  case E_Enum_Decl: {
-    // auto enumDecl = std::static_pointer_cast<EnumDecl>(node);
-    // visit(enumDecl);
-  } break;
-  }
-
-  return cgnone;
+void CodeGenVisitor::visit(Decl &node) {
+  // ???
 }
 
-cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<ClassDecl> &node) {
-  llvm::StructType::create(*context, llvm::StringRef(node->name));
+void CodeGenVisitor::visit(ClassDecl &node) {
+  currentScope = currentScope->nextScope();
 
-  auto classSignature = node->type;
-  std::vector<llvm::Type*> fieldTypes(node->fields.size());
-  for (auto &field : node->fields) {
+  auto classType = llvm::StructType::create(*context, llvm::StringRef(node.getName()));
+
+  auto classSignature = node.type;
+  std::vector<llvm::Type*> fieldTypes;
+  for (auto &field : node.fields) {
     // add fields types
     fieldTypes.push_back(field->type->toLLVMType(*context));
   }
 
-  llvm::StructType* classType =
-    llvm::StructType::getTypeByName(*context, node->name);
   classType->setBody(llvm::ArrayRef(fieldTypes));
 
-  // llvm::Value* result;
-  for(auto &method : node->methods) {
-    visit(method);
+  for(auto &method : node.methods) {
+    method->accept(*this);
   }
 
-  for (auto &constr : node->constructors) {
-    visit(constr);
-  }
-
-  return cgnone;
+  currentScope = currentScope->prevScope();
 }
 
-cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<ConstrDecl> &node) {
+void CodeGenVisitor::visit(ConstrDecl &node) {
   currentScope = currentScope->nextScope();
 
   // CREATE PROTOTYPE OF A FUNCTION
   std::vector<llvm::Type*> argTypes;
-  for (auto &arg : node->args) {
+  std::string typeNames;
+  for (auto &arg : node.args) {
     argTypes.push_back(arg->type->toLLVMType(*this->context));
+
+    // typeNames += arg->resolveType(typeTable->types[moduleName], currentScope)->name;
   }
 
   llvm::Type *returnType = llvm::Type::getVoidTy(*this->context);
 
   llvm::FunctionType *FT = llvm::FunctionType::get(returnType, argTypes, false);
 
-  llvm::Function *F = llvm::Function::Create(FT, llvm::Function::CommonLinkage,
-    node->name, module.get());
+  std::string constrName = node.getName() /* + typeNames */;
+  llvm::Function *F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage,
+    node.getName(), module.get());
 
   size_t i = 0;
   for (auto &arg : F->args()) {
-    arg.setName(node->args[i]->name);
+    arg.setName(node.args[i]->getName());
     i++;
   }
 
@@ -371,129 +467,252 @@ cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<ConstrDecl> &node) {
   }
 
   // - Generate func body
-  auto funcBody = node->body;
-  cgresult_t returnValue;
+  auto funcBody = node.body;
   for (auto &el : funcBody->parts) {
-    returnValue = visitDefault(el);
+    el->accept(*this);
   }
-
-
   builder->CreateRetVoid();
-  // }
 
   verifyFunction(*F);
 
   currentScope = currentScope->prevScope();
-  // varEnv.clear();
-
-  return cgnone;
 }
 
-cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<MethodDecl> &node) {
-  return cgnone;
-}
-
-cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<FieldDecl> &node) {
-  return cgnone;
-}
-
-cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<ModuleDecl> &node) {
-  cgresult_t result;
-  currentScope = currentScope->nextScope(); // global scope -> module scope
-  auto children = node->children;
-  for (const auto &child : children) {
-    result = visitDefault(child);
-  }
-
-  return cgnone;
-}
-
-cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<VarDecl> &node) {
-  // std::vector<llvm::AllocaInst *> oldBindings;
-
-  llvm::Function *function = builder->GetInsertBlock()->getParent();
-
-  std::string var_name = node->name;
-  auto varType = cggettype(visit(node->type))/*node->type->toLLVMType(*context) */;
-  auto initializer = node->initializer;
-  llvm::AllocaInst *alloca;
-  llvm::Value *initVal;
-  if (initializer) {
-    initVal = cggetval(visit(initializer));
-    alloca = builder->CreateAlloca(varType, initVal, var_name);
-
-    builder->CreateStore(initVal, alloca);
-  }
-  else {
-    // @TODO
-    alloca = builder->CreateAlloca(varType, nullptr, var_name);
-  }
-
-  // oldBindings.push_back(varEnv[var_name]);
-  // varEnv[var_name] = alloca;
-  currentScope->addSymbol(var_name, alloca);
-
-  return cgnone;
-}
-
-cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<FuncDecl> &node) {
+void CodeGenVisitor::visit(MethodDecl &node) {
   currentScope = currentScope->nextScope();
 
   // CREATE PROTOTYPE OF A FUNCTION
   std::vector<llvm::Type*> argTypes;
-  for (auto &arg : node->args) {
+
+  // Add all parameters including 'this' which was added by the parser
+  for (auto &arg : node.args) {
     argTypes.push_back(arg->type->toLLVMType(*this->context));
   }
 
   llvm::Type *returnType = nullptr;
-  if (!node->isVoid)
-    returnType = node->signature->return_type->toLLVMType(*this->context);
+  if (!node.isVoid)
+    returnType = node.signature->return_type->toLLVMType(*this->context);
   else
     returnType = llvm::Type::getVoidTy(*this->context);
 
   llvm::FunctionType *FT = llvm::FunctionType::get(returnType, argTypes, false);
 
-  llvm::Function *F = llvm::Function::Create(FT, llvm::Function::CommonLinkage,
-    node->name, module.get());
+  llvm::Function *F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage,
+    node.getName(), module.get());
 
+  // Set argument names - first one is 'this' from parser
   size_t i = 0;
   for (auto &arg : F->args()) {
-    arg.setName(node->args[i]->name);
+    arg.setName(node.args[i]->getName());
     i++;
   }
 
   // CREATE FUNCTION BODY
-  // - Create a new basic block to start insertion into.
   llvm::BasicBlock *BB = llvm::BasicBlock::Create(*context, "entry", F);
   builder->SetInsertPoint(BB);
 
-  // - Record the function arguments in the NamedValues map.
-  // varEnv.clear();
+  // Record the function arguments in the scope
   for (auto &arg : F->args()) {
     llvm::AllocaInst *alloca =
       createEntryBlockAlloca(F, arg.getType(), arg.getName());
     builder->CreateStore(&arg, alloca);
-    // varEnv[std::string(arg.getName())] = alloca;
     currentScope->addSymbol(std::string(arg.getName()), alloca);
   }
 
-  // - Generate func body
-  auto funcBody = node->body;
-  cgresult_t returnValue;
-  for (auto &el : funcBody->parts) {
-    returnValue = visitDefault(el);
+  // Generate method body
+  auto methodBody = node.body;
+  for (auto &el : methodBody->parts) {
+    el->accept(*this);
   }
 
-  if (node->isVoid) {
+  if (node.isVoid) {
     builder->CreateRetVoid();
   }
 
   verifyFunction(*F);
 
   currentScope = currentScope->prevScope();
-  // varEnv.clear();
+}
 
-  return cgnone;
+void CodeGenVisitor::genericMethodDecl(MethodDecl &node) {
+  // currentScope = currentScope->nextScope();
+
+  // CREATE PROTOTYPE OF A FUNCTION
+  std::vector<llvm::Type*> argTypes;
+
+  // Add all parameters including 'this' which was added by the parser
+  for (auto &arg : node.args) {
+    argTypes.push_back(arg->type->toLLVMType(*this->context));
+  }
+
+  llvm::Type *returnType = nullptr;
+  if (!node.isVoid)
+    returnType = node.signature->return_type->toLLVMType(*this->context);
+  else
+    returnType = llvm::Type::getVoidTy(*this->context);
+
+  llvm::FunctionType *FT = llvm::FunctionType::get(returnType, argTypes, false);
+
+  llvm::Function *F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage,
+    node.getName(), module.get());
+
+  // Set argument names - first one is 'this' from parser
+  size_t i = 0;
+  for (auto &arg : F->args()) {
+    arg.setName(node.args[i]->getName());
+    i++;
+  }
+
+  // CREATE FUNCTION BODY
+  llvm::BasicBlock *BB = llvm::BasicBlock::Create(*context, "entry", F);
+  builder->SetInsertPoint(BB);
+
+  // Record the function arguments in the scope
+  for (auto &arg : F->args()) {
+    llvm::AllocaInst *alloca =
+      createEntryBlockAlloca(F, arg.getType(), arg.getName());
+    builder->CreateStore(&arg, alloca);
+    currentScope->addSymbol(std::string(arg.getName()), alloca);
+  }
+
+  // Generate method body
+  auto methodBody = node.body;
+  for (auto &el : methodBody->parts) {
+    el->accept(*this);
+  }
+
+  if (node.isVoid) {
+    builder->CreateRetVoid();
+  }
+
+  verifyFunction(*F);
+
+  currentScope = currentScope->prevScope();
+}
+
+void CodeGenVisitor::visit(FieldDecl &node) {
+  // nothing to do here all the work is in CLassDel visit method
+}
+
+void CodeGenVisitor::visit(ModuleDecl &node) {
+  currentScope = currentScope->nextScope(); // global scope -> module scope
+
+  while (currentScope->getKind() != SCOPE_MODULE
+    && currentScope->getName() != node.getName()) currentScope = currentScope->nextScope();
+
+  auto children = node.children;
+  for (const auto &child : children) {
+    child->accept(*this);
+  }
+
+  // Create MAIN() that will call Main class constructor !
+  auto mainType = llvm::StructType::getTypeByName(*context, "Main");
+  if (mainType) {
+    llvm::FunctionType *FT = llvm::FunctionType::get(llvm::Type::getInt32Ty(*context), false);
+    llvm::Function *F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, "main", module.get());
+
+    llvm::BasicBlock *BB = llvm::BasicBlock::Create(*context, "entry", F);
+    builder->SetInsertPoint(BB);
+
+    auto mainAlloca = builder->CreateAlloca(mainType);
+
+    auto mainConstr = getFunction("Main_Create");
+    builder->CreateCall(mainConstr, {mainAlloca});
+
+    builder->CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0));
+
+    verifyFunction(*F);
+
+  }
+  // ->> not a main module
+}
+
+void CodeGenVisitor::visit(VarDecl &node) {
+  llvm::Function *function = builder->GetInsertBlock()->getParent();
+
+  std::string var_name = node.getName();
+  auto varType = node.type->toLLVMType(*this->context);
+  auto initializer = node.initializer;
+  llvm::AllocaInst *alloca;
+  llvm::Value* initVal;
+  if (initializer) {
+    initializer->accept(*this);
+    initVal = lastValue;
+    if (initializer->getKind() != E_Constructor_Call && initializer->getKind() != E_Array_Literal) {
+
+      // if initVal is a pointer (EL_REF, GEP)
+      llvm::Value* initValUnwrap = unwrapPointerReference(initializer.get(), initVal);
+
+      alloca = builder->CreateAlloca(varType, nullptr, var_name);
+      builder->CreateStore(initValUnwrap, alloca);
+    } else {
+      // For constructor calls, we already have the allocation
+      alloca = dyn_cast<llvm::AllocaInst>(initVal); // @TODO look into ALLOCAJUMP
+    }
+  }
+  // @TODO: if no initialzer, check if thats allowed
+  else {
+    alloca = builder->CreateAlloca(varType, nullptr, var_name);
+  }
+
+  currentScope->addSymbol(var_name, alloca);
+}
+
+void CodeGenVisitor::visit(FuncDecl &node) {
+  currentScope = currentScope->nextScope();
+
+  // CREATE PROTOTYPE OF A FUNCTION
+  std::vector<llvm::Type*> argTypes;
+  for (auto &arg : node.args) {
+    argTypes.push_back(arg->type->toLLVMType(*this->context));
+  }
+
+  llvm::Type *returnType = nullptr;
+  if (!node.isVoid)
+    returnType = node.signature->return_type->toLLVMType(*this->context);
+  else
+    returnType = llvm::Type::getVoidTy(*this->context);
+
+  llvm::FunctionType *FT = llvm::FunctionType::get(returnType, argTypes, false);
+
+  llvm::Function *F = llvm::Function::Create(FT,
+    (node.getKind() == E_Main_Decl) ? llvm::Function::ExternalLinkage : llvm::Function::ExternalLinkage,
+    node.getName(), module.get());
+
+  size_t i = 0;
+  for (auto &arg : F->args()) {
+    arg.setName(node.args[i]->getName());
+    i++;
+  }
+
+  // CREATE FUNCTION BODY
+  // - Create a new basic block to start insertion into.
+  llvm::BasicBlock *BB = llvm::BasicBlock::Create(*context, "entry", F);
+  builder->SetInsertPoint(BB);
+
+  // - Record the function arguments in the NamedValues map.
+  // varEnv.clear();
+  for (auto &arg : F->args()) {
+    llvm::AllocaInst *alloca =
+      createEntryBlockAlloca(F, arg.getType(), arg.getName());
+    builder->CreateStore(&arg, alloca);
+    // varEnv[std::string(arg.getName())] = alloca;
+    currentScope->addSymbol(std::string(arg.getName()), alloca);
+  }
+
+  // - Generate func body
+  auto funcBody = node.body;
+  for (auto &el : funcBody->parts) {
+    el->accept(*this);
+  }
+
+  if (node.isVoid) {
+    builder->CreateRetVoid();
+  }
+
+  verifyFunction(*F);
+
+  currentScope = currentScope->prevScope();
 };
 
 
@@ -501,36 +720,179 @@ cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<FuncDecl> &node) {
 //#####=============== STATEMENTS ================#####
 //#####===========================================#####
 
-cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<Statement> &node) {
-  switch (node->getKind()) {
-    case E_Assignment: {
-      auto stAss = std::static_pointer_cast<AssignmentSTMT>(node);
-      visit(stAss);
-    } break;
-    case E_Return_Statement: {
-      auto rtAss = std::static_pointer_cast<ReturnSTMT>(node);
-      visit(rtAss);
-    } break;
+void CodeGenVisitor::visit(Statement &node) {
+  // ???
+}
+
+void CodeGenVisitor::visit(IfSTMT &node) {
+  currentScope = currentScope->nextScope();
+
+  // gen condition first startCode
+  node.condition->accept(*this);
+  auto startCode = lastValue;
+  auto type = node.condition->resolveType(typeTable->types[moduleName], currentScope);
+
+  llvm::Function *TheFunction = builder->GetInsertBlock()->getParent();
+
+  // Create blocks for the then and else cases.  Insert the 'then' block at the
+  // end of the function.
+  llvm::BasicBlock *ThenBB =
+      llvm::BasicBlock::Create(*context, "then", TheFunction);
+  llvm::BasicBlock *ElseBB = llvm::BasicBlock::Create(*context, "else");
+  llvm::BasicBlock *MergeBB = llvm::BasicBlock::Create(*context, "ifcont");
+  builder->CreateCondBr(startCode, ThenBB, ElseBB);
+
+  builder->SetInsertPoint(ThenBB);
+
+  // if True body
+  // volatile auto thenCode = visit(node->ifTrue);
+  auto trueBody = node.ifTrue;
+  for (auto &part : trueBody->parts) {
+    part->accept(*this);
   }
 
-  return cgnone;
+  builder->CreateBr(MergeBB);
+
+  ThenBB = builder->GetInsertBlock();
+
+  // Emit else block.
+  TheFunction->insert(TheFunction->end(), ElseBB);
+  builder->SetInsertPoint(ElseBB);
+
+  // gen Else
+  llvm::Value *elsB;
+  if (node.ifFalse->getKind() == E_Block) {
+    auto blockFalse = std::static_pointer_cast<Block>(node.ifFalse);
+    for (auto &part : blockFalse->parts) {
+      part->accept(*this);
+    }
+  }
+
+  builder->CreateBr(MergeBB);
+  // codegen of 'Else' can change the current block, update ElseBB for the PHI.
+  ElseBB = builder->GetInsertBlock();
+
+  // Emit merge block.
+  TheFunction->insert(TheFunction->end(), MergeBB);
+  builder->SetInsertPoint(MergeBB);
 }
 
-cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<AssignmentSTMT> &node) {
-  llvm::Value *var = cggetval(visit(node->variable));
-  llvm::Value *assignment = cggetval(visit(node->expression));
+void CodeGenVisitor::visit(ForSTMT &node) {
+  currentScope = currentScope->nextScope();
 
-  // varInitialized[node->variable->var_name] = true;
-  currentScope->markInitialized(node->variable->var_name);
+  // initial assignment startCode
+  node.varWithAss->accept(*this);
+
+  // get loop variable
+  auto iteratorVar = node.varWithAss;
+  auto [iterDecl, iterAlloca, iterInited] = *currentScope->getSymbol<VarDecl>(iteratorVar->getName());
+  auto iteratorType = iterDecl->type;
+  auto iterTypeLLVM = iteratorType->toLLVMType(*this->context);
+
+  // loop header block
+  llvm::Function *TheFunction = builder->GetInsertBlock()->getParent();
+  llvm::BasicBlock *PreheaderBB = builder->GetInsertBlock();
+  llvm::BasicBlock *LoopBB = llvm::BasicBlock::Create(*context, "loop", TheFunction);
+  llvm::BasicBlock *AfterBB = llvm::BasicBlock::Create(*context, "afterloop", TheFunction);
+
+  // load value for phi node
+  auto initialValue = builder->CreateLoad(iterTypeLLVM, iterAlloca);
+
+  // Branch _> header
+  builder->CreateBr(LoopBB);
+
+  // start insertion -> LoopBB
+  builder->SetInsertPoint(LoopBB);
+
+  // Create the PHI node <= the loop variable
+  llvm::PHINode *Variable = builder->CreatePHI(iterTypeLLVM, 2, iteratorVar->getName());
+
+  // add the initial value from the
+  Variable->addIncoming(initialValue, PreheaderBB);
+
+  // store the phi node value back to the alloca
+  builder->CreateStore(Variable, iterAlloca);
+
+  // generate loop body
+  // volatile auto bodyCode = visitDefault(node->body);
+  auto forBody = node.body;
+  for (auto &el : forBody->parts) {
+    el->accept(*this);
+  }
+
+  // Generate step code stepCode
+  node.post->accept(*this);
+
+  // Load the current value after the step
+  auto currentValue = builder->CreateLoad(iterTypeLLVM, iterAlloca);
+
+  // Generate condition condCode
+  node.condition->accept(*this);
+  auto condCode = lastValue;
+
+  // Add the current value as incoming to phi node
+  Variable->addIncoming(currentValue, builder->GetInsertBlock());
+
+  // Create conditional branch
+  builder->CreateCondBr(condCode, LoopBB, AfterBB);
+
+  // Start insertion in AfterBB
+  builder->SetInsertPoint(AfterBB);
+
+  currentScope = currentScope->prevScope();
+}
+
+void CodeGenVisitor::visit(AssignmentSTMT &node) {
+  llvm::Value *var = nullptr;
+  std::string name;
+  switch (node.assKind) {
+  case VAR_ASS: {
+    auto [_, alloc, isInited] = *currentScope->getSymbol(node.variable->getName());
+    var = alloc;
+    name = node.variable->getName();
+    currentScope->markInitialized(name);
+    break;
+  }
+  case FIELD_ASS:
+    // var = cggetval(visit(node->field));
+    node.field->accept(*this);
+    var = lastValue;
+    name = node.field->getName();
+    break;
+  case EL_ASS:
+    // var = cggetval(visit(node->element));
+    node.element->accept(*this);
+    var = lastValue;
+    // name = node->element->; @TODO
+    break;
+  }
+
+  // llvm::Value *assignment = cggetval(visit(node->expression));
+  node.expression->accept(*this);
+  // llvm::Value* assignment = lastValue;
+
+  auto assignment = unwrapPointerReference(node.expression.get(), lastValue);
+
   builder->CreateStore(assignment, var);
-  return cgnone;
 }
 
-cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<ReturnSTMT> &node) {
-  llvm::Value *retVal = cggetval(visit(node->expr));
+void CodeGenVisitor::visit(ReturnSTMT &node) {
+  // @TODO: className + ...
+  auto methodName = currentScope->getName();
+  auto methodDecl =currentScope->lookup<MethodDecl>(methodName);
+
+  node.expr->accept(*this);
+  llvm::Value *retVal = lastValue;
+
+  auto returnType = methodDecl->signature->return_type->toLLVMType(*context);
+  if (retVal && retVal->getType()->isPointerTy()) {
+    if (!returnType->isPointerTy()) {
+      // Load the value from the pointer
+      retVal = builder->CreateLoad(returnType, retVal);
+    }
+  }
 
   builder->CreateRet(retVal);
-  return cgnone;
 }
 
 //#####=========================================#####
@@ -538,6 +900,10 @@ cgvoid_t CodeGenVisitor::visit(const std::shared_ptr<ReturnSTMT> &node) {
 //#####=========================================#####
 
 void CodeGenVisitor::createObjFile() {
+  // LINK MODULES
+
+  // ============
+
   llvm::InitializeAllTargetInfos();
   llvm::InitializeAllTargets();
   llvm::InitializeAllTargetMCs();
@@ -586,17 +952,28 @@ void CodeGenVisitor::createObjFile() {
     return;
   }
 
+  if (llvm::verifyModule(*module, &llvm::errs())) {
+    llvm::errs() << "Module verification failed!\n";
+    exit(-1);
+    // Handle error
+  }
+
   pass.run(*module);
   dest.flush();
 
   llvm::outs() << "Wrote " << Filename << "\n";
 
   // clang linking
-  std::string command = "clang -o a.out "+ Filename + " ";
+  std::string command = "clang -o "+ Filename + "out " +  Filename + " ";
   int status = system(command.c_str());
   if (status == -1) {
     CG_ERR("", "Linking failed");
   }
+
+  // Debug logging to verify module transfer
+  llvm::outs() << "Transferring module to SourceManager...\n";
+  sm.addCompiledModule(*buff, std::move(module));
+  llvm::outs() << "Module transferred successfully\n";
 }
 
 //#####=========================================#####
@@ -641,3 +1018,247 @@ llvm::AllocaInst *CodeGenVisitor::createEntryBlockAlloca(llvm::Function *TheFunc
 //#####=========================================#####
 //#####=========================================#####
 //#####=========================================#####
+
+void CodeGenVisitor::handleBuiltinMethodCall(
+    MethodCallEXP &node,
+    std::string methodName) {
+
+  // get left operand
+  node.left->accept(*this);
+  llvm::Value *L = unwrapPointerReference(node.left.get(), lastValue);
+  if (!L)
+    return;
+
+  // only one arg for builtin methods
+  // if (node->arguments.size() != 1) {
+  //   return cgnone;
+  // }
+
+  // get right operand (can be void) ?
+  llvm::Value *R;
+  if (!node.arguments.empty()) {
+    node.arguments[0]->accept(*this);
+    R = unwrapPointerReference(node.arguments[0].get(), lastValue);
+    // if (!R)
+    //   return cgnone;
+  }
+
+  auto leftType = node.left->resolveType(typeTable->types[moduleName], currentScope);
+  auto className = leftType->name;
+
+  // handle different methods
+  if (methodName == "Plus") {
+    if (className == "Integer") {
+      lastValue = builder->CreateAdd(L, R, "addtmp");
+    } else if (className == "Real") {
+      lastValue = builder->CreateFAdd(L, R, "faddtmp");
+    }
+  }
+  else if (methodName == "Minus") {
+    if (className == "Integer") {
+      lastValue = builder->CreateSub(L, R, "subtmp");
+    } else if (className == "Real") {
+      lastValue = builder->CreateFSub(L, R, "fsubtmp");
+    }
+  }
+  else if (methodName == "Mult") {
+    if (className == "Integer") {
+      lastValue = builder->CreateMul(L, R, "multmp");
+    } else if (className == "Real") {
+      lastValue = builder->CreateFMul(L, R, "fmultmp");
+    }
+  }
+  else if (methodName == "Div") {
+    if (className == "Integer") {
+      lastValue = builder->CreateSDiv(L, R, "divtmp");
+    } else if (className == "Real") {
+      lastValue = builder->CreateFDiv(L, R, "fdivtmp");
+    }
+  }
+  else if (methodName == "Rem") {
+    if (className == "Integer") {
+      lastValue = builder->CreateSRem(L, R, "remtmp");
+    } else if (className == "Real") {
+      lastValue = builder->CreateFRem(L, R, "fremtmp");
+    }
+  }
+  else if (methodName == "Less") {
+    if (className == "Integer") {
+      lastValue = builder->CreateICmpSLT(L, R, "cmptmp");
+    } else if (className == "Real") {
+      lastValue = builder->CreateFCmpOLT(L, R, "fcmptmp");
+    }
+  }
+  else if (methodName == "Greater") {
+    if (className == "Integer") {
+      lastValue = builder->CreateICmpSGT(L, R, "cmptmp");
+    } else if (className == "Real") {
+      lastValue = builder->CreateFCmpOGT(L, R, "fcmptmp");
+    }
+  }
+  else if (methodName == "Equal") {
+    if (className == "Integer") {
+      lastValue = builder->CreateICmpEQ(L, R, "cmptmp");
+    } else if (className == "Real") {
+      lastValue = builder->CreateFCmpOEQ(L, R, "fcmptmp");
+    }
+  }
+  else if (methodName == "UnaryMinus") {
+    if (className == "Integer") {
+      auto one = llvm::ConstantInt::getSigned((llvm::Type::getInt32Ty(*context)), -1);
+      lastValue = builder->CreateMul(L, one, "uminus");
+    } else if (className == "Real") {
+      auto negOne = llvm::ConstantFP::get(llvm::Type::getFloatTy(*context), -1.0);
+      lastValue = builder->CreateFMul(L, negOne, "fuminus");
+    }
+  }
+}
+
+void CodeGenVisitor::visit(MethodCallEXP &node) {
+  // check if this is a built-in method call
+  std::string className;
+  if (node.left->getKind() == E_Var_Reference) {
+    auto leftDecl = currentScope->lookup<VarDecl>(node.left->getName());
+    className = leftDecl->type->name;
+  }
+  else if (node.left->getKind() == E_Integer_Literal) {
+    auto intRefLeft = std::static_pointer_cast<IntLiteralEXP>(node.left);
+    auto leftDecl = currentScope->lookup<VarDecl>(
+      std::to_string(intRefLeft->getValue()));
+    className = leftDecl->type->name;
+  }
+
+  // @TODO optimize
+  std::shared_ptr<MethodDecl> decl;
+  for (auto child : globalScope->getChildren()) {
+    if (child->getKind() == SCOPE_MODULE_BUILTIN) {
+      auto classBTScope = child->getChildren()[0]; // ? single module - single class : Integer - Integer
+      decl =
+        classBTScope->lookup<MethodDecl>(node.getName());
+    }
+  }
+
+  if (decl && decl->getKind() == E_Method_Decl) {
+    if (decl->isBuiltin) {
+      return handleBuiltinMethodCall(node, node.getName());
+    }
+  }
+
+  auto varRef = std::static_pointer_cast<VarRefEXP>(node.left);
+  auto [_, alloc, isInited] = *currentScope->getSymbol(varRef->getName());
+  std::vector<llvm::Value *> ArgsV;
+  ArgsV.push_back(alloc); // Pass the pointer directly as 'this'
+
+  for (unsigned i = 0, e = node.arguments.size(); i != e; ++i) {
+    node.arguments[i]->accept(*this);
+    auto arg = lastValue;
+    ArgsV.push_back(arg);
+
+    if (!ArgsV.back())
+      return;
+  }
+
+  llvm::Function *CalleeF = getFunction(node.getName());
+  if (!CalleeF)
+    return;
+
+  if (CalleeF->getReturnType()->isVoidTy()) {
+    lastValue = builder->CreateCall(CalleeF, ArgsV);
+  }
+  else {
+    lastValue = builder->CreateCall(CalleeF, ArgsV, "calltmp");
+  }
+}
+
+llvm::Value*
+CodeGenVisitor::unwrapPointerReference(Expression *node, llvm::Value *val) {
+  if (!val->getType()->isPointerTy()) return val;
+
+  switch (node->getKind()) {
+    case E_Element_Reference: {
+      auto elementRef = static_cast<ElementRefEXP*>(node);
+      auto arrType = currentScope->lookup<VarDecl>(elementRef->arr->getName())->type;
+      auto el_type = std::static_pointer_cast<TypeArray>(arrType)->el_type;
+
+      val = builder->CreateLoad(
+        el_type->toLLVMType(*context),
+        val
+      );
+    } break;
+    case E_Var_Reference: {
+
+    }
+    case E_Field_Reference: {
+      auto fieldRef = static_cast<FieldRefEXP*>(node);
+      auto [varDecl, alloca, isInited] = *currentScope->getSymbol<VarDecl>(fieldRef->obj->getName());
+
+      auto type = varDecl->resolveType(typeTable->types[moduleName], currentScope);
+      if (type->kind == TYPE_ACCESS) {
+        type = std::static_pointer_cast<TypeAccess>(type)->to;
+      }
+
+      auto classTypeLLVM = type->toLLVMType(*context);
+      val = builder->CreateLoad(
+        classTypeLLVM->getStructElementType(fieldRef->index),
+        val
+      );
+    }
+  }
+
+  return val;
+}
+
+// UNUSED
+
+// void CodeGenVisitor::visit(Block& block) {
+//   // ???
+// }
+
+void CodeGenVisitor::visit(BoolLiteralEXP &node) {
+  lastValue = llvm::ConstantInt::get(llvm::Type::getInt1Ty(*context), node.getValue());
+}
+
+void CodeGenVisitor::visit(ClassNameEXP &node) {
+  // ??? 
+  lastValue = nullptr;
+}
+
+void CodeGenVisitor::visit(CompoundEXP &node) {
+  for (auto &expr : node.parts) {
+    expr->accept(*this);
+  }
+}
+
+void CodeGenVisitor::visit(ThisEXP &node) {
+  // auto func = builder->GetInsertBlock()->getParent();
+  // lastValue = func->getArg(0); // First argument is 'this'
+}
+
+void CodeGenVisitor::visit(ParameterDecl &node) {
+  lastValue = nullptr;
+}
+
+void CodeGenVisitor::visit(ArrayDecl &node) {
+  lastValue = nullptr;
+}
+
+void CodeGenVisitor::visit(ListDecl &node) {
+  lastValue = nullptr;
+}
+
+void CodeGenVisitor::visit(CaseSTMT &node) {
+
+}
+
+void CodeGenVisitor::visit(SwitchSTMT &node) {
+
+}
+
+void CodeGenVisitor::visit(WhileSTMT &node) {
+  
+}
+
+// ======== GENERICS =========
+void CodeGenVisitor::createOpaqueStruct() {
+  llvm::StructType::create(*context, "obw.opaque");
+}

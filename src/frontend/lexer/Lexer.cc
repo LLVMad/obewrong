@@ -47,7 +47,7 @@ inline unsigned int Lexer::hash(const char *str, size_t len) {
     47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
     47, 47, 47, 47, 47, 47
   };
-  register unsigned int hval = len;
+  unsigned int hval = len;
 
   switch (hval)
   {
@@ -401,7 +401,6 @@ std::unique_ptr<Token> Lexer::next() {
         }
         return std::make_unique<Token>(TOKEN_IDENTIFIER, token, curr_line,
                                        curr_column /* - token.length() + 1 */);
-        // @TODO add to symbol table
       } else
         curr_state = STATE_FAIL;
     } break;
@@ -439,14 +438,29 @@ std::unique_ptr<Token> Lexer::next() {
                                          curr_line,
                                          curr_column /* - token.length() + 1 */);
         }
-
         curr_state = STATE_START;
-        return std::make_unique<Token>(TOKEN_INT_NUMBER, std::stoi(token),
-                                       curr_line,
-                                       curr_column /* - token.length() + 1 */);
+
+        if (peek() == '.') {
+          curr_state = STATE_READ_REAL;
+        }
+        else {
+          return std::make_unique<Token>(TOKEN_INT32_NUMBER, std::stoi(token),
+                                         curr_line,
+                                         curr_column /* - token.length() + 1 */);
+        }
       }
       if (c == '.') {
-        curr_state = STATE_READ_REAL;
+        // if there are digits after the dot
+        if (std::isdigit(buffer[1])) {
+          curr_state = STATE_READ_REAL;
+        } else {
+          // no -> treat it as a method call
+          // 32bit number by default
+          curr_state = STATE_START;
+          return std::make_unique<Token>(TOKEN_INT32_NUMBER, std::stoi(token),
+                                         curr_line,
+                                         curr_column /* - token.length() + 1 */);
+        }
       } else {
         curr_state = STATE_READ_NUM;
       }
@@ -458,7 +472,6 @@ std::unique_ptr<Token> Lexer::next() {
         curr_state = STATE_START;
         return std::make_unique<Token>(TOKEN_IDENTIFIER, token, curr_line,
                                        curr_column);
-        // @TODO add to symbol table ?
       } else
         curr_state = STATE_FAIL;
     } break;
@@ -498,6 +511,10 @@ std::unique_ptr<Token> Lexer::next() {
     }
 
     if (!std::isspace(c) && c != '\n' && c != '\r')
+      token += c;
+
+    // @TODO move up
+    if (curr_state == STATE_READ_STRING && std::isspace(c))
       token += c;
 
     // If no token has been returned move to next char, i.e. eat input

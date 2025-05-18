@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+/*
 class SemanticAnalyzer {
 public:
   SemanticAnalyzer(std::shared_ptr<GlobalTypeTable> globalTypeTable,
@@ -30,6 +31,6 @@ private:
   void checkFunctionDecl(const std::shared_ptr<FuncDecl> &funcDecl);
   void resolveType(const std::shared_ptr<Expression> &expr);
   void reportError(const std::string &message, const Loc &loc);
-};
+}; */
 
 #endif

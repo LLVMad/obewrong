@@ -1,6 +1,7 @@
 #ifndef TYPE_TABLE_H
 #define TYPE_TABLE_H
 
+#include "types/Generics.h"
 #include "types/Types.h"
 
 #include <algorithm>
@@ -68,9 +69,16 @@ public:
     types[name] = std::move(type);
   }
 
-  std::shared_ptr<Type> getType(const std::string &name) {
-    auto it = types.find(str_tolower(name));
+  std::shared_ptr<Type> getType(const std::string &name) const {
+    auto it = types.find(name);
     return ((it != types.end()) ? it->second : nullptr);
+  }
+
+  std::shared_ptr<Type> getType(TypeKind kind) const {
+    auto type = std::ranges::find_if(
+      types,
+      [&kind](auto pair) { return pair.second->kind == kind; });
+    return (type == types.end()) ? nullptr : type->second;
   }
 
   bool exists(const std::string &name) const { return types.contains(name); }
@@ -91,17 +99,18 @@ public:
   void initBuiltinTypes() {
     builtinTypes.addType("byte", std::make_shared<TypeByte>());
     // builtinTypes.addType("access", std::make_shared<TypeAccess>());
-    // builtinTypes.addType("Integer", std::make_shared<TypeInt>());
+    builtinTypes.addType("Integer", std::make_shared<TypeInt>());
     // builtinTypes.addType("Int16", std::make_shared<TypeInt16>());
     // builtinTypes.addType("Int64", std::make_shared<TypeInt64>());
     // builtinTypes.addType("Uint16", std::make_shared<TypeUint16>());
     // builtinTypes.addType("Uint32", std::make_shared<TypeUint32>());
     // builtinTypes.addType("Uint64", std::make_shared<TypeUint64>());
-    // builtinTypes.addType("Real", std::make_shared<TypeReal>());
+    builtinTypes.addType("Real", std::make_shared<TypeReal>());
     // builtinTypes.addType("Float64", std::make_shared<TypeFloat64>());
     // // builtinTypes.addType("Bool", std::make_shared<TypeBool>());
-    // builtinTypes.addType("Boolean", std::make_shared<TypeBool>());
-    // builtinTypes.addType("String", std::make_shared<TypeString>());
+    builtinTypes.addType("Boolean", std::make_shared<TypeBool>());
+    builtinTypes.addType("String", std::make_shared<TypeString>());
+    builtinTypes.addType("Opaque", std::make_shared<TypeOpaque>());
     // builtinTypes.addType("Array", std::make_shared<TypeArray>());
   }
 
@@ -110,24 +119,47 @@ public:
 
   void addType(const std::string &moduleName, const std::string &typeName,
                std::shared_ptr<Type> type) {
-    auto tName = str_tolower(typeName);
-    types[moduleName].addType(tName, type);
+    // auto tName = str_tolower(typeName);
+    types[moduleName].addType(typeName, type);
+  }
+
+  void importTypesFromModule(const std::string &from, const std::string &to) {
+    auto typesTableFrom = std::ranges::find_if(
+      types,
+      [&from, &to](auto pair) { return pair.first == from; });
+
+    std::ranges::for_each(
+      typesTableFrom->second.types,
+      [&to, this](auto pair) { this->types[to].addType(pair.first, pair.second); });
   }
 
   std::shared_ptr<Type> getType(const std::string &moduleName,
                                 const std::string &typeName) {
     // first search through builtins
-    auto tName = str_tolower(typeName);
-    auto it_bins = builtinTypes.getType(tName);
+    // auto tName = str_tolower(typeName);
+    auto it_bins = builtinTypes.getType(typeName);
     if (it_bins == nullptr) {
       auto it = types.find(moduleName);
       if (it == types.end()) {
         return nullptr;
       }
-      return it->second.getType(tName);
+      return it->second.getType(typeName);
     }
 
     return it_bins;
+  }
+
+  /**
+   * For builtins
+   * @TODO add not builtin
+   * @param moduleName
+   * @param kind
+   * @return
+   */
+  std::shared_ptr<Type> getType(const std::string &moduleName, TypeKind kind) {
+    auto it = builtinTypes.getType(kind);
+    if (it) return it;
+    return nullptr;
   }
 
   // ~GlobalTypeTable() = default;

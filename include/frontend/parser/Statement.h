@@ -18,11 +18,20 @@ class Statement : public Entity {
 public:
   explicit Statement(Ekind kind) : Entity(kind) {}
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
   // std::string name;
   ~Statement() override;
+
+  DEFINE_VISITABLE()
+};
+
+enum AssKind {
+  VAR_ASS,
+  FIELD_ASS,
+  EL_ASS, // a[0] :=
+  NONE,
 };
 
 // Identifier := Expression
@@ -30,25 +39,61 @@ class AssignmentSTMT : public Statement {
 public:
   AssignmentSTMT(std::shared_ptr<VarRefEXP> lhs,
                  std::shared_ptr<Expression> rhs)
-      : Statement(E_Assignment), variable(std::move(lhs)), field(nullptr),
+      : Statement(E_Assignment), assKind(VAR_ASS), variable(std::move(lhs)), field(nullptr),
         element(nullptr), expression(std::move(rhs)) {}
 
   AssignmentSTMT(std::shared_ptr<FieldRefEXP> lhs,
                  std::shared_ptr<Expression> rhs)
-      : Statement(E_Assignment), variable(nullptr), field(std::move(lhs)),
+      : Statement(E_Assignment), assKind(FIELD_ASS), variable(nullptr), field(std::move(lhs)),
         element(nullptr), expression(std::move(rhs)) {}
 
   AssignmentSTMT(std::shared_ptr<ElementRefEXP> lhs,
                  std::shared_ptr<Expression> rhs)
-      : Statement(E_Assignment), variable(nullptr), field(nullptr),
+      : Statement(E_Assignment), assKind(EL_ASS), variable(nullptr), field(nullptr),
         element(std::move(lhs)), expression(std::move(rhs)) {}
 
+  AssignmentSTMT(std::shared_ptr<Expression> lhs,
+    std::shared_ptr<Expression> rhs)
+      : Statement(E_Assignment) {
+    switch (lhs->getKind()) {
+      case E_Element_Reference: {
+        element = std::static_pointer_cast<ElementRefEXP>(std::move(lhs));
+        variable = nullptr;
+        field = nullptr;
+        assKind = EL_ASS;
+        expression = std::move(rhs);
+      } break;
+      case E_Field_Reference: {
+        field = std::static_pointer_cast<FieldRefEXP>(std::move(lhs));
+        variable = nullptr;
+        element = nullptr;
+        assKind = FIELD_ASS;
+        expression = std::move(rhs);
+      } break;
+      case E_Var_Reference: {
+        variable = std::static_pointer_cast<VarRefEXP>(std::move(lhs));
+        field = nullptr;
+        element = nullptr;
+        assKind = VAR_ASS;
+        expression = std::move(rhs);
+      } break;
+      default: {
+        variable = nullptr;
+        field = nullptr;
+        element = nullptr;
+        assKind = NONE;
+        expression = std::move(rhs);
+      } break;
+    }
+  }
+
   // children are
+  AssKind assKind;
+
   std::shared_ptr<VarRefEXP> variable;
   std::shared_ptr<FieldRefEXP> field;
-
-  [[deprecated]]
   std::shared_ptr<ElementRefEXP> element;
+
 
   std::shared_ptr<Expression> expression;
 
@@ -60,6 +105,8 @@ public:
   // void addExpression(std::shared_ptr<Expression> expression) {
   //   this->children.push_back(std::move(expression));
   // }
+
+  DEFINE_VISITABLE()
 };
 
 // return [ Expression ]
@@ -78,6 +125,8 @@ public:
   // void addExpression(std::shared_ptr<Expression> expression) {
   //   this->children.push_back(std::move(expression));
   // }
+
+  DEFINE_VISITABLE()
 };
 
 // class ElseSTMT : public Statement {
@@ -109,6 +158,8 @@ public:
   bool isElsed;
 
   ~IfSTMT() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 class CaseSTMT : public Statement {
@@ -125,6 +176,8 @@ public:
   bool isDefault;
 
   ~CaseSTMT() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 class SwitchSTMT : public Statement {
@@ -151,6 +204,8 @@ public:
   void addCase(std::shared_ptr<CaseSTMT> cas) {
     cases.push_back(std::move(cas));
   }
+
+  DEFINE_VISITABLE()
 };
 
 /**
@@ -175,11 +230,13 @@ public:
   std::shared_ptr<Block> body;
 
   ~WhileSTMT() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 class ForSTMT : public Statement {
 public:
-  explicit ForSTMT(std::shared_ptr<AssignmentSTMT> varWithAss,
+  explicit ForSTMT(std::shared_ptr<VarRefEXP> varWithAss,
                    std::shared_ptr<Expression> condition,
                    std::shared_ptr<AssignmentSTMT> post,
                    std::shared_ptr<Block> body)
@@ -191,12 +248,14 @@ public:
   ForSTMT()
       : Statement(E_Dummy) {}
 
-  std::shared_ptr<AssignmentSTMT> varWithAss;
+  std::shared_ptr<VarRefEXP> varWithAss;
   std::shared_ptr<Expression> condition;
   std::shared_ptr<AssignmentSTMT> post;
   std::shared_ptr<Block> body;
 
   ~ForSTMT() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 #endif

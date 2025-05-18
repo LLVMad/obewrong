@@ -1,8 +1,11 @@
 #ifndef OBW_CODEGENVISITOR_H
 #define OBW_CODEGENVISITOR_H
 
+#include "frontend/SourceManager.h"
 #include "frontend/SymbolTable.h"
+#include "frontend/parser/Statement.h"
 #include "frontend/parser/Visitor.h"
+#include "frontend/parser/Wrappers.h"
 
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
@@ -28,26 +31,70 @@
 #include "llvm/TargetParser/Host.h"
 
 #include <map>
+#include <queue>
 #include <variant>
 
-#define cgresult_t  std::variant<std::monostate, llvm::Value*, llvm::Type*>
-#define cgvoid_t    std::monostate
-#define cgnone      std::monostate {}
 
-#define cggetval(var)    std::get<llvm::Value*>(var)
-#define cggettype(var)   std::get<llvm::Type*>(var)
-
-#define LIBC_PATH "../lib/libc.ll"
-
-class CodeGenVisitor {
+class CodeGenVisitor : public BaseVisitor,
+                  public Visitor<Entity, void>,
+                  public Visitor<Block, void>,
+                  public Visitor<EDummy, void>,
+                  public Visitor<Statement, void>,
+                  public Visitor<AssignmentSTMT, void>,
+                  public Visitor<ReturnSTMT, void>,
+                  public Visitor<IfSTMT, void>,
+                  public Visitor<CaseSTMT, void>,
+                  public Visitor<SwitchSTMT, void>,
+                  public Visitor<WhileSTMT, void>,
+                  public Visitor<ForSTMT, void>,
+                  public Visitor<Expression, void>,
+                  public Visitor<IntLiteralEXP, void>,
+                  public Visitor<RealLiteralEXP, void>,
+                  public Visitor<StringLiteralEXP, void>,
+                  public Visitor<BoolLiteralEXP, void>,
+                  public Visitor<ArrayLiteralExpr, void>,
+                  public Visitor<VarRefEXP, void>,
+                  public Visitor<FieldRefEXP, void>,
+                  public Visitor<ElementRefEXP, void>,
+                  public Visitor<MethodCallEXP, void>,
+                  public Visitor<FuncCallEXP, void>,
+                  public Visitor<ClassNameEXP, void>,
+                  public Visitor<ConstructorCallEXP, void>,
+                  public Visitor<CompoundEXP, void>,
+                  public Visitor<ThisEXP, void>,
+                  public Visitor<ConversionEXP, void>,
+                  public Visitor<BinaryOpEXP, void>,
+                  public Visitor<UnaryOpEXP, void>,
+                  public Visitor<EnumRefEXP, void>,
+                  public Visitor<AssignmentWrapperEXP, void>,
+                  public Visitor<Decl, void>,
+                  public Visitor<FieldDecl, void>,
+                  public Visitor<VarDecl, void>,
+                  public Visitor<ParameterDecl, void>,
+                  public Visitor<MethodDecl, void>,
+                  public Visitor<ConstrDecl, void>,
+                  public Visitor<FuncDecl, void>,
+                  public Visitor<ClassDecl, void>,
+                  public Visitor<ArrayDecl, void>,
+                  public Visitor<ListDecl, void>,
+                  public Visitor<ModuleDecl, void>,
+                  public Visitor<EnumDecl, void> {
 public:
-  CodeGenVisitor(const std::shared_ptr<Scope> &globalScope,
-                 const std::shared_ptr<GlobalTypeTable> &typeTable)
-      : globalScope(globalScope), typeTable(typeTable) {
-    context = std::make_unique<llvm::LLVMContext>();
+  CodeGenVisitor(
+    SourceManager &sm, std::shared_ptr<SourceBuffer> buff,
+    const std::shared_ptr<Scope<Entity>> &globalScope,
+                 const std::shared_ptr<GlobalTypeTable> &typeTable,
+                 std::shared_ptr<llvm::LLVMContext> context)
+      : globalScope(globalScope), typeTable(typeTable), context(context), sm(sm), buff(buff) {
+    // context = std::make_unique<llvm::LLVMContext>();
     builder = std::make_unique<llvm::IRBuilder<>>(*context);
 
-    moduleName = globalScope->getChildren()[0]->getName();
+    auto children = globalScope->getChildren();
+    for (auto child : children) {
+      if (child->getKind() == SCOPE_MODULE) moduleName = child->getName();
+    }
+
+    // moduleName = globalScope->getChildren()[0]->getName();
     module = std::make_unique<llvm::Module>(
       moduleName,
       *context
@@ -82,6 +129,26 @@ public:
       false
     );
     llvm::getOrInsertLibFunc(module.get(), *ext_std_lib_info, llvm::LibFunc_free, freeType);
+
+    // LINK MODULES
+    auto included = sm.getIncluded(*buff);
+    // sm.linkWithIncludedModules(*buff, );
+    std::ranges::for_each(
+      included,
+      [&](auto &file) {
+        if (llvm::Linker::linkModules(*module, std::move(file->module)))
+          throw std::runtime_error("Failed to link modules");
+        assert(module && "Module is null after linking!");
+      }
+    );
+
+    // create opaque type for generics
+    createOpaqueStruct();
+
+    // if(llvm::verifyModule(*module, &llvm::outs())) {
+    //   throw std::runtime_error("Linker failed");
+    // }
+    // ============
 
     // link to standard library
     // auto libc_module = std::make_unique<llvm::Module>("libc_module", *context);
@@ -121,54 +188,67 @@ public:
   }
 
   // starting point of the code generation
-  // cgvoid_t visitDefault(const std::shared_ptr<Entity> &node);
+  // void visitDefault(Entity &node) override;
 
-  cgresult_t visitDefault(const std::shared_ptr<Entity> &node);
+  void visit(Entity &node) override;
 
   // #####========== EXPRESSIONS ==========#####
-  cgresult_t visit(const std::shared_ptr<Expression> &expr);
-  cgresult_t visit(const std::shared_ptr<IntLiteralEXP> &node);
-  cgresult_t visit(const std::shared_ptr<RealLiteralEXP> &node);
-  cgresult_t visit(const std::shared_ptr<StringLiteralEXP> &node);
-  cgresult_t visit(const std::shared_ptr<BoolLiteralEXP> &node);
-  cgresult_t visit(const std::shared_ptr<ArrayLiteralExpr> &node);
-  cgresult_t visit(const std::shared_ptr<VarRefEXP> &node);
-  cgresult_t visit(const std::shared_ptr<FieldRefEXP> &node);
-  cgresult_t visit(const std::shared_ptr<MethodCallEXP> &node);
-  cgresult_t visit(const std::shared_ptr<FuncCallEXP> &node);
-  cgresult_t visit(const std::shared_ptr<ClassNameEXP> &node);
-  cgresult_t visit(const std::shared_ptr<ConstructorCallEXP> &node);
-  cgresult_t visit(const std::shared_ptr<CompoundEXP> &node);
-  cgresult_t visit(const std::shared_ptr<ThisEXP> &node);
-  cgresult_t visit(const std::shared_ptr<BinaryOpEXP> &node);
+  void visit(Expression &node) override;
+  void visit(IntLiteralEXP &node) override;
+  void visit(RealLiteralEXP &node) override;
+  void visit(StringLiteralEXP &node) override;
+  void visit(BoolLiteralEXP &node) override;
+  void visit(ArrayLiteralExpr &node) override;
+  void visit(VarRefEXP &node) override;
+  void visit(FieldRefEXP &node) override;
+  void visit(MethodCallEXP &node) override;
+  void visit(FuncCallEXP &node) override;
+  void visit(ClassNameEXP &node) override;
+  void visit(ConversionEXP &node) override;
+  void visit(ConstructorCallEXP &node) override;
+  void visit(CompoundEXP &node) override;
+  void visit(ThisEXP &node) override;
+  void visit(BinaryOpEXP &node) override;
+  void visit(ElementRefEXP &node) override;
+  void visit(AssignmentWrapperEXP &node) override;
   // #####========================================#####
 
   // #####========== DECLARATIONS ==========#####
-  cgvoid_t visit(const std::shared_ptr<Decl> &node);
-  cgvoid_t visit(const std::shared_ptr<ModuleDecl> &node);
-  cgvoid_t visit(const std::shared_ptr<FieldDecl> &node);
-  cgvoid_t visit(const std::shared_ptr<VarDecl> &node);
-  cgvoid_t visit(const std::shared_ptr<ParameterDecl> &node);
-  cgvoid_t visit(const std::shared_ptr<MethodDecl> &node);
-  cgvoid_t visit(const std::shared_ptr<ConstrDecl> &node);
-  cgvoid_t visit(const std::shared_ptr<FuncDecl> &node);
-  cgvoid_t visit(const std::shared_ptr<ClassDecl> &node);
-  cgvoid_t visit(const std::shared_ptr<ArrayDecl> &node);
-  cgvoid_t visit(const std::shared_ptr<ListDecl> &node);
+  void visit(Decl &node) override;
+  void visit(ModuleDecl &node) override;
+  void visit(FieldDecl &node) override;
+  void visit(VarDecl &node) override;
+  void visit(ParameterDecl &node) override; // outsorced its work to another function
+  void visit(MethodDecl &node) override;
+  void visit(ConstrDecl &node) override;
+  void visit(FuncDecl &node) override;
+  void visit(ClassDecl &node) override;
+  void visit(ArrayDecl &node) override; // probably should be deleted
+  void visit(ListDecl &node) override; // same
   // #####========================================#####
 
   // #####========== STATEMENTS ==========#####
-  cgvoid_t visit(const std::shared_ptr<Statement> &node);
-  cgvoid_t visit(const std::shared_ptr<AssignmentSTMT> &node);
-  cgvoid_t visit(const std::shared_ptr<ReturnSTMT> &node);
-  cgvoid_t visit(const std::shared_ptr<IfSTMT> &node);
-  cgvoid_t visit(const std::shared_ptr<CaseSTMT> &node);
-  cgvoid_t visit(const std::shared_ptr<SwitchSTMT> &node);
-  cgvoid_t visit(const std::shared_ptr<WhileSTMT> &node);
-  cgvoid_t visit(const std::shared_ptr<ForSTMT> &node);
+  void visit(Statement &node) override;
+  void visit(AssignmentSTMT &node) override;
+  void visit(ReturnSTMT &node) override;
+  void visit(IfSTMT &node) override;
+  void visit(CaseSTMT &node) override;
+  void visit(SwitchSTMT &node) override;
+  void visit(WhileSTMT &node) override;
+  void visit(ForSTMT &node) override;
   // #####========================================#####
 
-  cgresult_t visit(const std::shared_ptr<Type> &node);
+  // UNUSED
+  void visit(Block& block) override {};
+  void visit(EDummy& dummy) override {}
+  void visit(EnumDecl& node) override {}
+  void visit(EnumRefEXP& node) override {}
+  void visit(UnaryOpEXP &node) override {}
+
+  // void visit(Type &node) override;
+
+  void handleBuiltinMethodCall(MethodCallEXP &node,
+                                     std::string methodName);
 
   void dumpIR() const { module->print(llvm::outs(), nullptr); }
 
@@ -180,17 +260,24 @@ private:
   llvm::AllocaInst *createEntryBlockAlloca(llvm::Function *TheFunction,
                                            llvm::Type *Type,
                                            llvm::StringRef VarName);
-  // llvm::StructType* getStructType(const std::string &name);
+
+  // creates load instruction to load a pointer type value
+  llvm::Value* unwrapPointerReference(Expression *node, llvm::Value *val);
   // #####========================================#####
 
+  // ####=========== GENERICS ==========#####
+
+  void createOpaqueStruct();
+  void genericMethodDecl(MethodDecl &node);
+
   // entry for a symboltable (actually a tree of scopes)
-  std::shared_ptr<Scope> globalScope;
+  std::shared_ptr<Scope<Entity>> globalScope;
   // global type table
   std::shared_ptr<GlobalTypeTable> typeTable;
   // root &node of an AST
   // std::shared_ptr<Entity> root;
 
-  std::unique_ptr<llvm::LLVMContext> context;
+  std::shared_ptr<llvm::LLVMContext> context;
   std::unique_ptr<llvm::IRBuilder<>> builder;
   std::unique_ptr<llvm::Module> module;
 
@@ -198,10 +285,15 @@ private:
   // std::map<std::string, llvm::AllocaInst*> varEnv;
   // std::map<std::string, bool> varInitialized;
 
-  std::shared_ptr<Scope> currentScope;
+  std::queue<llvm::Value*> values;
+  llvm::Value* lastValue;
+  std::shared_ptr<Scope<Entity>> currentScope;
   size_t currDepth;
 
   std::string moduleName;
+
+  SourceManager &sm;
+  std::shared_ptr<SourceBuffer> buff;
 };
 
 #endif

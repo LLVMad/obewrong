@@ -11,7 +11,8 @@ class Point is
 end
 
 func main() is
-  var a : Point(2, 2)
+  var a : Point(2b, 2b)
+  printf("%hhd %hhd\n", a.x, a.y)
   //var p : Point(2, 2)
   //printf("point = %d:%d\n", p.x, p.y)
 end

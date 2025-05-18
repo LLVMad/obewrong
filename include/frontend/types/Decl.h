@@ -11,31 +11,25 @@
 #include <vector>
 
 #include "Types.h"
+#include "frontend/parser/Entity.h"
 #include "frontend/parser/Expression.h"
 #include "frontend/parser/Statement.h"
 
 #include <filesystem>
 #include <map>
 
-// enum DeclKind {
-//   DECL_VAR,
-//   DECL_FUNC,
-//   DECL_CLASS,
-//   DECL_ARRAY,
-//   DECL_LIST,
-// };
-
 class Decl : public Entity {
 public:
   explicit Decl(Ekind kind, std::string name)
-      : Entity(kind), name(std::move(name)) {}
-  std::string name;
+      : Entity(kind, std::move(name)) {}
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
   ~Decl() override;
+
+  DEFINE_VISITABLE()
 };
 
 /**
@@ -55,12 +49,14 @@ public:
       : Decl(E_Field_Decl, name), type(std::move(type)) {}
 
   std::shared_ptr<Type> type;
-
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  size_t index; // index of a field in a class
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
   ~FieldDecl() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 /**
@@ -87,11 +83,13 @@ public:
   //                 ^^^^
   std::shared_ptr<Expression> initializer;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
   ~VarDecl() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 /**
@@ -108,11 +106,13 @@ public:
 
   std::shared_ptr<Type> type;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
   ~ParameterDecl() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 /**
@@ -167,11 +167,13 @@ public:
   bool isPrivate;
   std::shared_ptr<Block> body;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
   ~MethodDecl() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 class ConstrDecl : public Decl {
@@ -189,7 +191,7 @@ public:
 
   std::shared_ptr<Block> body;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -197,6 +199,8 @@ public:
   bool isDefault;
 
   ~ConstrDecl() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 class FuncDecl : public Decl {
@@ -224,11 +228,13 @@ public:
   bool isVoid;
   std::shared_ptr<Block> body;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
   ~FuncDecl() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 /**
@@ -255,23 +261,29 @@ public:
 
   ClassDecl(const std::string &name, std::shared_ptr<TypeClass> type,
             std::vector<std::shared_ptr<FieldDecl>> fields,
-            std::vector<std::shared_ptr<MethodDecl>> methods,
-            std::vector<std::shared_ptr<ConstrDecl>> constructors)
+            std::vector<std::shared_ptr<Decl>> methods)
       : Decl(E_Class_Decl, name), type(std::move(type)),
-        fields(std::move(fields)), methods(std::move(methods)),
-        constructors(std::move(constructors)) {}
+        fields(std::move(fields)), methods(std::move(methods))
+  {
+  }
 
   std::shared_ptr<TypeClass> type;
   std::shared_ptr<ClassDecl> base_class;
   std::vector<std::shared_ptr<FieldDecl>> fields;
-  std::vector<std::shared_ptr<MethodDecl>> methods;
-  std::vector<std::shared_ptr<ConstrDecl>> constructors;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  // @NOTE: becouse methods and constructs can appear in different
+  // order we should keep the order of their declaration !
+  // std::vector<std::shared_ptr<MethodDecl>> methods;
+  // std::vector<std::shared_ptr<ConstrDecl>> constructors;
+  std::vector<std::shared_ptr<Decl>> methods; // btoh methods and constrs
+
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
   ~ClassDecl() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 // @TODO maybe get rid of Array and List decls
@@ -294,11 +306,13 @@ public:
 
   size_t size;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
   ~ArrayDecl() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 class ListDecl : public Decl {
@@ -317,11 +331,13 @@ public:
   //                          ^^^^^^^^^
   std::shared_ptr<ArrayLiteralExpr> initializer;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override;
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
   ~ListDecl() override = default;
+
+  DEFINE_VISITABLE()
 };
 
 class ModuleDecl : public Decl {
@@ -334,6 +350,8 @@ public:
 
   std::vector<std::string> importedModules;
   std::vector<std::shared_ptr<Entity>> children;
+
+  DEFINE_VISITABLE()
 };
 
 class EnumDecl : public Decl {
@@ -345,6 +363,8 @@ public:
 
   size_t size;
   std::map<std::string, uint32_t> items;
+
+  DEFINE_VISITABLE()
 };
 
 #endif

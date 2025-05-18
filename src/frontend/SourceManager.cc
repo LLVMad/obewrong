@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <llvm/Linker/Linker.h>
 #include <sstream>
 
 SourceManager::SourceManager() {}
@@ -17,16 +18,19 @@ SourceBuffer SourceManager::readSource(const std::filesystem::path &fullPath) {
   std::string contents = source_stream.str();
   std::string fileName = fullPath.filename().string();
 
-  FileData fd(fullPath.parent_path(), fileName, contents, fullPath);
-  // @TODO check if exists already
-  files.push_back(fd);
+  auto fd = new FileData(fullPath.parent_path(), fileName, contents, fullPath);
+  auto contains = std::ranges::find_if(
+  files,
+  [&](const auto &file) { return file->name == fileName; });
+
+  if (contains == files.end()) files.push_back(fd);
 
   return SourceBuffer(
-      BufferID(fd.name, static_cast<uint32_t>(files.size() - 1)), contents);
+      BufferID(fd->name, static_cast<uint32_t>(files.size() - 1)), contents);
 }
 
 std::string SourceManager::getSourceText(const BufferID &buffer) {
-  return files[buffer.id].content;
+  return files[buffer.id]->content;
 }
 
 void SourceManager::addFile(std::filesystem::path relPath) {
@@ -40,15 +44,59 @@ void SourceManager::addFile(std::filesystem::path relPath) {
   std::string contents = source_stream.str();
   std::string fileName = relPath.filename().string();
 
-  FileData fd(relPath.parent_path(), fileName, contents, relPath);
-  // @TODO check if exists already
-  files.push_back(fd);
+  auto fd = new FileData(relPath.parent_path(), fileName, contents, relPath);
+
+  auto contains = std::ranges::find_if(
+    files,
+    [&](const auto &file) { return file->name == fileName; });
+
+  if (contains == files.end()) files.push_back(fd);
 }
 
 bool SourceManager::isImportProvided(const std::string &importName) {
-  return std::ranges::any_of(files, [&](const FileData &fd) {
-    return fd.name == (importName + ".obw");
+  return std::ranges::any_of(files, [&](auto fd) {
+    return fd->name == (importName + ".obw");
   });
+}
+
+void
+SourceManager::addIncludedModule(const SourceBuffer &buffto,
+  const std::string &moduleName) {
+  auto imported = std::ranges::find_if(
+      files, [&](auto &fd) { return fd->name == (moduleName + ".obw"); });
+
+  this->files[buffto.id.id - (files.size() - 1)]->includedFiles.push_back(
+      *imported);
+}
+
+void SourceManager::addCompiledModule(const SourceBuffer &buffto, std::unique_ptr<llvm::Module> module) {
+  llvm::outs() << "Storing module in FileData for buffer " << buffto.id.id << "\n";
+  this->files[buffto.id.id]->module = std::move(module);
+  llvm::outs() << "Module stored successfully\n";
+}
+
+bool SourceManager::linkWithIncludedModules(const SourceBuffer &buffto) {
+  // get include modules names
+  // find these in SourceManager
+  // get their llvm modules
+  // link
+
+  // auto thisFile = this->files[buffto.id.id - (files.size() - 1)];
+  // auto includedModules = this->files[buffto.id.id - (files.size() - 1)].includedFiles;
+  //
+  // std::ranges::for_each(
+  //   includedModules,
+  //   [&](FileData &fd) {
+  //     if (llvm::Linker::linkModules(*thisFile.module,
+  //     std::unique_ptr<llvm::Module>(fd.module))) return false;
+  //   });
+
+  return true;
+}
+
+std::vector<FileData*>
+SourceManager::getIncluded(const SourceBuffer &buff) {
+  return this->files[buff.id.id - (files.size() - 1)]->includedFiles;
 }
 
 std::string SourceManager::resolveImport(std::string importName,
@@ -70,14 +118,14 @@ std::string SourceManager::resolveImport(std::string importName,
   std::string contents = source_stream.str();
   std::string fileName = importPath.filename().string();
 
-  FileData fd(importPath.parent_path(), fileName, contents, importPath);
+  auto fd = new FileData(importPath.parent_path(), fileName, contents, importPath);
   // @TODO check if exists already
-  // files.push_back(fd);
+  files.push_back(fd);
 
   for (auto &file : files) {
-    if (file.name == fromName) {
-      file.includedFiles.push_back(&fd);
-      fd.includedFrom = &file;
+    if (file->name == fromName) {
+      file->includedFiles.push_back(fd);
+      fd->includedFrom = file;
       break;
     }
   }
@@ -87,5 +135,5 @@ std::string SourceManager::resolveImport(std::string importName,
   return contents;
 }
 std::string SourceManager::getLastFileName() const {
-  return this->files.back().name;
+  return this->files.back()->name;
 }

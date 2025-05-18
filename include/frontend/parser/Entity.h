@@ -1,8 +1,10 @@
 #ifndef OBW_EINFO_H
 #define OBW_EINFO_H
 
+#include "../Scope.h"
 #include "../TypeTable.h"
 #include "frontend/lexer/Lexer.h"
+#include "Visitor.h"
 
 #include <memory>
 #include <ostream>
@@ -64,6 +66,8 @@ enum Ekind {
   E_Unary_Operator,
   E_Enum_Reference,
   E_Element_Reference,
+  E_Assignment_Wrapper, // Wraps assignments to be used in expressions
+  E_Conversion,
 
   // Special entities
   E_This, // current instance of object
@@ -84,35 +88,30 @@ enum Ekind {
 /**
  * Foundation for obewrong entities
  */
-class Entity {
+class Entity : public BaseVisitable<> {
 public:
   virtual ~Entity() = default;
-  explicit Entity(Ekind kind) : location() { this->kind = kind; };
+  explicit Entity(Ekind kind) : kind(kind), name(), location() {}
+
+  explicit Entity(Ekind kind, std::string name) : kind(kind), name(std::move(name)), location() {}
 
   Ekind getKind() const { return kind; };
   Loc getLoc() const { return location; };
+  std::string getName() const { return name; };
+  void appendToName(const std::string &name) { this->name += name; };
 
-  virtual std::shared_ptr<Type> resolveType(TypeTable typeTable) = 0;
+  virtual std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) = 0;
   virtual bool validate() = 0;
-
-  // ======== NODE LINKS ========
-  // different types of connection
-  // between nodes in a AAST
-  // type, attributes are defined in children classes
-
-  // SCOPE LINK
-  // points to a declaration in which scope this decl is
-  // i.e. some ClassDecl or FuncDecl
-  // std::shared_ptr<Entity> scope;
-  // @deprecated now we use symbol table for scope
 
   // STRUCTURAL LINK
   // children nodes
   std::shared_ptr<Entity> next;
 
+  DEFINE_VISITABLE()
+
 protected:
   Ekind kind;
-
+  std::string name;
   Loc location;
 };
 
@@ -134,12 +133,20 @@ public:
   std::vector<std::shared_ptr<Entity>> parts;
   BlockKind kind;
 
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override {
     (void)typeTable;
     return nullptr;
   }
 
   bool validate() override { return false; }
+
+  // DEFINE_VISITABLE()
+  virtual ReturnType accept(BaseVisitor &guest) {
+    for (auto part: parts) {
+      part->accept(guest);
+    }
+    // return acceptImpl(*this, guest);
+  }
 
   ~Block() override = default;
 };
@@ -156,18 +163,19 @@ public:
   std::shared_ptr<Type> assumedType;
   TokenKind expectedKind;
   std::string valueIfPresent;
-  std::shared_ptr<Type> resolveType(TypeTable typeTable) override {
+  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override {
     (void)typeTable;
     return nullptr;
   }
 
   bool validate() override { return false; }
+
+  DEFINE_VISITABLE()
 };
-/**
- * @TODO construct classes for each entitys
- * i.e. `class ClassDeclaration : Entity`
- * this will make it possible to return `Entity*` from some
- * `parse*` functions like for example from parseParameters()
- */
+
+template<typename T>
+std::shared_ptr<T> castEntity(const std::shared_ptr<Entity>& node) {
+    return std::static_pointer_cast<T>(node);
+}
 
 #endif

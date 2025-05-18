@@ -16,20 +16,19 @@
 #include <stdexcept>
 
 class Parser {
-  // SymbolTable symbolTable;
   std::shared_ptr<SymbolTable> globalSymbolTable;
   std::shared_ptr<GlobalTypeTable> globalTypeTable;
 
 public:
-  Parser(SourceManager &sm, std::vector<std::unique_ptr<Token>> tokens,
+  Parser(SourceManager &sm, std::shared_ptr<SourceBuffer> buff,
+    std::vector<std::unique_ptr<Token>> tokens,
          const std::shared_ptr<SymbolTable> &globalSymbolTable,
          const std::shared_ptr<GlobalTypeTable> &globalTypeTable)
-      : globalSymbolTable(globalSymbolTable), globalTypeTable(globalTypeTable),
-        tokens(std::move(tokens)), tokenPos(-1), sm(sm) {
-    // lastDeclaredScopeParent.emplace("Global");
+      : globalSymbolTable(globalSymbolTable), globalTypeTable(globalTypeTable), tokens(std::move(tokens)),
+        tokenPos(-1), sm(sm), buff(std::move(buff))
+  {
     globalTypeTable->initBuiltinTypes();
     globalSymbolTable->initBuiltinFunctions(globalTypeTable);
-    // symbolTable.enterScope();
   }
 
   ~Parser() {
@@ -41,7 +40,7 @@ public:
    * @brief Main function for parsing a program
    * @return pointer to a root of an AAST tree
    */
-  std::shared_ptr<Entity> parseProgram();
+  std::shared_ptr<ModuleDecl> parseProgram();
 
 private:
   std::vector<std::unique_ptr<Token>> tokens;
@@ -90,6 +89,8 @@ private:
 
   std::shared_ptr<VarDecl> parseVarDecl();
 
+  std::shared_ptr<ConversionEXP> parseConversionOperator(std::shared_ptr<Expression> from);
+
   std::shared_ptr<ConstrDecl> parseConstructorDecl();
 
   std::shared_ptr<MethodDecl> parseMethodDecl();
@@ -98,7 +99,7 @@ private:
 
   std::shared_ptr<ClassDecl> parseClassDecl();
 
-  std::shared_ptr<FieldDecl> parseFieldDecl();
+  std::shared_ptr<FieldDecl> parseFieldDecl(size_t index = 0);
 
   /**
    * @note WhileLoop ::= \n
@@ -141,6 +142,10 @@ private:
    * @note also parses functioncalls and compund expressions
    */
   std::shared_ptr<Expression> parseExpression();
+
+  std::shared_ptr<Expression> parseStaticAccess(std::shared_ptr<Expression> left);
+  std::shared_ptr<Expression> parseCallExpression(std::shared_ptr<Expression> left);
+  std::shared_ptr<Expression> parseMemberAccess(std::shared_ptr<Expression> left);
 
   /**
    *
@@ -210,6 +215,7 @@ private:
   OperatorKind tokenToOperator(TokenKind kind);
 
   SourceManager &sm;
+  std::shared_ptr<SourceBuffer> buff;
 };
 
 //========== FOR ERROR RECOVERY =========

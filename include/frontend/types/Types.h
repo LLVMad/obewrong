@@ -14,6 +14,14 @@
 
 #include <llvm/IR/DerivedTypes.h>
 
+// Can we apply resolveType() to construct
+// -> is typable construct
+template<typename T, typename = void>
+struct is_typeable : std::false_type {};
+
+template<typename T>
+struct is_typeable<T, std::void_t<decltype(std::declval<T>().resolveType())>> : std::true_type {};
+
 enum AccessKind {
   ACC_GENERAL,
   ACC_NOT_NULL,
@@ -29,7 +37,7 @@ enum TypeKind {
   TYPE_U16,
   TYPE_U64,
   TYPE_U32,
-  TYPE_FLOAT,
+  TYPE_REAL,
   TYPE_F64,
   TYPE_STRING,
   TYPE_ARRAY,
@@ -42,6 +50,7 @@ enum TypeKind {
   TYPE_GENERIC,
   TYPE_POINTER,
   TYPE_ACCESS,
+  TYPE_OPAQUE
 };
 
 class Type {
@@ -70,9 +79,10 @@ public:
   };
 };
 
+// Pointer type
 class TypeAccess : public Type {
 public:
-  TypeAccess(const std::shared_ptr<Type> &to)
+  TypeAccess(const std::shared_ptr<Type> to)
     : Type(TYPE_ACCESS, "access"), kind(ACC_GENERAL), to(to) {}
 
   AccessKind kind;
@@ -214,12 +224,12 @@ public:
   float min = std::numeric_limits<float>::min();
   float eps = std::numeric_limits<float>::epsilon();
 
-  TypeReal() : TypeBuiltin(TYPE_FLOAT, "Real", 32) {}
+  TypeReal() : TypeBuiltin(TYPE_REAL, "Real", 32) {}
 
   ~TypeReal() override = default;
 
   llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
-    (void)lc;
+    return llvm::Type::getDoubleTy(lc);
     return nullptr;
   }
 };
@@ -260,8 +270,8 @@ public:
   TypeArray() : Type(TYPE_ARRAY, "Array"), el_type(nullptr), size(0) {}
 
   llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
-    (void)lc;
-    return nullptr;
+    return llvm::ArrayType::get(el_type->toLLVMType(lc), size);
+    // return el_type->toLLVMType(lc);
   }
 
   ~TypeArray() override = default;
@@ -284,7 +294,9 @@ public:
       : Type(TYPE_FUNC, "Function"), return_type(std::move((return_type))),
         args(std::move((args))), isVoided(false), isVoid(false) {}
 
-  TypeFunc(const std::shared_ptr<Type> &return_type)
+
+  // can move @TODO
+  TypeFunc(std::shared_ptr<Type> return_type)
       : Type(TYPE_FUNC, "Function"), return_type(return_type), isVoided(true),
         isVoid(false) {}
 
@@ -336,8 +348,7 @@ public:
   }
 
   llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
-    (void)lc;
-    return nullptr;
+    return llvm::StructType::getTypeByName(lc, llvm::StringRef(name));
   }
 
   ~TypeClass() override = default;
@@ -379,18 +390,18 @@ public:
  *    - `own` - unique pointer, move semantic 
  *    - `not_null` - cannot be nulled 
  */
-class TypePointer : public Type {
-public:
-  TypePointer(const std::shared_ptr<Type> &toType, size_t depth,
-              bool allowsNull, bool isLimited, bool isGeneral)
-      : Type(TYPE_POINTER, "Pointer"), toType(toType), depth(depth),
-        allowsNull(allowsNull), isLimited(isLimited), isGeneral(isGeneral) {}
-
-  std::shared_ptr<Type> toType; // type that it points to
-  size_t depth;
-  bool allowsNull;
-  bool isLimited;
-  bool isGeneral;
-};
+// class TypePointer : public Type {
+// public:
+//   TypePointer(const std::shared_ptr<Type> &toType, size_t depth,
+//               bool allowsNull, bool isLimited, bool isGeneral)
+//       : Type(TYPE_POINTER, "Pointer"), toType(toType), depth(depth),
+//         allowsNull(allowsNull), isLimited(isLimited), isGeneral(isGeneral) {}
+//
+//   std::shared_ptr<Type> toType; // type that it points to
+//   size_t depth;
+//   bool allowsNull;
+//   bool isLimited;
+//   bool isGeneral;
+// };
 
 #endif
