@@ -1,10 +1,11 @@
 #ifndef OBW_CODEGENVISITOR_H
 #define OBW_CODEGENVISITOR_H
 
+#include "frontend/SourceManager.h"
 #include "frontend/SymbolTable.h"
 #include "frontend/parser/Statement.h"
-#include "frontend/parser/Wrappers.h"
 #include "frontend/parser/Visitor.h"
+#include "frontend/parser/Wrappers.h"
 
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
@@ -78,10 +79,13 @@ class CodeGenVisitor : public BaseVisitor,
                   public Visitor<ModuleDecl, void>,
                   public Visitor<EnumDecl, void> {
 public:
-  CodeGenVisitor(const std::shared_ptr<Scope<Entity>> &globalScope,
-                 const std::shared_ptr<GlobalTypeTable> &typeTable)
-      : globalScope(globalScope), typeTable(typeTable) {
-    context = std::make_unique<llvm::LLVMContext>();
+  CodeGenVisitor(
+    SourceManager &sm, std::shared_ptr<SourceBuffer> buff,
+    const std::shared_ptr<Scope<Entity>> &globalScope,
+                 const std::shared_ptr<GlobalTypeTable> &typeTable,
+                 std::shared_ptr<llvm::LLVMContext> context)
+      : globalScope(globalScope), typeTable(typeTable), context(context), sm(sm), buff(buff) {
+    // context = std::make_unique<llvm::LLVMContext>();
     builder = std::make_unique<llvm::IRBuilder<>>(*context);
 
     auto children = globalScope->getChildren();
@@ -124,6 +128,23 @@ public:
       false
     );
     llvm::getOrInsertLibFunc(module.get(), *ext_std_lib_info, llvm::LibFunc_free, freeType);
+
+    // LINK MODULES
+    auto included = sm.getIncluded(*buff);
+    // sm.linkWithIncludedModules(*buff, );
+    std::ranges::for_each(
+      included,
+      [&](auto &file) {
+        if (llvm::Linker::linkModules(*module, std::move(file->module)))
+          throw std::runtime_error("Failed to link modules");
+        assert(module && "Module is null after linking!");
+      }
+    );
+
+    // if(llvm::verifyModule(*module, &llvm::outs())) {
+    //   throw std::runtime_error("Linker failed");
+    // }
+    // ============
 
     // link to standard library
     // auto libc_module = std::make_unique<llvm::Module>("libc_module", *context);
@@ -246,7 +267,7 @@ private:
   // root &node of an AST
   // std::shared_ptr<Entity> root;
 
-  std::unique_ptr<llvm::LLVMContext> context;
+  std::shared_ptr<llvm::LLVMContext> context;
   std::unique_ptr<llvm::IRBuilder<>> builder;
   std::unique_ptr<llvm::Module> module;
 
@@ -260,6 +281,9 @@ private:
   size_t currDepth;
 
   std::string moduleName;
+
+  SourceManager &sm;
+  std::shared_ptr<SourceBuffer> buff;
 };
 
 #endif

@@ -16,20 +16,19 @@
 #include <stdexcept>
 
 class Parser {
-  // SymbolTable symbolTable;
   std::shared_ptr<SymbolTable> globalSymbolTable;
   std::shared_ptr<GlobalTypeTable> globalTypeTable;
 
 public:
-  Parser(SourceManager &sm, std::vector<std::unique_ptr<Token>> tokens,
+  Parser(SourceManager &sm, std::shared_ptr<SourceBuffer> buff,
+    std::vector<std::unique_ptr<Token>> tokens,
          const std::shared_ptr<SymbolTable> &globalSymbolTable,
          const std::shared_ptr<GlobalTypeTable> &globalTypeTable)
-      : globalSymbolTable(globalSymbolTable), globalTypeTable(globalTypeTable),
-        tokens(std::move(tokens)), tokenPos(-1), sm(sm) {
-    // lastDeclaredScopeParent.emplace("Global");
+      : globalSymbolTable(globalSymbolTable), globalTypeTable(globalTypeTable), tokens(std::move(tokens)),
+        tokenPos(-1), sm(sm), buff(std::move(buff))
+  {
     globalTypeTable->initBuiltinTypes();
     globalSymbolTable->initBuiltinFunctions(globalTypeTable);
-    // symbolTable.enterScope();
   }
 
   ~Parser() {
@@ -216,6 +215,7 @@ private:
   OperatorKind tokenToOperator(TokenKind kind);
 
   SourceManager &sm;
+  std::shared_ptr<SourceBuffer> buff;
 };
 
 //========== FOR ERROR RECOVERY =========

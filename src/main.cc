@@ -19,6 +19,7 @@ int main(int argc, char *argv[]) {
   }
 
   auto globalSymbolTable = std::make_shared<SymbolTable>();
+  auto context = std::make_shared<llvm::LLVMContext>();
   auto globalTypeTable = std::make_shared<GlobalTypeTable>();
   for (int i = args.size() - 1; i >= 0; i--) {
     printf("#==== parsing %s\n", args[i].c_str());
@@ -28,7 +29,7 @@ int main(int argc, char *argv[]) {
 
     std::vector<std::unique_ptr<Token>> tokens = lexer.lex();
 
-    Parser parser(sm, std::move(tokens), globalSymbolTable, globalTypeTable);
+    Parser parser(sm, buff, std::move(tokens), globalSymbolTable, globalTypeTable);
 
     std::shared_ptr<ModuleDecl> parseTree = parser.parseProgram();
 
@@ -41,7 +42,7 @@ int main(int argc, char *argv[]) {
     // if error -> exit(-1)
 
     auto global_scope = globalSymbolTable->getGlobalScope();
-    CodeGenVisitor cgvisitor(global_scope, globalTypeTable);
+    CodeGenVisitor cgvisitor(sm, buff, global_scope, globalTypeTable, context);
     parseTree->accept(cgvisitor);
     // cgvisitor.visitDefault(parseTree);
     cgvisitor.dumpIR();

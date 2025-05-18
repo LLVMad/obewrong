@@ -212,6 +212,7 @@ void CodeGenVisitor::visit(ConstructorCallEXP &node) {
 
   llvm::Type *classType = llvm::StructType::getTypeByName(*context, node.left->getName());
 
+  // @TODO
   if (!classType) {
     classType = typeTable->getType(moduleName, "Integer")->toLLVMType(*context);
   }
@@ -322,7 +323,7 @@ void CodeGenVisitor::visit(ArrayLiteralExpr &node) {
     *module,
     arrayTypeLLVM,
     true,  // isConstant
-    llvm::GlobalValue::LinkageTypes::InternalLinkage,
+    llvm::GlobalValue::LinkageTypes::ExternalLinkage,
     constArray
   );
 
@@ -436,7 +437,7 @@ void CodeGenVisitor::visit(ConstrDecl &node) {
   llvm::FunctionType *FT = llvm::FunctionType::get(returnType, argTypes, false);
 
   std::string constrName = node.getName() /* + typeNames */;
-  llvm::Function *F = llvm::Function::Create(FT, llvm::Function::InternalLinkage,
+  llvm::Function *F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage,
     node.getName(), module.get());
 
   size_t i = 0;
@@ -491,7 +492,7 @@ void CodeGenVisitor::visit(MethodDecl &node) {
 
   llvm::FunctionType *FT = llvm::FunctionType::get(returnType, argTypes, false);
 
-  llvm::Function *F = llvm::Function::Create(FT, llvm::Function::InternalLinkage,
+  llvm::Function *F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage,
     node.getName(), module.get());
 
   // Set argument names - first one is 'this' from parser
@@ -535,7 +536,8 @@ void CodeGenVisitor::visit(FieldDecl &node) {
 void CodeGenVisitor::visit(ModuleDecl &node) {
   currentScope = currentScope->nextScope(); // global scope -> module scope
 
-  while (currentScope->getKind() != SCOPE_MODULE) currentScope = currentScope->nextScope();
+  while (currentScope->getKind() != SCOPE_MODULE
+    && currentScope->getName() != node.getName()) currentScope = currentScope->nextScope();
 
   auto children = node.children;
   for (const auto &child : children) {
@@ -543,21 +545,25 @@ void CodeGenVisitor::visit(ModuleDecl &node) {
   }
 
   // Create MAIN() that will call Main class constructor !
-  llvm::FunctionType *FT = llvm::FunctionType::get(llvm::Type::getInt32Ty(*context), false);
-  llvm::Function *F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, "main", module.get());
-
-  llvm::BasicBlock *BB = llvm::BasicBlock::Create(*context, "entry", F);
-  builder->SetInsertPoint(BB);
-
   auto mainType = llvm::StructType::getTypeByName(*context, "Main");
-  auto mainAlloca = builder->CreateAlloca(mainType);
+  if (mainType) {
+    llvm::FunctionType *FT = llvm::FunctionType::get(llvm::Type::getInt32Ty(*context), false);
+    llvm::Function *F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, "main", module.get());
 
-  auto mainConstr = getFunction("Main_Create");
-  builder->CreateCall(mainConstr, {mainAlloca});
+    llvm::BasicBlock *BB = llvm::BasicBlock::Create(*context, "entry", F);
+    builder->SetInsertPoint(BB);
 
-  builder->CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0));
+    auto mainAlloca = builder->CreateAlloca(mainType);
 
-  verifyFunction(*F);
+    auto mainConstr = getFunction("Main_Create");
+    builder->CreateCall(mainConstr, {mainAlloca});
+
+    builder->CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0));
+
+    verifyFunction(*F);
+
+  }
+  // ->> not a main module
 }
 
 void CodeGenVisitor::visit(VarDecl &node) {
@@ -609,7 +615,7 @@ void CodeGenVisitor::visit(FuncDecl &node) {
   llvm::FunctionType *FT = llvm::FunctionType::get(returnType, argTypes, false);
 
   llvm::Function *F = llvm::Function::Create(FT,
-    (node.getKind() == E_Main_Decl) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage,
+    (node.getKind() == E_Main_Decl) ? llvm::Function::ExternalLinkage : llvm::Function::ExternalLinkage,
     node.getName(), module.get());
 
   size_t i = 0;
@@ -833,6 +839,10 @@ void CodeGenVisitor::visit(ReturnSTMT &node) {
 //#####=========================================#####
 
 void CodeGenVisitor::createObjFile() {
+  // LINK MODULES
+
+  // ============
+
   llvm::InitializeAllTargetInfos();
   llvm::InitializeAllTargets();
   llvm::InitializeAllTargetMCs();
@@ -898,6 +908,11 @@ void CodeGenVisitor::createObjFile() {
   if (status == -1) {
     CG_ERR("", "Linking failed");
   }
+
+  // Debug logging to verify module transfer
+  llvm::outs() << "Transferring module to SourceManager...\n";
+  sm.addCompiledModule(*buff, std::move(module));
+  llvm::outs() << "Module transferred successfully\n";
 }
 
 //#####=========================================#####

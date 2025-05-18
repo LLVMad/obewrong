@@ -45,6 +45,7 @@ public:
           scope->addSymbol(decl.first, decl.second.decl);
         }
         for (auto &scopeCopy : scopeToCopy) {
+          scopeCopy->external = true;
           scope->addChild(scopeCopy);
         }
 
@@ -76,6 +77,7 @@ public:
           scope->addSymbol(decl.first, decl.second.decl);
         }
         for (auto &scopeCopy : scopeToCopy) {
+          // scopeCopy->external = true;
           scope->addChild(scopeCopy);
         }
 

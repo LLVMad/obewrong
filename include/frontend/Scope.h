@@ -36,7 +36,7 @@ template<typename T>
 class Scope : public std::enable_shared_from_this<Scope<T>> {
 public:
   Scope(ScopeKind kind, const std::string &name, std::weak_ptr<Scope> parent)
-      : kind(kind), name(name), parent(parent), depth(-1) {}
+      : external(false), kind(kind), name(name), parent(parent), depth(-1) {}
 
   /**
    * @phase Syntax analysis \n
@@ -94,7 +94,7 @@ public:
     if (depth > static_cast<int>(children.size() - 1)) return std::shared_ptr(parent);
 
     // skip builtins
-    while (children[depth]->kind >= 7) {
+    while (children[depth]->kind >= 7 || children[depth]->external) {
       depth++;
     }
 
@@ -186,6 +186,8 @@ public:
 
   void setName(const std::string &name) { this->name = name; }
   void appendToName(const std::string &name) { this->name += name; }
+
+  bool external; // do we need to visit it? if copied to antoher module => true
 
 private:
   ScopeKind kind;

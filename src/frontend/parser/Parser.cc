@@ -169,10 +169,14 @@ std::shared_ptr<ModuleDecl> Parser::parseProgram() {
                                importedModuleName);
     }
 
+    sm.addIncludedModule(*buff, importedModuleName);
+
     globalSymbolTable->copySymbolFromModulesToCurrent(
         importedModuleName, // from
         moduleName          // to
     );
+
+    globalTypeTable->importTypesFromModule(importedModuleName, moduleName);
 
     token = peek();
   }
@@ -180,6 +184,10 @@ std::shared_ptr<ModuleDecl> Parser::parseProgram() {
   // import builtin modules -> Integer, ...
   globalSymbolTable->copySymbolFromModulesToCurrent(
       "Integer", // from
+      moduleName          // to
+  );
+  globalSymbolTable->copySymbolFromModulesToCurrent(
+      "Real", // from
       moduleName          // to
   );
 

@@ -195,3 +195,35 @@ Todo:
 - Массив (Артём)
 - Цепи вызовов + `2.Plus()`
 - Дженерики 
+
+---
+
+# 16.05.2025
+
+## HOT
+- [x] Rework visitors
+  - [x] Codegen
+  - [ ] Semantic
+- [ ] Builtin types
+  - [x] Integer
+  - [x] Real
+  - [ ] Char
+  - [ ] String
+  - [ ] Array
+  - [ ] sizeof(...) operator
+  - [ ] add copying all these to current module
+
+## MEDIUM
+- [ ] Inheritence
+- [ ] Virtual tables
+-
+## LEAST
+- [ ] Conversions
+  - [x] Int to real and vice versa
+  - [ ] Pointer conv
+  - [ ] User-defined types conversion
+- [ ] Generics
+
+## DONE
+- [x] Chained expressions
+- [x] Module system (link llvm modules)

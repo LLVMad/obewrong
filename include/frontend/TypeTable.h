@@ -121,6 +121,16 @@ public:
     types[moduleName].addType(typeName, type);
   }
 
+  void importTypesFromModule(const std::string &from, const std::string &to) {
+    auto typesTableFrom = std::ranges::find_if(
+      types,
+      [&from, &to](auto pair) { return pair.first == from; });
+
+    std::ranges::for_each(
+      typesTableFrom->second.types,
+      [&to, this](auto pair) { this->types[to].addType(pair.first, pair.second); });
+  }
+
   std::shared_ptr<Type> getType(const std::string &moduleName,
                                 const std::string &typeName) {
     // first search through builtins
