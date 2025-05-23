@@ -46,11 +46,13 @@ public:
 class FieldDecl : public Decl {
 public:
   explicit FieldDecl(const std::string &name, std::shared_ptr<Type> type)
-      : Decl(E_Field_Decl, name), type(std::move(type)) {}
+      : Decl(E_Field_Decl, name), type(std::move(type)), isInherited(false) {}
 
   std::shared_ptr<Type> type;
   size_t index; // index of a field in a class
   std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+
+  bool isInherited;
 
   bool validate() override;
 
@@ -136,7 +138,7 @@ public:
       : Decl(E_Method_Decl, name), signature(std::move(signature)),
         args(std::move(args)), isForward(false), isShort(false),
         isVoided(false), isVoid(signature->isVoid), isBuiltin(false),
-        isStatic(false), isPrivate(false), body(std::move(body)) {}
+        isStatic(false), isPrivate(false), isInherited(false), body(std::move(body)) {}
 
   explicit MethodDecl(const std::string &name,
                       std::shared_ptr<TypeFunc> signature,
@@ -144,7 +146,7 @@ public:
       : Decl(E_Method_Decl, name), signature(std::move(signature)), args(),
         isForward(false), isShort(false), isVoided(true),
         isVoid(signature->isVoid), isBuiltin(false), isStatic(false),
-        isPrivate(false), body(std::move(body)) {}
+        isPrivate(false),isInherited(false), body(std::move(body)) {}
 
   explicit MethodDecl(const std::string &name,
                       const std::shared_ptr<TypeFunc> &signature,
@@ -153,7 +155,7 @@ public:
       : Decl(E_Method_Decl, name), signature(signature), args(args),
         isForward(false), isShort(false), isVoided(false),
         isVoid(signature->isVoid), isBuiltin(isBuiltin), isStatic(false),
-        isPrivate(false), body() {}
+        isPrivate(false),isInherited(false), body() {}
 
   std::shared_ptr<TypeFunc> signature;
   std::vector<std::shared_ptr<ParameterDecl>> args;
@@ -165,6 +167,7 @@ public:
   bool isBuiltin;
   bool isStatic;
   bool isPrivate;
+  bool isInherited;
   std::shared_ptr<Block> body;
 
   std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;

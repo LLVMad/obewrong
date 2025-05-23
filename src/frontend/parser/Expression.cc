@@ -105,7 +105,7 @@ bool FuncCallEXP::validate() {
 }
 
 std::shared_ptr<Type> ClassNameEXP::resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) {
-  (void)typeTable;
+  // (void)typeTable;
   return typeTable.getType(name);
 }
 
@@ -114,8 +114,9 @@ bool ClassNameEXP::validate() {
 }
 
 std::shared_ptr<Type> ConstructorCallEXP::resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) {
-  (void)typeTable;
+  // (void)typeTable;
   // void, becouse we pass this (self ref) as first argument and return nothing
+  return this->left->resolveType(typeTable, currentScope); // @FIXME
   return nullptr;
 }
 

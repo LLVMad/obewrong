@@ -584,7 +584,20 @@ std::shared_ptr<VarDecl> Parser::parseVarDecl() {
     token = next(); // eat '['
 
     auto el_type_name = std::get<std::string>(next()->value);
-    auto el_type = globalTypeTable->getType(moduleName, el_type_name);
+
+    std::shared_ptr<Type> el_type;
+    if (el_type_name == "access") {
+      el_type_name = std::get<std::string>(next()->value);
+
+      auto toType = globalTypeTable->types[moduleName].getType(
+  el_type_name);
+      var_type = std::make_shared<TypeAccess>(toType);
+      type_name = var_name; // alias a type by the variable name
+      globalTypeTable->addType(moduleName, type_name, var_type);
+      el_type = var_type;
+    } else {
+      el_type = globalTypeTable->getType(moduleName, el_type_name);
+    }
 
     // @note <TypeList> is safe, because it has only el_type field
     auto var_type_array = std::make_shared<TypeList>(el_type);
@@ -899,6 +912,7 @@ std::shared_ptr<ClassDecl> Parser::parseClassDecl() {
     globalSymbolTable->copySymbolsAndChildren(module_scope, base_class->getName(),
                                               class_name);
 
+
     // auto base_class_scope =
     // globalSymbolTable->getModuleScope(current_scope)->
 
@@ -923,6 +937,7 @@ std::shared_ptr<ClassDecl> Parser::parseClassDecl() {
       auto field = std::dynamic_pointer_cast<FieldDecl>(ent);
       // field->index = index;
       // index++;
+      if (base_class) field->index++; // inherited copy at index 0 always
       fields.push_back(field);
       fieldTypes.push_back(field->type);
     } break;
@@ -947,7 +962,7 @@ std::shared_ptr<ClassDecl> Parser::parseClassDecl() {
   auto selfRefType = std::make_shared<TypeAccess>(class_new_type);
   globalTypeTable->addType(moduleName, "this" + class_name, selfRefType);
 
-  auto thisParam = std::make_shared<ParameterDecl>("this", selfRefType);
+  auto thisParam = std::make_shared<ParameterDecl>("this" + class_name, selfRefType);
   for (auto &meth : class_new_type->methods_types) {
     meth->args.emplace(meth->args.begin(), selfRefType);
   }
@@ -966,7 +981,7 @@ std::shared_ptr<ClassDecl> Parser::parseClassDecl() {
 
   for (auto &child : globalSymbolTable->getCurrentScope()->getChildren()) {
     if (child->getKind() == SCOPE_METHOD) {
-      child->addSymbol<ParameterDecl>("this", thisParam);
+      child->addSymbol<ParameterDecl>("this" + class_name, thisParam);
     }
   }
 
@@ -976,7 +991,14 @@ std::shared_ptr<ClassDecl> Parser::parseClassDecl() {
 
   // globalTypeTable->addType(moduleName, "access_" + class_name, selfRefType);
 
-
+  // add field of BASE_CLASS type to inherited class
+  std::shared_ptr<Type> base_class_type;
+  if (base_class) {
+    base_class_type = globalTypeTable->getType(
+        moduleName, base_class->getName());
+    class_new_type->fields_types.emplace(
+      class_new_type->fields_types.begin(), base_class_type);
+  }
 
   // finally add the new type
   globalTypeTable->addType(moduleName, class_name, class_new_type);
@@ -993,8 +1015,11 @@ std::shared_ptr<ClassDecl> Parser::parseClassDecl() {
     auto baseClassDecl = std::static_pointer_cast<ClassDecl>(base_class);
     class_stmt->base_class = baseClassDecl;
     class_stmt->type->base_class = baseClassDecl->type;
+
+    auto baseClassAsField = std::make_shared<FieldDecl>(base_class->getName(), base_class_type);
+    class_stmt->fields.emplace(class_stmt->fields.begin(), baseClassAsField);
   }
-  // globalSymbolTable->addToGlobalScope(moduleName, "Global", class_stmt);
+
   globalSymbolTable->getCurrentScope()->addSymbol<ClassDecl>(class_name, class_stmt);
 
   return class_stmt;
@@ -1672,6 +1697,76 @@ std::shared_ptr<ParameterDecl> Parser::parseParameterDecl() {
   //   return nullptr;
   // token = next();
   token = next();
+
+  // @TODO parseType
+    std::shared_ptr<Type> param_type;
+  std::string type_name;
+  // composite container type
+  if (std::get<std::string>(token->value) == "Array") {
+
+    token = next(); // eat '['
+
+    auto el_type_name = std::get<std::string>(next()->value);
+
+    std::shared_ptr<Type> el_type;
+    if (el_type_name == "access") {
+      el_type_name = std::get<std::string>(next()->value);
+
+      auto toType = globalTypeTable->types[moduleName].getType(
+  el_type_name);
+      param_type = std::make_shared<TypeAccess>(toType);
+      type_name = param_name; // alias a type by the variable name
+      globalTypeTable->addType(moduleName, type_name, param_type);
+      el_type = param_type;
+    } else {
+      el_type = globalTypeTable->getType(moduleName, el_type_name);
+    }
+
+    // @note <TypeList> is safe, because it has only el_type field
+    auto var_type_array = std::make_shared<TypeList>(el_type);
+    var_type_array->el_type = std::move(el_type);
+
+    // size_t array_size = 0;
+
+    // "," SIZE
+    if (peek()->kind == TOKEN_COMMA) {
+      auto var_type_const_array = std::make_shared<TypeArray>();
+      var_type_const_array->el_type = std::move(el_type);
+      token = next(); // eat ','
+
+      token = peek();
+      // @TODO can size be an expression?
+      token = next();
+      size_t array_size = std::get<int>(token->value);
+
+      var_type_const_array->el_type = std::move(var_type_array->el_type);
+      var_type_const_array->size = array_size;
+
+      // Array type cant be shared, because arrays
+      // have different length
+      // taken from c++ primer
+      // `"The number of elements in an array is part of the array's type."`
+      // so we add a new array type when we encounter a decl of array
+      // indexed by a var name ?
+
+      globalTypeTable->addType(moduleName, param_name, var_type_const_array);
+
+      param_type = var_type_const_array;
+    } else {
+      // Array type cant be shared, because arrays
+      // have different length
+      // taken from c++ primer
+      // `"The number of elements in an array is part of the array's type."`
+      // so we add a new array type when we encounter a decl of array
+      // indexed by a var name ?
+      globalTypeTable->addType(moduleName, param_name, var_type_array);
+
+      param_type = var_type_array;
+    }
+
+    token = next(); // eat ']'
+  }
+
   bool isPointer = false;
   if (token->kind == TOKEN_ACCESS) {
     // pointer to type
@@ -1679,23 +1774,27 @@ std::shared_ptr<ParameterDecl> Parser::parseParameterDecl() {
     token = next();
   }
 
-  std::string type_name = "byte";
-  std::shared_ptr<Type> param_type;
-  if (!isTypeName(token->kind) && token->kind != TOKEN_IDENTIFIER) {
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected type qualifier for a field\n");
-    param_type = globalTypeTable->types[moduleName].getType("byte");
+  // std::string type_name = "byte";
+  // std::shared_ptr<Type> param_type;
+  if (token->kind == TOKEN_RSBRACKET) {
+    token = next();
   } else {
-    // token = next();
-    if (isPointer) {
-      auto toType = globalTypeTable->types[moduleName].getType(
-        std::get<std::string>(token->value));
-      param_type = std::make_shared<TypeAccess>(toType);
-      type_name = param_name; // alias a type by the variable name
-      globalTypeTable->addType(moduleName, type_name, param_type);
+    if (!isTypeName(token->kind) && token->kind != TOKEN_IDENTIFIER) {
+      PARSE_ERR(sm.getLastFilePath().c_str(),
+                "Expected type qualifier for a field\n");
+      param_type = globalTypeTable->types[moduleName].getType("byte");
     } else {
-      param_type = globalTypeTable->types[moduleName].getType(
+      // token = next();
+      if (isPointer) {
+        auto toType = globalTypeTable->types[moduleName].getType(
           std::get<std::string>(token->value));
+        param_type = std::make_shared<TypeAccess>(toType);
+        type_name = param_name; // alias a type by the variable name
+        globalTypeTable->addType(moduleName, type_name, param_type);
+      } else {
+        param_type = globalTypeTable->types[moduleName].getType(
+            std::get<std::string>(token->value));
+      }
     }
   }
   // auto param_type = std::get<std::string>(token->value);
@@ -2054,7 +2153,9 @@ std::shared_ptr<Expression> Parser::parsePrimary() {
     break;
   }
   case TOKEN_SELFREF: {
-    expr = std::make_shared<ThisEXP>();
+    // @FIXME
+    auto className = globalSymbolTable->getCurrentScope()->prevScope()->getName();
+    expr = std::make_shared<ThisEXP>(className);
     break;
   }
   case TOKEN_LBRACKET: {
@@ -2152,22 +2253,42 @@ std::shared_ptr<Expression> Parser::parsePrimary() {
         return methodCall;
       } else {
         // This is a field access
-        auto var_ref = std::static_pointer_cast<VarRefEXP>(expr);
-        auto field_access = std::make_shared<FieldRefEXP>(field_name, var_ref);
+        std::shared_ptr<VarRefEXP> var_ref;
+        std::shared_ptr<ElementRefEXP> el_ref;
+        std::shared_ptr<FieldRefEXP> field_access;
+
+        if (expr->getKind() == E_Element_Reference) {
+          el_ref = std::static_pointer_cast<ElementRefEXP>(expr);
+          field_access = std::make_shared<FieldRefEXP>(field_name, el_ref);
+          var_ref = el_ref->arr;
+          // var_ref = el_ref; // put ereference to ARRAY insted of to EL catchy @FIXME
+        } else {
+          var_ref = std::static_pointer_cast<VarRefEXP>(expr);
+          field_access = std::make_shared<FieldRefEXP>(field_name, var_ref);
+        }
         
         auto currScope = globalSymbolTable->getCurrentScope();
         std::string typeName;
         if (expr->getKind() == E_This) {
           typeName = globalSymbolTable->getCurrentScope()->prevScope()->getName();
-        } else {
+        }
+        else if (expr->getKind() == E_Element_Reference) {
           auto obj_decl = std::static_pointer_cast<VarDecl>(
               globalSymbolTable->getCurrentScope()->lookup(var_ref->getName()));
+
+          typeName = std::static_pointer_cast<TypeArray>(obj_decl->type)->el_type->name;
+        }
+        else {
+          auto obj_decl = std::static_pointer_cast<VarDecl>(
+              globalSymbolTable->getCurrentScope()->lookup(var_ref->getName()));
+
           typeName = obj_decl->type->name;
         }
+
         auto field_decl = std::static_pointer_cast<FieldDecl>(
             globalSymbolTable->getModuleScope(currScope)->lookupInClass(
                 field_name, typeName));
-        
+
         field_access->index = field_decl->index;
         return field_access;
       }
@@ -2234,7 +2355,8 @@ Parser::parsePrimary(const std::string &classNameToSearchIn) {
     break;
   }
   case TOKEN_SELFREF: {
-    expr = std::make_shared<ThisEXP>();
+    auto className = globalSymbolTable->getCurrentScope()->prevScope()->getName();
+    expr = std::make_shared<ThisEXP>(className);
     break;
   }
   case TOKEN_LBRACKET: {

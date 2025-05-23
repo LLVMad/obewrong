@@ -167,6 +167,26 @@ public:
   DEFINE_VISITABLE()
 };
 
+// class ArrayRefEXP : public Expression {
+// public:
+//
+// };
+
+class ElementRefEXP : public Expression {
+public:
+  ElementRefEXP(std::shared_ptr<Expression> index,
+                std::shared_ptr<VarRefEXP> arr)
+      : Expression(E_Element_Reference), arr(arr), index(index) {};
+
+  ElementRefEXP()
+      : Expression(E_Element_Reference), arr(nullptr), index(nullptr) {};
+
+  std::shared_ptr<VarRefEXP> arr;
+  std::shared_ptr<Expression> index;
+
+  DEFINE_VISITABLE()
+};
+
 /**
  * For when we refer to a "value" by
  * referencing associated variable name
@@ -186,35 +206,19 @@ public:
   FieldRefEXP(std::string name, std::shared_ptr<VarRefEXP> obj)
       : Expression(E_Field_Reference, std::move(name)), obj(obj) {};
 
+  FieldRefEXP(std::string name, std::shared_ptr<ElementRefEXP> obj)
+    : Expression(E_Field_Reference, std::move(name)), el(obj) {};
+
   FieldRefEXP(std::string name)
       : Expression(E_Field_Reference, std::move(name)),
         obj(nullptr) {};
 
   std::shared_ptr<VarRefEXP> obj; // object which field is referenced
+  std::shared_ptr<ElementRefEXP> el;
   size_t index;
 
   std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
   bool validate() override;
-
-  DEFINE_VISITABLE()
-};
-
-// class ArrayRefEXP : public Expression {
-// public:
-//
-// };
-
-class ElementRefEXP : public Expression {
-public:
-  ElementRefEXP(std::shared_ptr<Expression> index,
-                std::shared_ptr<VarRefEXP> arr)
-      : Expression(E_Element_Reference), arr(arr), index(index) {};
-
-  ElementRefEXP()
-      : Expression(E_Element_Reference), arr(nullptr), index(nullptr) {};
-
-  std::shared_ptr<VarRefEXP> arr;
-  std::shared_ptr<Expression> index;
 
   DEFINE_VISITABLE()
 };
@@ -365,7 +369,7 @@ public:
 // @TODO
 class ThisEXP : public Expression {
 public:
-  ThisEXP() : Expression(E_This, "this") {}
+  ThisEXP(const std::string &className) : Expression(E_This, "this" + className) {}
 
   // no children, just a link to ???
   // @TODO add link to idk what
