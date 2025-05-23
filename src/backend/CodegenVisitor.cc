@@ -110,9 +110,49 @@ void CodeGenVisitor::visit(AssignmentWrapperEXP &node) {
 
 // a.x
 void CodeGenVisitor::visit(FieldRefEXP &node) {
-  auto [decl, alloca, isInited] = *currentScope->getSymbol(node.obj->getName());
+  std::shared_ptr<Type> varType = nullptr;
+  llvm::AllocaInst* alloca = nullptr;
+  bool isInherited = false;
 
-  auto varType = decl->resolveType(typeTable->types[moduleName], currentScope);
+  if (node.obj) {
+    auto [decl, temp_alloca, isInited] = *currentScope->getSymbol(node.obj->getName());
+
+    alloca = temp_alloca;
+    varType = decl->resolveType(typeTable->types[moduleName], currentScope);
+
+    // check if inherited
+    if (varType->kind == TYPE_ACCESS) {
+      auto className = currentScope->prevScope()->getName();
+      auto fieldName = node.getName(); // get field name
+      auto [classDecl, _, __] = *currentScope->getSymbol<ClassDecl>(className);
+      if (!std::any_of(classDecl->fields.begin(), classDecl->fields.end(),
+        [&](auto &f) { return f->getName() == fieldName; }))
+      {
+        // first load a copy
+        isInherited = true;
+      }
+    }
+    else {
+      auto fieldName = node.getName(); // get field name
+      auto [classDecl, _, __] = *currentScope->getSymbol<ClassDecl>(varType->name);
+      if (!std::any_of(classDecl->fields.begin(), classDecl->fields.end(),
+        [&](auto &f) { return f->getName() == fieldName; }))
+      {
+        // first load a copy
+        isInherited = true;
+      }
+    }
+
+  }
+  else if (node.el) {
+    auto var_ref = node.el->arr;
+    auto obj_decl = std::static_pointer_cast<VarDecl>(
+      currentScope->lookup(var_ref->getName()));
+
+    node.el->accept(*this);
+    // alloca = lastValue;
+    varType = std::static_pointer_cast<TypeArray>(obj_decl->type)->el_type;
+  }
 
   if (varType->kind == TYPE_ACCESS) {
     auto ptrType = std::static_pointer_cast<TypeAccess>(varType);
@@ -129,13 +169,37 @@ void CodeGenVisitor::visit(FieldRefEXP &node) {
   } else {
     auto classTypeLLVM = varType->toLLVMType(*context);
 
-    // construct GEP
-    lastValue = builder->CreateStructGEP(
-      classTypeLLVM,
-      alloca,
-      node.index,
-      node.getName()
-    );
+    if (isInherited) {
+      // GEP to class copy
+      lastValue = builder->CreateStructGEP(
+        classTypeLLVM->getContainedType(0),
+        alloca == nullptr ? lastValue : alloca,
+        0,
+        node.getName()
+      );
+
+      // load class copy
+      // lastValue = builder->CreateLoad(
+      //   classTypeLLVM->getContainedType(0),
+      //   lastValue
+      // );
+
+      // gep to base field
+      // lastValue = builder->CreateStructGEP(
+      //   classTypeLLVM->getContainedType(0),
+      //   lastValue,
+      //   node.index
+      // );
+    }
+    else {
+      // construct GEP
+      lastValue = builder->CreateStructGEP(
+        classTypeLLVM,
+        alloca == nullptr ? lastValue : alloca,
+        node.index,
+        node.getName()
+      );
+    }
   }
 }
 
@@ -311,6 +375,15 @@ void CodeGenVisitor::visit(RealLiteralEXP &node) {
 
 void CodeGenVisitor::visit(ArrayLiteralExpr &node) {
   auto elType = typeTable->getType(moduleName, node.el_type);
+
+  if(node.el_type == TYPE_UNKNOWN) {
+    // resolve type manually
+    elType = node.elements[0]->resolveType(typeTable->types[moduleName], currentScope);
+  
+    //if(elType->kind == 
+
+  }
+
   auto arrayTypeLLVM = llvm::ArrayType::get(elType->toLLVMType(*context), node.elements.size());
 
   // create constant elements
@@ -1178,7 +1251,18 @@ CodeGenVisitor::unwrapPointerReference(Expression *node, llvm::Value *val) {
     case E_Element_Reference: {
       auto elementRef = static_cast<ElementRefEXP*>(node);
       auto arrType = currentScope->lookup<VarDecl>(elementRef->arr->getName())->type;
-      auto el_type = std::static_pointer_cast<TypeArray>(arrType)->el_type;
+
+      std::shared_ptr<Type> el_type;
+      switch (arrType->kind) {
+        case TYPE_ARRAY: {
+          el_type = std::static_pointer_cast<TypeArray>(arrType)->el_type;
+          break;
+        }
+        case TYPE_ACCESS: {
+          el_type = std::static_pointer_cast<TypeAccess>(arrType)->to;
+          break;
+        }
+      }
 
       val = builder->CreateLoad(
         el_type->toLLVMType(*context),
@@ -1187,22 +1271,71 @@ CodeGenVisitor::unwrapPointerReference(Expression *node, llvm::Value *val) {
     } break;
     case E_Var_Reference: {
 
-    }
+    } break;
     case E_Field_Reference: {
-      auto fieldRef = static_cast<FieldRefEXP*>(node);
-      auto [varDecl, alloca, isInited] = *currentScope->getSymbol<VarDecl>(fieldRef->obj->getName());
+      std::shared_ptr<Type> type = nullptr;
+      llvm::AllocaInst* alloca = nullptr;
 
-      auto type = varDecl->resolveType(typeTable->types[moduleName], currentScope);
+      auto fieldRef = static_cast<FieldRefEXP*>(node);
+      if (fieldRef->obj) {
+        auto [varDecl, temp_alloca, isInited] = *currentScope->getSymbol(fieldRef->obj->getName());
+        alloca = temp_alloca;
+        type = varDecl->resolveType(typeTable->types[moduleName], currentScope);
+      }
+      else if (fieldRef->el) {
+        auto var_ref = fieldRef->el->arr;
+        auto obj_decl = std::static_pointer_cast<VarDecl>(
+          currentScope->lookup(var_ref->getName()));
+
+        // fieldRef->el->accept(*this);
+        // alloca = lastValue;
+        type = std::static_pointer_cast<TypeArray>(obj_decl->type)->el_type;
+      }
+
+      // auto [varDecl, alloca, isInited] = *currentScope->getSymbol<VarDecl>(fieldRef->obj->getName());
+
+      // type = varDecl->resolveType(typeTable->types[moduleName], currentScope);
       if (type->kind == TYPE_ACCESS) {
         type = std::static_pointer_cast<TypeAccess>(type)->to;
       }
 
       auto classTypeLLVM = type->toLLVMType(*context);
+      size_t field_index = fieldRef->index;
+
+      // if inherited
+      auto base = std::dynamic_pointer_cast<TypeClass>(type)->base_class;
+      if (base) {
+        auto baseDecl = currentScope->lookup<ClassDecl>(base->name);
+
+        if (std::ranges::any_of(
+          baseDecl->fields,
+          [&](auto f) { return f->getName() == fieldRef->getName(); })
+          ) {
+          // its an inherited
+          // @TODO sem check overriding existing fields
+          classTypeLLVM = base->toLLVMType(*context);
+        }
+
+      }
+
       val = builder->CreateLoad(
-        classTypeLLVM->getStructElementType(fieldRef->index),
+        classTypeLLVM->getStructElementType(field_index),
         val
       );
-    }
+    } break;
+    case E_Constructor_Call: {
+      auto obj_ref = static_cast<ConstructorCallEXP*>(node);
+      auto className = obj_ref->left->getName();
+
+      auto classTypeLLVM = 
+        currentScope->lookup(className)->resolveType(typeTable->types[moduleName], currentScope)->toLLVMType(*context);
+      
+
+      val = builder->CreateLoad(
+        classTypeLLVM,
+        val
+      );
+    } break;
   }
 
   return val;

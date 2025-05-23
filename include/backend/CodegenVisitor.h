@@ -142,6 +142,15 @@ public:
       }
     );
 
+    // llvm::SMDiagnostic err;
+    // auto std_string_module = parseIRFile("/home/artjom/Uni/comp_constr/obewrong/lib/string.ll", err, *context);
+    // if (!std_string_module) {
+    //   throw std::runtime_error("Could not parse std_string_module");
+    // }
+    //
+    // if (llvm::Linker::linkModules(*module, std::move(std_string_module)))
+    //   throw std::runtime_error("Failed to link std string module");
+
     // create opaque type for generics
     createOpaqueStruct();
 
