@@ -1,0 +1,12 @@
+module convs
+
+class Main is 
+  this() is     
+    var a : Integer := 2
+    var b : Real := 2.2
+
+    var c : Integer := b => Integer 
+    printf("had %f => converted to %d\n", b, c)
+
+  end 
+end

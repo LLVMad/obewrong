@@ -178,8 +178,11 @@ public:
 
   ScopeKind getKind() const { return kind; }
   const std::string &getName() const { return name; }
-  auto &getChildren() const { return children; }
+  // void setName(std::string name) { this->name = name; }
+  auto &getChildren() { return children; }
+  auto copyChildren() const { return children; }
   std::weak_ptr<Scope> getParent() const { return parent; }
+  void setParent(std::shared_ptr<Scope<T>> parent) { this->parent = parent; }
   std::unordered_map<std::string, SymbolInfo<T>> &getSymbols() {
     return symbols;
   }

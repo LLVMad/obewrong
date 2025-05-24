@@ -1,0 +1,30 @@
+module arrays 
+
+class Point is 
+  var x : Integer 
+  var y : Integer 
+
+  this(_x : Integer, _y : Integer) is 
+    this.x := _x
+    this.y := _y 
+  end
+end
+
+class Main is
+  this() is
+    var arr : Array[Point, 5] 
+
+    printf("- Point array created: ")
+
+    var i : Integer := 0
+    for i, i.Less(5), i := i.Plus(1) is
+      printf("%d %d | ", arr[i].x, arr[i].y)
+    end
+
+    // element manipulation
+    arr[0] := Point(1, 2)
+    var el : Point := arr[0]
+
+    printf("\n new el: %d %d | arr[0] = %d %d\n", el.x, el.y, arr[0].x, arr[0].y)
+  end
+end

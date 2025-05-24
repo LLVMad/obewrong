@@ -1,0 +1,17 @@
+module branchglobal 
+
+class Main is 
+  this() is 
+   
+    var a : Integer := 0
+
+    var i : Integer := 5 
+
+    for i, i.Greater(0), i := i.Minus(1) is 
+      a := a.Plus(1)
+    end 
+
+    printf("a = %d\n", a)
+ 
+  end
+end

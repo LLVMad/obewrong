@@ -1,0 +1,10 @@
+module mainmod 
+
+import point
+
+class Main is 
+  this() is 
+    var a : Point(0, 0)
+    printf("%d %d\n", a.x, a.y)
+  end
+end

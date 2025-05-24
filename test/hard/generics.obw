@@ -1,0 +1,23 @@
+module generics
+
+class Point is
+  var x : Integer 
+  
+  this(_x : Integer) is
+    this.x := _x 
+  end
+
+  method try(a : Opaque) : Opaque is 
+    return a
+  end
+end
+
+class Main is   
+  this() is 
+    var p : Point(1)
+
+    var b : Integer := 2
+
+    p.try(b)
+  end
+end

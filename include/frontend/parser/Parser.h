@@ -130,7 +130,7 @@ private:
    *  parse WHATEVER construct is between is and end
    *  could be ANYTHING!!!
    */
-  std::shared_ptr<Block> parseBlock(BlockKind blockKind);
+  std::shared_ptr<Block> parseBlock(BlockKind blockKind, size_t fieldIndex = 0);
 
   std::shared_ptr<Expression>
   parseBinaryOp(std::shared_ptr<Expression> firstOperand);

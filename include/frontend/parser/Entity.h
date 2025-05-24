@@ -99,6 +99,7 @@ public:
   Loc getLoc() const { return location; };
   std::string getName() const { return name; };
   void appendToName(const std::string &name) { this->name += name; };
+  void setName(std::string name) { this->name = name; };
 
   virtual std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) = 0;
   virtual bool validate() = 0;

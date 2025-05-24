@@ -8,7 +8,7 @@ class Vehicle is
   end 
 
   method honk() is 
-    printf("Tuut, tuut!")
+    printf("Tuut, tuut!\n")
   end
 end
 
@@ -19,6 +19,10 @@ class Car extends Vehicle is
     this.Vehicle := Vehicle() 
     this.model := 2
   end
+
+  method honk() is 
+    printf("Overriden\n")
+  end
 end
 
 class Main is 
@@ -26,8 +30,9 @@ class Main is
     var v : Vehicle()
     var c : Car()
 
+    v.honk()
     c.honk()
 
-    printf("v brand = %d, c branhd = %d, c model = %d", v.brand, c.brand, c.model)
+    printf("v brand = %d, c branhd = %d, c model = %d\n", v.brand, c.brand, c.model)
   end
 end

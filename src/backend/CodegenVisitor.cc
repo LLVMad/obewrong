@@ -172,7 +172,7 @@ void CodeGenVisitor::visit(FieldRefEXP &node) {
     if (isInherited) {
       // GEP to class copy
       lastValue = builder->CreateStructGEP(
-        classTypeLLVM->getContainedType(0),
+        classTypeLLVM,
         alloca == nullptr ? lastValue : alloca,
         0,
         node.getName()
@@ -557,7 +557,7 @@ void CodeGenVisitor::visit(MethodDecl &node) {
   // CREATE PROTOTYPE OF A FUNCTION
   std::vector<llvm::Type*> argTypes;
 
-  // Add all parameters including 'this' which was added by the parser
+  // 'this' which was added by the parser
   for (auto &arg : node.args) {
     argTypes.push_back(arg->type->toLLVMType(*this->context));
   }
@@ -1231,7 +1231,7 @@ void CodeGenVisitor::visit(MethodCallEXP &node) {
       return;
   }
 
-  llvm::Function *CalleeF = getFunction(node.getName());
+  llvm::Function *CalleeF = getFunction(className + "_" + node.getName());
   if (!CalleeF)
     return;
 

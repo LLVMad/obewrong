@@ -1,0 +1,9 @@
+module commandline
+
+class Main is
+  this(argc: Integer, argv : Array[access byte]) is
+    
+    printf("%d %s\n", argc, argv[0])  
+
+  end
+end
