@@ -8,7 +8,9 @@ enum CMD is
   UNKNOWN
 end
 
-func main() is 
-  printl("%d", CMD::PLUS)
-  printl("%d", CMD::MINUS)
+class Main is 
+  this() is 
+    printf("PLUS is %d\n", CMD::PLUS)
+    printf("MINUS is %d\m", CMD::MINUS)
+  end
 end

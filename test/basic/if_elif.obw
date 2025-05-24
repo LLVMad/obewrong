@@ -1,15 +1,17 @@
 module ifelif 
 
-func main() is 
-  var a : Integer(2)
+class Main is 
+  this() is 
+    var a : Integer := 2
 
-  if a.Mod(3).Equal(0) then
-    printf("mod 3\n")
+    if a.Rem(3).Equal(0) then
+      printf("mod 3\n")
+    end
+    else if a.Rem(2).Equal(0) then 
+      printf("mod 2\n")
+    end
+    else 
+      printf("no mod\n")
+    end 
   end
-  else if a.Mod(2).Equal(0) then 
-    printf("mod 2\n")
-  end
-  else 
-    printf("no mod\n")
-  end 
 end

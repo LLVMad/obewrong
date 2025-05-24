@@ -78,7 +78,9 @@ public:
       if (scope->getName() == to) {
         for (auto &decl : symbolsToCopy) {
           if (decl.second.decl->getKind() != E_Constructor_Decl)
-            scope->addSymbol(decl.first, decl.second.decl);
+            scope->addSymbol(
+              decl.first,
+              decl.second.decl);
         }
         for (auto &scopeCopy : scopeToCopy) {
           if (scopeCopy->getKind() == SCOPE_METHOD /*@FIXME we can do better than that */ ) {

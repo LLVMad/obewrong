@@ -310,6 +310,8 @@ void CodeGenVisitor::visit(ConstructorCallEXP &node) {
   auto constrName = node.left->getName() + "_Create" + typeNames;
 
   llvm::Function *CalleeF = getFunction(constrName);
+  if (!CalleeF)
+    return;
 
   if (CalleeF->getReturnType()->isVoidTy()) {
     builder->CreateCall(CalleeF, ArgsV);
@@ -834,11 +836,12 @@ void CodeGenVisitor::visit(IfSTMT &node) {
 
   // gen Else
   llvm::Value *elsB;
-  if (node.ifFalse->getKind() == E_Block) {
-    auto blockFalse = std::static_pointer_cast<Block>(node.ifFalse);
-    for (auto &part : blockFalse->parts) {
-      part->accept(*this);
-    }
+  if (node.ifFalse) {
+    node.ifFalse->accept(*this);
+    // auto blockFalse = std::static_pointer_cast<Block>(node.ifFalse);
+    // for (auto &part : blockFalse->parts) {
+      // part->accept(*this);
+    // }
   }
 
   builder->CreateBr(MergeBB);

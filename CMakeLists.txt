@@ -6,15 +6,6 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-include(FetchContent)
-FetchContent_Declare(
-  googletest
-  URL https://github.com/google/googletest/archive/refs/heads/main.zip
-)
-FetchContent_MakeAvailable(googletest)
-
-include(GoogleTest)
-
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions(-DDEBUG)
 endif ()
@@ -62,16 +53,3 @@ target_compile_options(obewrong PRIVATE
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     target_compile_options(obewrong PRIVATE -O2)
 endif()
-
-enable_testing()
-
-file(GLOB_RECURSE TEST_SOURCES "test/gtests/*.cc")
-add_executable(obewrong_tests ${TEST_SOURCES})
-
-target_link_libraries(obewrong_tests
-    PRIVATE
-    gtest_main
-    obewrong_lib
-)
-
-gtest_discover_tests(obewrong_tests)

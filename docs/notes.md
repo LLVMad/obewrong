@@ -214,14 +214,14 @@ Todo:
   - [ ] sizeof(...) operator
   - [ ] add copying all these to current module
 - [ ] Method overloading
-  - [ ] smash parameter types to name
+  - [x] smash parameter types to name
   - [ ] virtual tables
 - [ ] Take this* as a type from typetable see Parser.cc ~962l
 - [ ] this Param doubles 
 
 ## MEDIUM
-- [ ] Inheritence
-- [ ] Virtual tables
+- [x] Inheritence
+- [x] Virtual tables
 -
 ## LEAST
 - [ ] Conversions

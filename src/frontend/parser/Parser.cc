@@ -1062,7 +1062,7 @@ std::shared_ptr<ClassDecl> Parser::parseClassDecl() {
       auto m = *std::dynamic_pointer_cast<MethodDecl>(meth);
       m.setName(newName);
       auto newDecl = std::make_shared<MethodDecl>(m);
-      class_stmt->methods.push_back(std::move(newDecl));
+      class_stmt->methods.emplace(class_stmt->methods.begin(), newDecl);
 
       // @note when we copySimbols from base class scope
       // they still have old scope data like Name etc.
@@ -1300,6 +1300,7 @@ std::shared_ptr<ReturnSTMT> Parser::parseReturnStatement() {
   token = peek();
   // @TODO that is super bad
   if (token->kind != TOKEN_IDENTIFIER && token->kind != TOKEN_INT_NUMBER &&
+    token->kind != TOKEN_INT32_NUMBER &&
       token->kind != TOKEN_REAL_NUMBER && token->kind != TOKEN_STRING &&
       token->kind != TOKEN_BOOL_TRUE && token->kind != TOKEN_BOOL_FALSE &&
       token->kind != TOKEN_LSBRACKET && token->kind != TOKEN_LBRACKET &&
