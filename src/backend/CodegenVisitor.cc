@@ -64,11 +64,24 @@ void CodeGenVisitor::visit(ConversionEXP &node) {
 
   auto itof = fromType->kind == TYPE_INT;
 
-  lastValue = builder->CreateCast(
-    itof ? llvm::CastInst::CastOps::SIToFP : llvm::CastInst::CastOps::FPToSI,
-    fromVal,
-    toType->toLLVMType(*context)
-  );
+  if (fromType->kind == TYPE_INT && toType->kind == TYPE_REAL) {
+    lastValue = builder->CreateCast(
+      llvm::CastInst::CastOps::SIToFP,
+      fromVal,
+      toType->toLLVMType(*context)
+    );
+  }
+  else if (fromType->kind == TYPE_REAL && toType->kind == TYPE_INT) {
+    lastValue = builder->CreateCast(
+      llvm::CastInst::CastOps::FPToSI,
+      fromVal,
+      toType->toLLVMType(*context)
+    );
+  }
+  else if (fromType->kind == TYPE_BYTE && toType->kind == TYPE_INT) {
+    lastValue = builder->CreateSExt(fromVal, llvm::Type::getInt32Ty(*context));
+  }
+
 }
 
 void CodeGenVisitor::visit(ElementRefEXP &node) {

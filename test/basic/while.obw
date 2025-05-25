@@ -3,7 +3,7 @@ module whilecheck
 func main() is 
   var i : Integer(10)
 
-  while i != 0 loop
+  while i.Equal(0).Not() loop
     i := i - 1
   end
 

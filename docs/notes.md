@@ -207,7 +207,7 @@ Todo:
 - [ ] Builtin types
   - [x] Integer
   - [x] Real
-  - [ ] Char
+  - [ ] Char -> we have byte
   - [ ] String
   - [ ] Array
   - [ ] Boolean
