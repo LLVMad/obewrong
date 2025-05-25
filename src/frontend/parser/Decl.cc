@@ -1,15 +1,20 @@
 #include "frontend/types/Decl.h"
+#include <iostream>
 
 Decl::~Decl() = default;
 
-std::shared_ptr<Type> Decl::resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) {
+std::shared_ptr<Type>
+Decl::resolveType(const TypeTable &typeTable,
+                  const std::shared_ptr<Scope<Entity>> &currentScope) {
   // @TODO
   return nullptr;
 }
 
 bool Decl::validate() { return false; }
 
-std::shared_ptr<Type> FieldDecl::resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) {
+std::shared_ptr<Type>
+FieldDecl::resolveType(const TypeTable &typeTable,
+                       const std::shared_ptr<Scope<Entity>> &currentScope) {
   (void)typeTable;
   return type;
 }
@@ -19,7 +24,9 @@ bool FieldDecl::validate() {
   return true;
 }
 
-std::shared_ptr<Type> VarDecl::resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) {
+std::shared_ptr<Type>
+VarDecl::resolveType(const TypeTable &typeTable,
+                     const std::shared_ptr<Scope<Entity>> &currentScope) {
   (void)typeTable;
   return type;
 }
@@ -29,7 +36,9 @@ bool VarDecl::validate() {
   return true;
 }
 
-std::shared_ptr<Type> ParameterDecl::resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) {
+std::shared_ptr<Type>
+ParameterDecl::resolveType(const TypeTable &typeTable,
+                           const std::shared_ptr<Scope<Entity>> &currentScope) {
   (void)typeTable;
   return type;
 }
@@ -39,7 +48,9 @@ bool ParameterDecl::validate() {
   return true;
 }
 
-std::shared_ptr<Type> MethodDecl::resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) {
+std::shared_ptr<Type>
+MethodDecl::resolveType(const TypeTable &typeTable,
+                        const std::shared_ptr<Scope<Entity>> &currentScope) {
   (void)typeTable;
   return signature->return_type;
 }
@@ -49,7 +60,9 @@ bool MethodDecl::validate() {
   return true;
 }
 
-std::shared_ptr<Type> FuncDecl::resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) {
+std::shared_ptr<Type>
+FuncDecl::resolveType(const TypeTable &typeTable,
+                      const std::shared_ptr<Scope<Entity>> &currentScope) {
   (void)typeTable;
   return signature->return_type;
 }
@@ -59,7 +72,9 @@ bool FuncDecl::validate() {
   return true;
 }
 
-std::shared_ptr<Type> ClassDecl::resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) {
+std::shared_ptr<Type>
+ClassDecl::resolveType(const TypeTable &typeTable,
+                       const std::shared_ptr<Scope<Entity>> &currentScope) {
   (void)typeTable;
   return type;
 }
@@ -69,7 +84,9 @@ bool ClassDecl::validate() {
   return true;
 }
 
-std::shared_ptr<Type> ArrayDecl::resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) {
+std::shared_ptr<Type>
+ArrayDecl::resolveType(const TypeTable &typeTable,
+                       const std::shared_ptr<Scope<Entity>> &currentScope) {
   (void)typeTable;
   return type;
 }
@@ -79,7 +96,9 @@ bool ArrayDecl::validate() {
   return true;
 }
 
-std::shared_ptr<Type> ListDecl::resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) {
+std::shared_ptr<Type>
+ListDecl::resolveType(const TypeTable &typeTable,
+                      const std::shared_ptr<Scope<Entity>> &currentScope) {
   (void)typeTable;
   return type;
 }
@@ -89,7 +108,9 @@ bool ListDecl::validate() {
   return true;
 }
 
-std::shared_ptr<Type> ConstrDecl::resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) {
+std::shared_ptr<Type>
+ConstrDecl::resolveType(const TypeTable &typeTable,
+                        const std::shared_ptr<Scope<Entity>> &currentScope) {
   (void)typeTable;
   return signature;
 }

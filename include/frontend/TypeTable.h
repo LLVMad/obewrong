@@ -76,8 +76,7 @@ public:
 
   std::shared_ptr<Type> getType(TypeKind kind) const {
     auto type = std::ranges::find_if(
-      types,
-      [&kind](auto pair) { return pair.second->kind == kind; });
+        types, [&kind](auto pair) { return pair.second->kind == kind; });
     return (type == types.end()) ? nullptr : type->second;
   }
 
@@ -111,7 +110,7 @@ public:
     builtinTypes.addType("Boolean", std::make_shared<TypeBool>());
     builtinTypes.addType("String", std::make_shared<TypeString>());
     builtinTypes.addType("Opaque", std::make_shared<TypeOpaque>());
-    // builtinTypes.addType("Array", std::make_shared<TypeArray>());
+    builtinTypes.addType("Array", std::make_shared<TypeArray>());
   }
 
   std::unordered_map<std::string, TypeTable> types;
@@ -125,12 +124,11 @@ public:
 
   void importTypesFromModule(const std::string &from, const std::string &to) {
     auto typesTableFrom = std::ranges::find_if(
-      types,
-      [&from, &to](auto pair) { return pair.first == from; });
+        types, [&from, &to](auto pair) { return pair.first == from; });
 
-    std::ranges::for_each(
-      typesTableFrom->second.types,
-      [&to, this](auto pair) { this->types[to].addType(pair.first, pair.second); });
+    std::ranges::for_each(typesTableFrom->second.types, [&to, this](auto pair) {
+      this->types[to].addType(pair.first, pair.second);
+    });
   }
 
   std::shared_ptr<Type> getType(const std::string &moduleName,
@@ -158,7 +156,8 @@ public:
    */
   std::shared_ptr<Type> getType(const std::string &moduleName, TypeKind kind) {
     auto it = builtinTypes.getType(kind);
-    if (it) return it;
+    if (it)
+      return it;
     return nullptr;
   }
 

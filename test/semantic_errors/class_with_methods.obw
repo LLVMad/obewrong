@@ -1,0 +1,11 @@
+module simple
+
+class Simple is   
+  method add(a : Integer) : Integer is 
+    var b : Integer 
+    b := a + "2"          // Ошибка 1: сложение int и string
+    
+    return "result"       // Ошибка 2: возврат string вместо int
+  end 
+
+end

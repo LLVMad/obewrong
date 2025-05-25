@@ -3,8 +3,8 @@
 
 #include "../Scope.h"
 #include "../TypeTable.h"
-#include "frontend/lexer/Lexer.h"
 #include "Visitor.h"
+#include "frontend/lexer/Lexer.h"
 
 #include <memory>
 #include <ostream>
@@ -91,16 +91,19 @@ enum Ekind {
 class Entity : public BaseVisitable<> {
 public:
   virtual ~Entity() = default;
-  explicit Entity(Ekind kind) : kind(kind), name(), location() {}
+  explicit Entity(Ekind kind, Loc loc) : kind(kind), name(), location(loc) {}
 
-  explicit Entity(Ekind kind, std::string name) : kind(kind), name(std::move(name)), location() {}
+  explicit Entity(Ekind kind, std::string name, Loc loc)
+      : kind(kind), name(std::move(name)), location(loc) {}
 
   Ekind getKind() const { return kind; };
   Loc getLoc() const { return location; };
   std::string getName() const { return name; };
   void appendToName(const std::string &name) { this->name += name; };
 
-  virtual std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) = 0;
+  virtual std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) = 0;
   virtual bool validate() = 0;
 
   // STRUCTURAL LINK
@@ -127,13 +130,15 @@ enum BlockKind {
 
 class Block : public Entity {
 public:
-  Block(std::vector<std::shared_ptr<Entity>> parts, BlockKind kind)
-      : Entity(E_Block), parts(std::move(parts)), kind(kind) {};
+  Block(std::vector<std::shared_ptr<Entity>> parts, BlockKind kind, Loc loc)
+      : Entity(E_Block, loc), parts(std::move(parts)), kind(kind){};
 
   std::vector<std::shared_ptr<Entity>> parts;
   BlockKind kind;
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override {
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override {
     (void)typeTable;
     return nullptr;
   }
@@ -142,7 +147,7 @@ public:
 
   // DEFINE_VISITABLE()
   virtual ReturnType accept(BaseVisitor &guest) {
-    for (auto part: parts) {
+    for (auto part : parts) {
       part->accept(guest);
     }
     // return acceptImpl(*this, guest);
@@ -158,12 +163,14 @@ public:
  */
 class EDummy : public Entity {
 public:
-  EDummy() : Entity(E_Dummy) {}
+  EDummy(Loc loc) : Entity(E_Dummy, loc) {}
 
   std::shared_ptr<Type> assumedType;
   TokenKind expectedKind;
   std::string valueIfPresent;
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override {
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override {
     (void)typeTable;
     return nullptr;
   }
@@ -173,9 +180,9 @@ public:
   DEFINE_VISITABLE()
 };
 
-template<typename T>
-std::shared_ptr<T> castEntity(const std::shared_ptr<Entity>& node) {
-    return std::static_pointer_cast<T>(node);
+template <typename T>
+std::shared_ptr<T> castEntity(const std::shared_ptr<Entity> &node) {
+  return std::static_pointer_cast<T>(node);
 }
 
 #endif

@@ -20,10 +20,12 @@
 
 class Decl : public Entity {
 public:
-  explicit Decl(Ekind kind, std::string name)
-      : Entity(kind, std::move(name)) {}
+  explicit Decl(Ekind kind, std::string name, Loc loc)
+      : Entity(kind, std::move(name), loc) {}
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -45,12 +47,15 @@ public:
  */
 class FieldDecl : public Decl {
 public:
-  explicit FieldDecl(const std::string &name, std::shared_ptr<Type> type)
-      : Decl(E_Field_Decl, name), type(std::move(type)) {}
+  explicit FieldDecl(const std::string &name, std::shared_ptr<Type> type,
+                     Loc loc)
+      : Decl(E_Field_Decl, name, loc), type(std::move(type)) {}
 
   std::shared_ptr<Type> type;
   size_t index; // index of a field in a class
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -71,8 +76,8 @@ public:
  */
 class VarDecl : public Decl {
 public:
-  explicit VarDecl(const std::string &name, std::shared_ptr<Type> type)
-      : Decl(E_Variable_Decl, name), type(std::move(type)) {}
+  explicit VarDecl(const std::string &name, std::shared_ptr<Type> type, Loc loc)
+      : Decl(E_Variable_Decl, name, loc), type(std::move(type)) {}
 
   std::shared_ptr<Type> type;
 
@@ -83,7 +88,9 @@ public:
   //                 ^^^^
   std::shared_ptr<Expression> initializer;
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -101,12 +108,15 @@ public:
  */
 class ParameterDecl : public Decl {
 public:
-  explicit ParameterDecl(const std::string &name, std::shared_ptr<Type> type)
-      : Decl(E_Parameter_Decl, name), type(std::move(type)) {}
+  explicit ParameterDecl(const std::string &name, std::shared_ptr<Type> type,
+                         Loc loc)
+      : Decl(E_Parameter_Decl, name, loc), type(std::move(type)) {}
 
   std::shared_ptr<Type> type;
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -125,23 +135,23 @@ public:
  */
 class MethodDecl : public Decl {
 public:
-  MethodDecl(const std::string &name)
-      : Decl(E_Method_Decl, name), isForward(false), isShort(false),
+  MethodDecl(const std::string &name, Loc loc)
+      : Decl(E_Method_Decl, name, loc), isForward(false), isShort(false),
         isVoided(false), isVoid(false), isBuiltin(false), isStatic(false),
         isPrivate(false) {}
   explicit MethodDecl(const std::string &name,
                       std::shared_ptr<TypeFunc> signature,
                       std::vector<std::shared_ptr<ParameterDecl>> args,
-                      std::shared_ptr<Block> body)
-      : Decl(E_Method_Decl, name), signature(std::move(signature)),
+                      std::shared_ptr<Block> body, Loc loc)
+      : Decl(E_Method_Decl, name, loc), signature(std::move(signature)),
         args(std::move(args)), isForward(false), isShort(false),
         isVoided(false), isVoid(signature->isVoid), isBuiltin(false),
         isStatic(false), isPrivate(false), body(std::move(body)) {}
 
   explicit MethodDecl(const std::string &name,
                       std::shared_ptr<TypeFunc> signature,
-                      std::shared_ptr<Block> body)
-      : Decl(E_Method_Decl, name), signature(std::move(signature)), args(),
+                      std::shared_ptr<Block> body, Loc loc)
+      : Decl(E_Method_Decl, name, loc), signature(std::move(signature)), args(),
         isForward(false), isShort(false), isVoided(true),
         isVoid(signature->isVoid), isBuiltin(false), isStatic(false),
         isPrivate(false), body(std::move(body)) {}
@@ -149,8 +159,8 @@ public:
   explicit MethodDecl(const std::string &name,
                       const std::shared_ptr<TypeFunc> &signature,
                       const std::vector<std::shared_ptr<ParameterDecl>> &args,
-                      bool isBuiltin)
-      : Decl(E_Method_Decl, name), signature(signature), args(args),
+                      bool isBuiltin, Loc loc)
+      : Decl(E_Method_Decl, name, loc), signature(signature), args(args),
         isForward(false), isShort(false), isVoided(false),
         isVoid(signature->isVoid), isBuiltin(isBuiltin), isStatic(false),
         isPrivate(false), body() {}
@@ -161,13 +171,15 @@ public:
   bool isForward;
   bool isShort;
   bool isVoided; // no parameters
-  bool isVoid;  // no return type
+  bool isVoid;   // no return type
   bool isBuiltin;
   bool isStatic;
   bool isPrivate;
   std::shared_ptr<Block> body;
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -178,12 +190,13 @@ public:
 
 class ConstrDecl : public Decl {
 public:
-  ConstrDecl(const std::string &name) : Decl(E_Constructor_Decl, name) {}
+  ConstrDecl(const std::string &name, Loc loc)
+      : Decl(E_Constructor_Decl, name, loc) {}
   explicit ConstrDecl(const std::string &name,
                       std::shared_ptr<TypeFunc> signature,
                       std::vector<std::shared_ptr<ParameterDecl>> args,
-                      std::shared_ptr<Block> body)
-      : Decl(E_Method_Decl, name), signature(std::move(signature)),
+                      std::shared_ptr<Block> body, Loc loc)
+      : Decl(E_Method_Decl, name, loc), signature(std::move(signature)),
         args(std::move(args)), body(std::move(body)) {}
 
   std::shared_ptr<TypeFunc> signature;
@@ -191,7 +204,9 @@ public:
 
   std::shared_ptr<Block> body;
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -208,13 +223,13 @@ public:
   explicit FuncDecl(const std::string &name,
                     std::shared_ptr<TypeFunc> signature,
                     std::vector<std::shared_ptr<ParameterDecl>> args,
-                    std::shared_ptr<Block> body)
-      : Decl(E_Function_Decl, name), signature(std::move(signature)),
+                    std::shared_ptr<Block> body, Loc loc)
+      : Decl(E_Function_Decl, name, loc), signature(std::move(signature)),
         args(std::move(args)), isVoided(false), isVoid(signature->isVoid),
         body(std::move(body)) {}
 
-  FuncDecl(const std::string &name, bool isMain = false)
-      : Decl(isMain ? E_Main_Decl : E_Function_Decl, name), signature(), body() {}
+  FuncDecl(const std::string &name, Loc loc)
+      : Decl(E_Function_Decl, name, loc), signature(), body() {}
 
   // FuncDecl(const std::string &name, bool isMain)
   //     : Decl(isMain ? E_Function_Decl, name), signature(), body() {}
@@ -228,7 +243,9 @@ public:
   bool isVoid;
   std::shared_ptr<Block> body;
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -261,11 +278,9 @@ public:
 
   ClassDecl(const std::string &name, std::shared_ptr<TypeClass> type,
             std::vector<std::shared_ptr<FieldDecl>> fields,
-            std::vector<std::shared_ptr<Decl>> methods)
-      : Decl(E_Class_Decl, name), type(std::move(type)),
-        fields(std::move(fields)), methods(std::move(methods))
-  {
-  }
+            std::vector<std::shared_ptr<Decl>> methods, Loc loc)
+      : Decl(E_Class_Decl, name, loc), type(std::move(type)),
+        fields(std::move(fields)), methods(std::move(methods)) {}
 
   std::shared_ptr<TypeClass> type;
   std::shared_ptr<ClassDecl> base_class;
@@ -277,7 +292,9 @@ public:
   // std::vector<std::shared_ptr<ConstrDecl>> constructors;
   std::vector<std::shared_ptr<Decl>> methods; // btoh methods and constrs
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -291,8 +308,8 @@ public:
 class ArrayDecl : public Decl {
 public:
   ArrayDecl(const std::string &name, std::shared_ptr<TypeArray> type,
-            std::shared_ptr<ArrayLiteralExpr> initz)
-      : Decl(E_Array_Decl, name), type(std::move(type)),
+            std::shared_ptr<ArrayLiteralExpr> initz, Loc loc)
+      : Decl(E_Array_Decl, name, loc), type(std::move(type)),
         initializer(std::move(initz)) {}
 
   std::shared_ptr<TypeArray> type;
@@ -306,7 +323,9 @@ public:
 
   size_t size;
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -318,8 +337,8 @@ public:
 class ListDecl : public Decl {
 public:
   ListDecl(const std::string &name, std::shared_ptr<TypeList> type,
-           std::shared_ptr<ArrayLiteralExpr> initz)
-      : Decl(E_List_Decl, name), type(std::move(type)),
+           std::shared_ptr<ArrayLiteralExpr> initz, Loc loc)
+      : Decl(E_List_Decl, name, loc), type(std::move(type)),
         initializer(std::move(initz)) {}
 
   std::shared_ptr<TypeList> type;
@@ -331,7 +350,9 @@ public:
   //                          ^^^^^^^^^
   std::shared_ptr<ArrayLiteralExpr> initializer;
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -342,7 +363,8 @@ public:
 
 class ModuleDecl : public Decl {
 public:
-  ModuleDecl(const std::string &moduleNmae) : Decl(E_Module_Decl, moduleNmae) {}
+  ModuleDecl(const std::string &moduleNmae, Loc loc)
+      : Decl(E_Module_Decl, moduleNmae, loc) {}
 
   void addImport(const std::string &importName) {
     importedModules.push_back(importName);
@@ -356,8 +378,8 @@ public:
 
 class EnumDecl : public Decl {
 public:
-  EnumDecl(const std::string &enumName)
-      : Decl(E_Enum_Decl, enumName), size(0) {}
+  EnumDecl(const std::string &enumName, Loc loc)
+      : Decl(E_Enum_Decl, enumName, loc), size(0) {}
 
   void addItem(const std::string &name) { items[name] = size++; };
 

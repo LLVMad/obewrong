@@ -1,6 +1,7 @@
 #ifndef OBW_SCOPE_H
 #define OBW_SCOPE_H
 
+#include <iostream>
 #include <llvm/IR/Instructions.h>
 #include <memory>
 #include <stack>
@@ -19,10 +20,9 @@ enum ScopeKind {
   SCOPE_CLASS_BUILTIN,
 };
 
-template<typename T>
-struct SymbolInfo {
-  std::shared_ptr<T> decl; // for parsing phase
-  llvm::AllocaInst* alloca;   // for codegen
+template <typename T> struct SymbolInfo {
+  std::shared_ptr<T> decl;  // for parsing phase
+  llvm::AllocaInst *alloca; // for codegen
   bool isInitialized;
 };
 
@@ -32,7 +32,7 @@ struct SymbolInfo {
  *
  * @template Decl - is here mostly due to dependency issues
  */
-template<typename T>
+template <typename T>
 class Scope : public std::enable_shared_from_this<Scope<T>> {
 public:
   Scope(ScopeKind kind, const std::string &name, std::weak_ptr<Scope> parent)
@@ -44,7 +44,7 @@ public:
    * @param name
    * @param decl Declaration info
    */
-  template<typename U>
+  template <typename U>
   bool addSymbol(const std::string &name, std::shared_ptr<U> decl) {
     static_assert(std::derived_from<U, T>, "Must be derived from Entity");
     // if (symbols.contains(name))
@@ -91,7 +91,8 @@ public:
    */
   std::shared_ptr<Scope> nextScope() {
     depth++;
-    if (depth > static_cast<int>(children.size() - 1)) return std::shared_ptr(parent);
+    if (depth > static_cast<int>(children.size() - 1))
+      return std::shared_ptr(parent);
 
     // skip builtins
     while (children[depth]->kind >= 7 || children[depth]->external) {
@@ -107,14 +108,11 @@ public:
    *              0 - parent scope
    * @return children scope at depth
    */
-  std::shared_ptr<Scope> prevScope() {
-    return std::shared_ptr(parent);
-  }
+  std::shared_ptr<Scope> prevScope() { return std::shared_ptr(parent); }
 
-  template<typename U = T>
-  SymbolInfo<U>* getSymbol(const std::string &name) {
+  template <typename U = T> SymbolInfo<U> *getSymbol(const std::string &name) {
     if (auto it = symbols.find(name); it != symbols.end()) {
-      return reinterpret_cast<SymbolInfo<U>*>(&it->second);
+      return reinterpret_cast<SymbolInfo<U> *>(&it->second);
     }
 
     // recursively check parent scopes
@@ -125,8 +123,7 @@ public:
     return nullptr;
   }
 
-  template<typename U = T>
-  std::shared_ptr<U> lookup(const std::string &name) {
+  template <typename U = T> std::shared_ptr<U> lookup(const std::string &name) {
     static_assert(std::derived_from<U, T>, "Must be derived from Entity");
 
     if (auto sym = this->getSymbol(name))
@@ -134,18 +131,20 @@ public:
     return nullptr;
   }
 
-  llvm::AllocaInst* lookupAlloca(const std::string &name) {
-    if (auto sym = this->getSymbol(name)) return sym->alloca;
+  llvm::AllocaInst *lookupAlloca(const std::string &name) {
+    if (auto sym = this->getSymbol(name))
+      return sym->alloca;
     return nullptr;
   }
 
   bool isDeclInitialized(const std::string &name) {
-    if (auto sym = this->getSymbol(name)) return sym->isInitialized;
+    if (auto sym = this->getSymbol(name))
+      return sym->isInitialized;
     return false;
   }
 
   std::shared_ptr<T> lookupInClass(const std::string &name,
-                                      const std::string &className) const {
+                                   const std::string &className) const {
     // idk need to think about this
     if (this->name == className) {
       if (auto it = symbols.find(name); it != symbols.end()) {

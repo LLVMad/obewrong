@@ -3,9 +3,9 @@
 
 #include <utility>
 
-#include "Entity.h"
 #include "../Scope.h"
 #include "../TypeTable.h"
+#include "Entity.h"
 #include "frontend/SymbolTable.h"
 
 /**
@@ -13,10 +13,13 @@
  */
 class Expression : public Entity {
 public:
-  explicit Expression(Ekind kind) : Entity(kind) {};
-  explicit Expression(Ekind kind, std::string name) : Entity(kind, std::move(name)) {};
+  explicit Expression(Ekind kind, Loc loc) : Entity(kind, loc){};
+  explicit Expression(Ekind kind, std::string name, Loc loc)
+      : Entity(kind, std::move(name), loc){};
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override {
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override {
     (void)typeTable;
     return nullptr;
   }
@@ -29,8 +32,8 @@ public:
 
 class DummyExpression : public Expression {
 public:
-  explicit DummyExpression(const std::string &name)
-      : Expression(E_Dummy, name) {}
+  explicit DummyExpression(const std::string &name, Loc loc)
+      : Expression(E_Dummy, name, loc) {}
 
   DEFINE_VISITABLE()
 };
@@ -45,13 +48,16 @@ public:
  */
 class IntLiteralEXP : public Expression {
 public:
-  IntLiteralEXP(int val, size_t bytesize)
-    : Expression(E_Integer_Literal, std::to_string(val)), bytesize(bytesize), _value(val) {};
+  IntLiteralEXP(int val, size_t bytesize, Loc loc)
+      : Expression(E_Integer_Literal, std::to_string(val), loc),
+        bytesize(bytesize), _value(val){};
 
   size_t getByteSize() const { return bytesize; };
   int getValue() const { return _value; }
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   DEFINE_VISITABLE()
 
@@ -62,12 +68,14 @@ private:
 
 class RealLiteralEXP : public Expression {
 public:
-  RealLiteralEXP(double val)
-    : Expression(E_Real_Literal, std::to_string(val)), _value(val) {};
+  RealLiteralEXP(double val, Loc loc)
+      : Expression(E_Real_Literal, std::to_string(val), loc), _value(val){};
 
   double getValue() { return _value; }
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   DEFINE_VISITABLE()
 
@@ -77,28 +85,30 @@ private:
 
 class StringLiteralEXP : public Expression {
 public:
-  StringLiteralEXP(std::string val)
-      : Expression(E_String_Literal), value(std::move(val)) {
-     value.erase(
-     std::remove(value.begin(), value.end(), '\"'),
-     value.end()
-     );
+  StringLiteralEXP(std::string val, Loc loc)
+      : Expression(E_String_Literal, loc), value(std::move(val)) {
+    value.erase(std::remove(value.begin(), value.end(), '\"'), value.end());
   };
 
   std::string value;
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   DEFINE_VISITABLE()
 };
 
 class BoolLiteralEXP : public Expression {
 public:
-  BoolLiteralEXP(bool val) : Expression(E_Boolean_Literal), _value(val) {};
+  BoolLiteralEXP(bool val, Loc loc)
+      : Expression(E_Boolean_Literal, loc), _value(val){};
 
   bool getValue() const { return _value; }
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   DEFINE_VISITABLE()
 
@@ -115,16 +125,27 @@ private:
  */
 class ArrayLiteralExpr : public Expression {
 public:
-  ArrayLiteralExpr(std::vector<std::shared_ptr<Expression>> elements)
-      : Expression(E_Array_Literal), elements(std::move(elements))
-  {
+  ArrayLiteralExpr(std::vector<std::shared_ptr<Expression>> elements, Loc loc)
+      : Expression(E_Array_Literal, loc), elements(std::move(elements)) {
     switch (this->elements[0]->getKind()) {
-      case E_Integer_Literal: el_type = TYPE_INT; break;
-      case E_Real_Literal: el_type = TYPE_REAL; break;
-      case E_String_Literal: el_type = TYPE_STRING; break;
-      case E_Boolean_Literal: el_type = TYPE_BOOL; break;
-      case E_Array_Literal: el_type = TYPE_ARRAY; break;
-      default: el_type = TYPE_UNKNOWN; break;
+    case E_Integer_Literal:
+      el_type = TYPE_INT;
+      break;
+    case E_Real_Literal:
+      el_type = TYPE_REAL;
+      break;
+    case E_String_Literal:
+      el_type = TYPE_STRING;
+      break;
+    case E_Boolean_Literal:
+      el_type = TYPE_BOOL;
+      break;
+    case E_Array_Literal:
+      el_type = TYPE_ARRAY;
+      break;
+    default:
+      el_type = TYPE_UNKNOWN;
+      break;
     }
   };
 
@@ -136,7 +157,9 @@ public:
 
   TypeKind el_type;
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -155,12 +178,14 @@ public:
  */
 class VarRefEXP : public Expression {
 public:
-  VarRefEXP(const std::string &name)
-      : Expression(E_Var_Reference, name) {};
+  VarRefEXP(const std::string &name, Loc loc)
+      : Expression(E_Var_Reference, name, loc){};
 
   // no children, link to a VarDecl probably
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -183,17 +208,18 @@ public:
  */
 class FieldRefEXP : public Expression {
 public:
-  FieldRefEXP(std::string name, std::shared_ptr<VarRefEXP> obj)
-      : Expression(E_Field_Reference, std::move(name)), obj(obj) {};
+  FieldRefEXP(std::string name, std::shared_ptr<VarRefEXP> obj, Loc loc)
+      : Expression(E_Field_Reference, std::move(name), loc), obj(obj){};
 
-  FieldRefEXP(std::string name)
-      : Expression(E_Field_Reference, std::move(name)),
-        obj(nullptr) {};
+  FieldRefEXP(std::string name, Loc loc)
+      : Expression(E_Field_Reference, std::move(name), loc), obj(nullptr){};
 
   std::shared_ptr<VarRefEXP> obj; // object which field is referenced
   size_t index;
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
   bool validate() override;
 
   DEFINE_VISITABLE()
@@ -207,11 +233,11 @@ public:
 class ElementRefEXP : public Expression {
 public:
   ElementRefEXP(std::shared_ptr<Expression> index,
-                std::shared_ptr<VarRefEXP> arr)
-      : Expression(E_Element_Reference), arr(arr), index(index) {};
+                std::shared_ptr<VarRefEXP> arr, Loc loc)
+      : Expression(E_Element_Reference, loc), arr(arr), index(index){};
 
-  ElementRefEXP()
-      : Expression(E_Element_Reference), arr(nullptr), index(nullptr) {};
+  ElementRefEXP(Loc loc)
+      : Expression(E_Element_Reference, loc), arr(nullptr), index(nullptr){};
 
   std::shared_ptr<VarRefEXP> arr;
   std::shared_ptr<Expression> index;
@@ -230,20 +256,22 @@ public:
 class MethodCallEXP : public Expression {
 public:
   MethodCallEXP(std::string method_name, std::shared_ptr<Expression> left,
-                std::vector<std::shared_ptr<Expression>> arguments)
-      : Expression(E_Method_Call, method_name),
-        left(left), arguments(arguments) {};
+                std::vector<std::shared_ptr<Expression>> arguments, Loc loc)
+      : Expression(E_Method_Call, method_name, loc), left(left),
+        arguments(arguments){};
 
-  MethodCallEXP() : Expression(E_Method_Call) {}
+  MethodCallEXP(Loc loc) : Expression(E_Method_Call, loc) {}
 
-  MethodCallEXP(const std::string &name)
-      : Expression(E_Method_Call, name) {};
+  MethodCallEXP(const std::string &name, Loc loc)
+      : Expression(E_Method_Call, name, loc){};
 
   // children should be
   std::shared_ptr<Expression> left;
   std::vector<std::shared_ptr<Expression>> arguments;
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
   bool validate() override;
 
   DEFINE_VISITABLE()
@@ -252,15 +280,15 @@ public:
 class FuncCallEXP : public Expression {
 public:
   FuncCallEXP(std::string method_name,
-              std::vector<std::shared_ptr<Expression>> arguments)
-      : Expression(E_Function_Call, std::move(method_name)),
-        arguments(std::move(arguments)), isVoided(false) {};
+              std::vector<std::shared_ptr<Expression>> arguments, Loc loc)
+      : Expression(E_Function_Call, std::move(method_name), loc),
+        arguments(std::move(arguments)), isVoided(false){};
 
-  FuncCallEXP(std::string method_name)
-      : Expression(E_Function_Call, std::move(method_name)),
-        isVoided(true) {};
+  FuncCallEXP(std::string method_name, Loc loc)
+      : Expression(E_Function_Call, std::move(method_name), loc),
+        isVoided(true){};
 
-  FuncCallEXP() : Expression(E_Function_Call) {}
+  FuncCallEXP(Loc loc) : Expression(E_Function_Call, loc) {}
 
   // children should be
   std::vector<std::shared_ptr<Expression>> arguments;
@@ -270,7 +298,9 @@ public:
   //   this->children.push_back(arg);
   // }
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -292,11 +322,13 @@ public:
  */
 class ClassNameEXP : public Expression {
 public:
-  ClassNameEXP(std::string _name)
-      : Expression(E_Class_Name, std::move(_name)) {};
+  ClassNameEXP(std::string _name, Loc loc)
+      : Expression(E_Class_Name, std::move(_name), loc){};
 
   // В классе ClassNameEXP
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -317,21 +349,24 @@ public:
 class ConstructorCallEXP : public Expression {
 public:
   ConstructorCallEXP(std::shared_ptr<ClassNameEXP> left,
-                     std::vector<std::shared_ptr<Expression>> arguments)
-      : Expression(E_Constructor_Call), left(std::move(left)),
-        arguments(std::move(arguments)), isDefault(false) {};
+                     std::vector<std::shared_ptr<Expression>> arguments,
+                     Loc loc)
+      : Expression(E_Constructor_Call, loc), left(std::move(left)),
+        arguments(std::move(arguments)), isDefault(false){};
 
   // Default constr
-  ConstructorCallEXP(std::shared_ptr<ClassNameEXP> left)
-      : Expression(E_Constructor_Call), left(std::move(left)), arguments(),
-        isDefault(true) {};
+  ConstructorCallEXP(std::shared_ptr<ClassNameEXP> left, Loc loc)
+      : Expression(E_Constructor_Call, loc), left(std::move(left)), arguments(),
+        isDefault(true){};
 
   // children should be
   std::shared_ptr<ClassNameEXP> left;
   std::vector<std::shared_ptr<Expression>> arguments;
   bool isDefault;
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -345,7 +380,7 @@ public:
  */
 class CompoundEXP : public Expression {
 public:
-  CompoundEXP() : Expression(E_Chained_Functions), parts() {}
+  CompoundEXP(Loc loc) : Expression(E_Chained_Functions, loc), parts() {}
 
   // children should be
   std::vector<std::shared_ptr<Expression>> parts;
@@ -355,7 +390,9 @@ public:
     this->parts.push_back(std::move(expr));
   }
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -365,12 +402,14 @@ public:
 // @TODO
 class ThisEXP : public Expression {
 public:
-  ThisEXP() : Expression(E_This, "this") {}
+  ThisEXP(Loc loc) : Expression(E_This, "this", loc) {}
 
   // no children, just a link to ???
   // @TODO add link to idk what
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override;
 
   bool validate() override;
 
@@ -379,13 +418,16 @@ public:
 
 class ConversionEXP : public Expression {
 public:
-  ConversionEXP(const std::shared_ptr<Expression> &from, const std::shared_ptr<Type> &to)
-      : Expression(E_Conversion, "conversion"), to(to), from(from) {};
+  ConversionEXP(const std::shared_ptr<Expression> &from,
+                const std::shared_ptr<Type> &to, Loc loc)
+      : Expression(E_Conversion, "conversion", loc), to(to), from(from){};
 
   std::shared_ptr<Type> to;
   std::shared_ptr<Expression> from;
 
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override {
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override {
     return to;
   };
   bool validate() override { return true; };
@@ -447,9 +489,9 @@ enum OperatorKind {
 class BinaryOpEXP : public Expression {
 public:
   BinaryOpEXP(OperatorKind op, std::shared_ptr<Expression> left,
-              std::shared_ptr<Expression> right)
-      : Expression(E_Binary_Operator), left(std::move(left)),
-        right(std::move(right)), op(op) {};
+              std::shared_ptr<Expression> right, Loc loc)
+      : Expression(E_Binary_Operator, loc), left(std::move(left)),
+        right(std::move(right)), op(op){};
 
   std::shared_ptr<Expression> left;
   std::shared_ptr<Expression> right;
@@ -460,8 +502,9 @@ public:
 
 class UnaryOpEXP : public Expression {
 public:
-  UnaryOpEXP(OperatorKind op, std::shared_ptr<Expression> operand)
-      : Expression(E_Unary_Operator), operand(std::move(operand)), op(op) {};
+  UnaryOpEXP(OperatorKind op, std::shared_ptr<Expression> operand, Loc loc)
+      : Expression(E_Unary_Operator, loc), operand(std::move(operand)),
+        op(op){};
 
   std::shared_ptr<Expression> operand;
   OperatorKind op;
@@ -471,11 +514,11 @@ public:
 
 class EnumRefEXP : public Expression {
 public:
-  EnumRefEXP(const std::string &enumName, const std::string &itemName)
-      : Expression(E_Enum_Reference, itemName), enumName(enumName) {};
+  EnumRefEXP(const std::string &enumName, const std::string &itemName, Loc loc)
+      : Expression(E_Enum_Reference, itemName, loc), enumName(enumName){};
 
-  EnumRefEXP(const std::string &enumName)
-      : Expression(E_Enum_Reference), enumName(enumName) {};
+  EnumRefEXP(const std::string &enumName, Loc loc)
+      : Expression(E_Enum_Reference, loc), enumName(enumName){};
   std::string enumName;
   std::string itemName;
 

@@ -1,9 +1,11 @@
 module forstatement
 
-func main() is
-  var i : Integer
-  
-  for i := 0, i < 5, i := i + 1 is
-    printl("%d ", i)
+class Main is
+  this() is
+    var i : Integer := 0
+
+    for i, i.Less(5), i := i.Plus(1) is
+      printf("%d ", i)
+    end
   end
 end

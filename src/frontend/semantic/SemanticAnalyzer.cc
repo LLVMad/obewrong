@@ -1,6 +1,6 @@
-#include "frontend/semantic/SemanticAnalyzer.h"
-#include "frontend/parser/Expression.h"
-#include <iostream>
+// #include "frontend/semantic/SemanticAnalyzer.h"
+// #include "frontend/parser/Expression.h"
+// #include <iostream>
 
 /*
 bool SemanticAnalyzer::analyze(std::shared_ptr<Entity> root) {

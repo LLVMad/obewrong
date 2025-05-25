@@ -4,7 +4,7 @@ class Main is
   this() is
     var i : Integer := 10
 
-    while i.Greater(0) loop
+    while i loop
       i := i.Minus(1)
     end
 

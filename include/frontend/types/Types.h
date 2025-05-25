@@ -16,17 +16,13 @@
 
 // Can we apply resolveType() to construct
 // -> is typable construct
-template<typename T, typename = void>
-struct is_typeable : std::false_type {};
+template <typename T, typename = void> struct is_typeable : std::false_type {};
 
-template<typename T>
-struct is_typeable<T, std::void_t<decltype(std::declval<T>().resolveType())>> : std::true_type {};
+template <typename T>
+struct is_typeable<T, std::void_t<decltype(std::declval<T>().resolveType())>>
+    : std::true_type {};
 
-enum AccessKind {
-  ACC_GENERAL,
-  ACC_NOT_NULL,
-  ACC_OWN
-};
+enum AccessKind { ACC_GENERAL, ACC_NOT_NULL, ACC_OWN };
 
 enum TypeKind {
   TYPE_UNKNOWN = -1,
@@ -83,7 +79,7 @@ public:
 class TypeAccess : public Type {
 public:
   TypeAccess(const std::shared_ptr<Type> to)
-    : Type(TYPE_ACCESS, "access"), kind(ACC_GENERAL), to(to) {}
+      : Type(TYPE_ACCESS, "access"), kind(ACC_GENERAL), to(to) {}
 
   AccessKind kind;
   std::shared_ptr<Type> to;
@@ -294,7 +290,6 @@ public:
       : Type(TYPE_FUNC, "Function"), return_type(std::move((return_type))),
         args(std::move((args))), isVoided(false), isVoid(false) {}
 
-
   // can move @TODO
   TypeFunc(std::shared_ptr<Type> return_type)
       : Type(TYPE_FUNC, "Function"), return_type(return_type), isVoided(true),
@@ -351,6 +346,15 @@ public:
     return llvm::StructType::getTypeByName(lc, llvm::StringRef(name));
   }
 
+  std::shared_ptr<Type> getField(const std::string &fieldName) const {
+    for (const auto &field : fields_types) {
+      if (field->name == fieldName) {
+        return field;
+      }
+    }
+    return nullptr;
+  }
+
   ~TypeClass() override = default;
 };
 
@@ -386,9 +390,9 @@ public:
  *                     ^^^
  *
  * - this attributes for pointer types are allowed:
- *    - `general` - raw C pointer 
- *    - `own` - unique pointer, move semantic 
- *    - `not_null` - cannot be nulled 
+ *    - `general` - raw C pointer
+ *    - `own` - unique pointer, move semantic
+ *    - `not_null` - cannot be nulled
  */
 // class TypePointer : public Type {
 // public:

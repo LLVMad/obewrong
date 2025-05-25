@@ -13,20 +13,22 @@ class AssignmentSTMT;
 
 class AssignmentWrapperEXP : public Expression {
 public:
-    explicit AssignmentWrapperEXP(std::shared_ptr<AssignmentSTMT> assignment)
-        : Expression(E_Assignment_Wrapper), assignment(std::move(assignment)) {}
+  explicit AssignmentWrapperEXP(std::shared_ptr<AssignmentSTMT> assignment,
+                                Loc loc)
+      : Expression(E_Assignment_Wrapper, loc),
+        assignment(std::move(assignment)) {}
 
-    std::shared_ptr<AssignmentSTMT> assignment;
+  std::shared_ptr<AssignmentSTMT> assignment;
 
-    std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override {
-        return assignment->expression->resolveType(typeTable, currentScope);
-    }
+  std::shared_ptr<Type>
+  resolveType(const TypeTable &typeTable,
+              const std::shared_ptr<Scope<Entity>> &currentScope) override {
+    return assignment->expression->resolveType(typeTable, currentScope);
+  }
 
-    bool validate() override {
-        return assignment->validate();
-    }
+  bool validate() override { return assignment->validate(); }
 
-    DEFINE_VISITABLE()
+  DEFINE_VISITABLE()
 };
 
 #endif
