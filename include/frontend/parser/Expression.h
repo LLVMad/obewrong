@@ -486,4 +486,12 @@ public:
   DEFINE_VISITABLE()
 };
 
+class NilLiteralEXP : public Expression {
+public:
+  NilLiteralEXP()
+    : Expression(E_Nil_Literal, "nil") {}
+
+  DEFINE_VISITABLE()
+};
+
 #endif

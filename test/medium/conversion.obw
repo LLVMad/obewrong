@@ -5,7 +5,7 @@ class Main is
     var a : Integer := 2
     var b : Real := 2.2
 
-    var c : Integer := b => Integer 
+    var c : Integer := b as Integer 
     printf("had %f => converted to %d\n", b, c)
 
   end 

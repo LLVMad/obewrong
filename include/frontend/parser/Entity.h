@@ -45,6 +45,7 @@ enum Ekind {
   E_String_Type,
   E_Boolean_Type,
   E_Function_Type,
+  E_Opaque_Type,
 
   // Expression related
   E_Integer_Literal,
@@ -68,6 +69,7 @@ enum Ekind {
   E_Element_Reference,
   E_Assignment_Wrapper, // Wraps assignments to be used in expressions
   E_Conversion,
+  E_Nil_Literal,
 
   // Special entities
   E_This, // current instance of object

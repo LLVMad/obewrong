@@ -33,6 +33,7 @@ bool isTypeName(TokenKind kind) {
   case TOKEN_TYPE_ANYREF:
   case TOKEN_TYPE_TYPE:
   case TOKEN_TYPE_BYTE:
+  case TOKEN_OPAQUE:
     return true;
   default:
     return false;
@@ -1558,7 +1559,7 @@ std::shared_ptr<Expression> Parser::parseExpression() {
     }
 
     // conversion
-    if (peek()->kind == TOKEN_ARROW) {
+    if (peek()->kind == TOKEN_AS) {
       return parseConversionOperator(node);
     }
 
@@ -2209,7 +2210,18 @@ std::shared_ptr<Expression> Parser::parsePrimary() {
     break;
   }
   case TOKEN_REAL_NUMBER: {
-    expr = std::make_shared<RealLiteralEXP>(std::get<double>(token->value));
+    double val = std::get<double>(token->value);
+    std::string valAsStr = std::to_string(val);
+    expr = std::make_shared<RealLiteralEXP>(val);
+
+    // OOP in action
+    // everything is an object lol
+    // add number to symbol table, becouse
+    // technically its an instance of Integer object !?
+    auto type = globalTypeTable->getType(moduleName, "Real");
+    auto numAsVarDecl = std::make_shared<VarDecl>(valAsStr, type);
+    globalSymbolTable->getCurrentScope()->addSymbol<VarDecl>(valAsStr, numAsVarDecl);
+
     break;
   }
   case TOKEN_BOOL_TRUE: {
@@ -2222,6 +2234,10 @@ std::shared_ptr<Expression> Parser::parsePrimary() {
   }
   case TOKEN_STRING: {
     expr = std::make_shared<StringLiteralEXP>(std::get<std::string>(token->value));
+    break;
+  }
+  case TOKEN_NIL: {
+    expr = std::make_shared<NilLiteralEXP>();
     break;
   }
   case TOKEN_SELFREF: {
@@ -2424,6 +2440,10 @@ Parser::parsePrimary(const std::string &classNameToSearchIn) {
   }
   case TOKEN_STRING: {
     expr = std::make_shared<StringLiteralEXP>(std::get<std::string>(token->value));
+    break;
+  }
+  case TOKEN_NIL: {
+    expr = std::make_shared<NilLiteralEXP>();
     break;
   }
   case TOKEN_SELFREF: {

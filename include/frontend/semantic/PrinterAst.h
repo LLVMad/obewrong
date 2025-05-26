@@ -73,8 +73,6 @@ class PrinterAst : public BaseVisitor,
                   public Visitor<ConstrDecl, void>,
                   public Visitor<FuncDecl, void>,
                   public Visitor<ClassDecl, void>,
-                  public Visitor<ArrayDecl, void>,
-                  public Visitor<ListDecl, void>,
                   public Visitor<ModuleDecl, void>,
                   public Visitor<EnumDecl, void> {
 public:
@@ -396,26 +394,6 @@ public:
       method->accept(*this);
     }
     indent -= 2;
-  }
-
-  void visit(ArrayDecl& decl) override {
-    printIndent();
-    std::cout << "ArrayDecl: " << decl.getName() << std::endl;
-    if (decl.initializer) {
-      indent += 2;
-      decl.initializer->accept(*this);
-      indent -= 2;
-    }
-  }
-
-  void visit(ListDecl& decl) override {
-    printIndent();
-    std::cout << "ListDecl: " << decl.getName() << std::endl;
-    if (decl.initializer) {
-      indent += 2;
-      decl.initializer->accept(*this);
-      indent -= 2;
-    }
   }
 
   void visit(ModuleDecl& decl) override {

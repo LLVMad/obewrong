@@ -20,9 +20,12 @@ class NumberStore is
     end
 end
   
-func main() is 
+class Main is 
+  this() is 
     var ns : NumberStore := NumberStore()
-    printl("%d\n", ns.value)
-    printl("%d\n", ns.Get())
+    printf("%d\n", ns.value)
+    printf("%d\n", ns.Get())
     ns.Set(3)
+    printf("%d\n", ns.Get())
+  end
 end

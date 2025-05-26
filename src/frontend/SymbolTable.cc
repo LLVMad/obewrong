@@ -40,6 +40,23 @@ void SymbolTable::initBuiltinFunctions(
   methods.push_back(intPlusDecl);
   method_types.push_back(intPlusType);
 
+  // - Size
+  auto sizeReturnType = typeTable->getType("", "Integer");
+  // auto intUMinusTypeParamType = typeTable->getType("", "Integer");
+  // paramTypes = {intMinusTypeParamType};
+  auto sizeType =
+      std::make_shared<TypeFunc>(sizeReturnType);
+  // auto intUMinusParamDecl =
+  //     std::make_shared<ParameterDecl>("x", intMinusTypeParamType);
+  params = {};
+  auto sizeDecl =
+      std::make_shared<MethodDecl>("Size", sizeType, params, true);
+  sizeDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Size", sizeDecl);
+  methods.push_back(sizeDecl);
+  method_types.push_back(sizeType);
+
   // - Minus
   auto intMinusTypeReturnType = typeTable->getType("", "Integer");
   auto intMinusTypeParamType = typeTable->getType("", "Integer");
@@ -212,6 +229,23 @@ void SymbolTable::initBuiltinFunctions(
   methods.push_back(realPlusDecl);
   method_types.push_back(realPlusType);
 
+  // - Size
+  sizeReturnType = typeTable->getType("", "Integer");
+  // auto intUMinusTypeParamType = typeTable->getType("", "Integer");
+  // paramTypes = {intMinusTypeParamType};
+  sizeType =
+      std::make_shared<TypeFunc>(sizeReturnType);
+  // auto intUMinusParamDecl =
+  //     std::make_shared<ParameterDecl>("x", intMinusTypeParamType);
+  params = {};
+  sizeDecl =
+      std::make_shared<MethodDecl>("Size", sizeType, params, true);
+  sizeDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Size", sizeDecl);
+  methods.push_back(sizeDecl);
+  method_types.push_back(sizeType);
+
   // - Minus
   auto realMinusTypeReturnType = typeTable->getType("", "Real");
   auto realMinusTypeParamType = typeTable->getType("", "Real");
@@ -372,6 +406,23 @@ void SymbolTable::initBuiltinFunctions(
   current_scope->addSymbol("And", boolAndDecl);
   booleanMethods.push_back(boolAndDecl);
   booleanMethodTypes.push_back(boolAndType);
+
+  // - Size
+  sizeReturnType = typeTable->getType("", "Integer");
+  // auto intUMinusTypeParamType = typeTable->getType("", "Integer");
+  // paramTypes = {intMinusTypeParamType};
+  sizeType =
+      std::make_shared<TypeFunc>(sizeReturnType);
+  // auto intUMinusParamDecl =
+  //     std::make_shared<ParameterDecl>("x", intMinusTypeParamType);
+  params = {};
+  sizeDecl =
+      std::make_shared<MethodDecl>("Size", sizeType, params, true);
+  sizeDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Size", sizeDecl);
+  methods.push_back(sizeDecl);
+  method_types.push_back(sizeType);
 
   // - Or
   auto boolOrTypeReturnType = typeTable->getType("", "Boolean");
