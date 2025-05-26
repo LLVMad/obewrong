@@ -109,8 +109,9 @@ public:
     // builtinTypes.addType("Float64", std::make_shared<TypeFloat64>());
     // // builtinTypes.addType("Bool", std::make_shared<TypeBool>());
     builtinTypes.addType("Boolean", std::make_shared<TypeBool>());
-    builtinTypes.addType("String", std::make_shared<TypeString>());
+    // builtinTypes.addType("String", std::make_shared<TypeString>());
     builtinTypes.addType("Opaque", std::make_shared<TypeOpaque>());
+    builtinTypes.addType("i64", std::make_shared<TypeInt64>());
     // builtinTypes.addType("Array", std::make_shared<TypeArray>());
   }
 

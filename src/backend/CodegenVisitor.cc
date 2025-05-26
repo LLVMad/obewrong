@@ -81,13 +81,22 @@ void CodeGenVisitor::visit(ConversionEXP &node) {
   else if (fromType->kind == TYPE_BYTE && toType->kind == TYPE_INT) {
     lastValue = builder->CreateSExt(fromVal, llvm::Type::getInt32Ty(*context));
   }
+  else if (fromType->kind == TYPE_INT && toType->kind == TYPE_INT) {
+    auto asIntConcreteFrom = std::static_pointer_cast<TypeInt>(fromType);
+    auto asIntConcreteTo = std::static_pointer_cast<TypeInt>(toType);
+
+    if (asIntConcreteFrom->bytesize == 4 and asIntConcreteTo->bytesize == 8)
+      lastValue = builder->CreateSExt(fromVal, llvm::Type::getInt64Ty(*context));
+
+
+  }
 
 }
 
 void CodeGenVisitor::visit(ElementRefEXP &node) {
   node.index->accept(*this);
   // load index value -> index is an Expresssion
-  auto indexVal = lastValue;
+  auto indexVal = unwrapPointerReference(node.index.get(), lastValue);
 
   // convert index to i64 if it's not already
   if (indexVal->getType() != llvm::Type::getInt64Ty(*context)) {
@@ -97,15 +106,31 @@ void CodeGenVisitor::visit(ElementRefEXP &node) {
   // array type
   // @TODO: field as `arr`
   auto [arrDecl , arrAlloca, arrInited ] = *currentScope->getSymbol(node.arr->getName());
+  auto arrType = arrDecl->resolveType(typeTable->types[moduleName], currentScope);
 
-  // GEP with two indices: [0, index]
-  auto zero = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0);
-  lastValue = builder->CreateGEP(
-    arrAlloca->getAllocatedType(),
-    arrAlloca,
-    {zero, indexVal}
-  );
+  if (arrType->kind == TYPE_ACCESS) {
+    auto ptrType = std::static_pointer_cast<TypeAccess>(arrType);
+    auto load = builder->CreateLoad(
+      arrAlloca->getAllocatedType(),
+      arrAlloca
+    );
 
+    lastValue = builder->CreateGEP(
+      ptrType->to->toLLVMType(*context),
+      load,
+      indexVal
+    );
+  }
+
+  else {
+    // GEP with two indices: [0, index]
+    auto zero = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0);
+    lastValue = builder->CreateGEP(
+      arrAlloca->getAllocatedType(),
+      arrAlloca,
+      {zero, indexVal}
+    );
+  }
   // load GEP
   // auto arrType = std::static_pointer_cast<VarDecl>(arrDecl)->type;
   // auto el_type = std::static_pointer_cast<TypeArray>(arrType)->el_type;
@@ -230,6 +255,7 @@ void CodeGenVisitor::visit(FuncCallEXP &node) {
     // void arg = visit(Args[i]);
     Args[i]->accept(*this);
     auto val = unwrapPointerReference(Args[i].get(), lastValue);
+    // auto val = lastValue;
 
     // load an argument
     // @TODO probably shoulnt do it here???
@@ -967,9 +993,22 @@ void CodeGenVisitor::visit(AssignmentSTMT &node) {
   node.expression->accept(*this);
   // llvm::Value* assignment = lastValue;
 
-  auto assignment = unwrapPointerReference(node.expression.get(), lastValue);
+  // addition
+  if (lastValue->getType()->isPointerTy()) {
+    std::vector<llvm::Type*> types = {
+      llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
+      llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
+      llvm::Type::getInt64Ty(*context)
+    };
+    llvm::Value* sizeOf = getSizeOfValue(lastValue);
+    auto memcpyFn = getOrInsertDeclaration(module.get(), llvm::Intrinsic::memcpy, types);
+    builder->CreateCall(memcpyFn, {var, lastValue, sizeOf, llvm::ConstantInt::getFalse(*context)});
+  }
+  else {
+    auto assignment = unwrapPointerReference(node.expression.get(), lastValue);
 
-  builder->CreateStore(assignment, var);
+    builder->CreateStore(assignment, var);
+  }
 }
 
 void CodeGenVisitor::visit(ReturnSTMT &node) {
@@ -1150,7 +1189,7 @@ void CodeGenVisitor::handleBuiltinMethodCall(
     lastValue = builder->CreatePtrToInt(offset, llvm::Type::getInt64Ty(*context), "typeSize");
     return;
   }
-  if (className == "Integer") {
+  if (className == "Integer" or className == "i64") {
     handleIntegerMethods(methodName, L, R);
   }
   else if (className == "Real") {
@@ -1304,9 +1343,21 @@ void CodeGenVisitor::visit(MethodCallEXP &node) {
   }
 }
 
+llvm::Value* CodeGenVisitor::getSizeOfValue(llvm::Value* value) {
+  llvm::Type* type = value->getType();
+  llvm::Value* nullValue = llvm::ConstantPointerNull::get(llvm::PointerType::get(type, 0));
+  llvm::Value* offset = builder->CreateGEP(type, nullValue, llvm::ConstantInt::get(*context, llvm::APInt(16, 1)));
+  // lastValue = builder->CreatePtrToInt(offset, llvm::Type::getInt64Ty(*context), "typeSize");
+  return builder->CreatePtrToInt(offset, llvm::Type::getInt64Ty(*context), "typeSize");;
+}
+
 llvm::Value*
 CodeGenVisitor::unwrapPointerReference(Expression *node, llvm::Value *val) {
   if (!val->getType()->isPointerTy()) return val;
+
+  // @FIXME
+  if (node->getKind() != E_Function_Call)
+    if (node->resolveType(typeTable->types[moduleName], currentScope)->kind == TYPE_ACCESS) return val;
 
   switch (node->getKind()) {
     case E_Element_Reference: {
@@ -1315,7 +1366,7 @@ CodeGenVisitor::unwrapPointerReference(Expression *node, llvm::Value *val) {
 
       std::shared_ptr<Type> el_type;
       switch (arrType->kind) {
-        case TYPE_ARRAY: {
+        case TYPE_ARRAY: case TYPE_LIST: {
           el_type = std::static_pointer_cast<TypeArray>(arrType)->el_type;
           break;
         }

@@ -17,7 +17,7 @@ std::shared_ptr<Type> RealLiteralEXP::resolveType(const TypeTable &typeTable, co
 std::shared_ptr<Type> StringLiteralEXP::resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) {
   // auto type = std::make_unique<TypeString>(sizeof(value.c_str()));
   // return type;
-  return typeTable.getType("String");
+  return std::make_shared<TypeAccess>(typeTable.getType("byte"));
 }
 
 std::shared_ptr<Type> BoolLiteralEXP::resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) {
@@ -40,7 +40,14 @@ bool ArrayLiteralExpr::validate() {
 }
 
 std::shared_ptr<Type> FieldRefEXP::resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) {
-  auto [decl, alloca, isInited] = *currentScope->getSymbol(obj->getName());
+  auto objType = obj->resolveType(typeTable, currentScope);
+  std::string objTypeName = objType->name;
+
+  if (obj->getKind() == E_This) {
+    objTypeName = currentScope->prevScope()->getName();
+  }
+
+  auto [decl, alloca, isInited] = *currentScope->getSymbol(objTypeName);
   auto classDecl = std::dynamic_pointer_cast<ClassDecl>(decl);
   auto fieldDecl = std::find_if(
     classDecl->fields.begin(),
@@ -95,9 +102,9 @@ bool MethodCallEXP::validate() {
 }
 
 std::shared_ptr<Type> FuncCallEXP::resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) {
-  (void)typeTable;
-  // @TODO
-  return nullptr;
+  auto symbolInfo = currentScope->getSymbol(name);
+  return symbolInfo->decl->resolveType(typeTable, currentScope);
+  // return nullptr;
 }
 
 bool FuncCallEXP::validate() {

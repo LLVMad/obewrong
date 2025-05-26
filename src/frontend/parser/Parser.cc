@@ -752,7 +752,7 @@ std::shared_ptr<Block> Parser::parseBlock(BlockKind blockKind, size_t fieldIndex
     } break;
     case TOKEN_IDENTIFIER:
     case TOKEN_PRINT: {
-      // @FIX assign can be further than 2 or 4 tokens ahead
+      // @FIXME assign can be further than 2 or 4 tokens ahead
       if (peek(2)->kind == TOKEN_ASSIGNMENT ||
           peek(4)->kind == TOKEN_ASSIGNMENT) {
         // a := a.set(...)
@@ -854,7 +854,7 @@ std::shared_ptr<ConstrDecl> Parser::parseConstructorDecl() {
 
       // to make different constructors distinguishable
       // we add param names to it
-      globalSymbolTable->getCurrentScope()->appendToName(param_decl->getName());
+      globalSymbolTable->getCurrentScope()->appendToName(param_decl->type->name);
 
       constr->appendToName(param_decl->type->name);
     }
@@ -1190,6 +1190,72 @@ std::shared_ptr<FieldDecl> Parser::parseFieldDecl(size_t index) {
       var_type = globalTypeTable->types[moduleName].getType(
           std::get<std::string>(token->value));
     }
+  }
+
+  // composite container type
+  if (peek()->kind == TOKEN_LSBRACKET) {
+
+    token = next(); // eat '['
+
+    auto el_type_name = std::get<std::string>(next()->value);
+
+    std::shared_ptr<Type> el_type;
+    if (el_type_name == "access") {
+      el_type_name = std::get<std::string>(next()->value);
+
+      auto toType = globalTypeTable->types[moduleName].getType(
+  el_type_name);
+      var_type = std::make_shared<TypeAccess>(toType);
+      type_name = var_name; // alias a type by the variable name
+      globalTypeTable->addType(moduleName, type_name, var_type);
+      el_type = var_type;
+    } else {
+      el_type = globalTypeTable->getType(moduleName, el_type_name);
+    }
+
+    // @note <TypeList> is safe, because it has only el_type field
+    auto var_type_array = std::make_shared<TypeList>(el_type);
+    var_type_array->el_type = std::move(el_type);
+
+    // size_t array_size = 0;
+
+    // "," SIZE
+    if (peek()->kind == TOKEN_COMMA) {
+      auto var_type_const_array = std::make_shared<TypeArray>();
+      var_type_const_array->el_type = std::move(el_type);
+      token = next(); // eat ','
+
+      token = peek();
+      // @TODO can size be an expression?
+      token = next();
+      size_t array_size = std::get<int>(token->value);
+
+      var_type_const_array->el_type = std::move(var_type_array->el_type);
+      var_type_const_array->size = array_size;
+
+      // Array type cant be shared, because arrays
+      // have different length
+      // taken from c++ primer
+      // `"The number of elements in an array is part of the array's type."`
+      // so we add a new array type when we encounter a decl of array
+      // indexed by a var name ?
+
+      globalTypeTable->addType(moduleName, var_name, var_type_const_array);
+
+      var_type = var_type_const_array;
+    } else {
+      // Array type cant be shared, because arrays
+      // have different length
+      // taken from c++ primer
+      // `"The number of elements in an array is part of the array's type."`
+      // so we add a new array type when we encounter a decl of array
+      // indexed by a var name ?
+      globalTypeTable->addType(moduleName, var_name, var_type_array);
+
+      var_type = var_type_array;
+    }
+
+    token = next(); // eat ']'
   }
 
   auto ass = std::make_shared<FieldDecl>(var_name, var_type);
@@ -2281,7 +2347,7 @@ std::shared_ptr<Expression> Parser::parsePrimary() {
         auto arrayRef =
             std::make_shared<VarRefEXP>(std::get<std::string>(token->value));
         token = next();                     // eat '['
-        auto indexedBy = parseExpression(); 
+        auto indexedBy = parseExpression();
         token = next();                     // eat ']'
         expr = std::make_shared<ElementRefEXP>(indexedBy, arrayRef);
       } else {
@@ -2323,10 +2389,10 @@ std::shared_ptr<Expression> Parser::parsePrimary() {
         expr->getKind() == E_Method_Call ||
         expr->getKind() == E_Element_Reference ||
         expr->getKind() == E_This) {
-      
+
       next(); // eat '.'
       auto field_name = std::get<std::string>(next()->value);
-      
+
       if (peek()->kind == TOKEN_LBRACKET) {
         // This is a method call
         auto methodCall = std::make_shared<MethodCallEXP>(field_name);
@@ -2354,7 +2420,7 @@ std::shared_ptr<Expression> Parser::parsePrimary() {
           var_ref = std::static_pointer_cast<VarRefEXP>(expr);
           field_access = std::make_shared<FieldRefEXP>(field_name, var_ref);
         }
-        
+
         auto currScope = globalSymbolTable->getCurrentScope();
         std::string typeName;
         if (expr->getKind() == E_This) {
@@ -2524,10 +2590,10 @@ Parser::parsePrimary(const std::string &classNameToSearchIn) {
         expr->getKind() == E_Method_Call ||
         expr->getKind() == E_Element_Reference ||
         expr->getKind() == E_This) {
-      
+
       next(); // eat '.'
       auto field_name = std::get<std::string>(next()->value);
-      
+
       if (peek()->kind == TOKEN_LBRACKET) {
         // This is a method call
         auto methodCall = std::make_shared<MethodCallEXP>(field_name);

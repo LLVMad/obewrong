@@ -1,9 +1,36 @@
-module std.string 
+module string 
 
 class String is 
   var data : access byte // i8*
-  var length : Integer 
+  var length : i64 
 
+  this() is 
+    this.data := malloc(1ll)
+    this.length := 0
+  end
   
+  this(literal : access byte) is
+    this.data := literal
+    this.length := strlen(literal)
+    //this.length = strlen(literal)
+  end 
   
+  method append(char : byte) is 
+    var len : i64 := this.length
+    var newLen : i64 := len.Plus(1ll)
+
+    var newData : access byte := malloc(newLen)
+    strcpy(newData, this.data) 
+  
+    var index : i64 := newLen.Minus(1ll)
+    newData[index] := char
+    
+    strcpy(this.data, newData)  
+    
+    this.length := newLen
+  end
+
+  method size() : i64 is 
+    return this.length 
+  end
 end
