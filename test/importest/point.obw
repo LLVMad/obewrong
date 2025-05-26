@@ -1,0 +1,22 @@
+module point
+
+class Point is
+  var x : Integer
+  var y : Integer
+
+  this() is
+    this.x := 0
+    this.y := 0
+  end
+
+  this(x : Integer, y : Integer) is
+    this.x := x
+    this.y := y
+  end
+
+  method xByy() : Integer is
+    var _x : Integer := this.x
+    var _y : Integer := this.y
+    return _x.Mult(_y)
+  end
+end

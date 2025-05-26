@@ -1,8 +1,9 @@
 module pointers
 
-func main() is 
-  var i : ref Integer(10)
-  var val : access general Integer := 'i
-  val.ref = 11
-  printl("%d", val)
+class Main is 
+  this() is   
+    var i : Integer := 10
+  
+    var ptr : access Integer := nil
+  end
 end

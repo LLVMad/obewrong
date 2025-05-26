@@ -45,6 +45,7 @@ enum Ekind {
   E_String_Type,
   E_Boolean_Type,
   E_Function_Type,
+  E_Opaque_Type,
 
   // Expression related
   E_Integer_Literal,
@@ -68,6 +69,7 @@ enum Ekind {
   E_Element_Reference,
   E_Assignment_Wrapper, // Wraps assignments to be used in expressions
   E_Conversion,
+  E_Nil_Literal,
 
   // Special entities
   E_This, // current instance of object
@@ -99,6 +101,7 @@ public:
   Loc getLoc() const { return location; };
   std::string getName() const { return name; };
   void appendToName(const std::string &name) { this->name += name; };
+  void setName(std::string name) { this->name = name; };
 
   virtual std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) = 0;
   virtual bool validate() = 0;

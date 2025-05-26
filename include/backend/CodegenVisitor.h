@@ -75,10 +75,10 @@ class CodeGenVisitor : public BaseVisitor,
                   public Visitor<ConstrDecl, void>,
                   public Visitor<FuncDecl, void>,
                   public Visitor<ClassDecl, void>,
-                  public Visitor<ArrayDecl, void>,
-                  public Visitor<ListDecl, void>,
                   public Visitor<ModuleDecl, void>,
-                  public Visitor<EnumDecl, void> {
+                  public Visitor<EnumDecl, void>,
+                  public Visitor<NilLiteralEXP, void>
+{
 public:
   CodeGenVisitor(
     SourceManager &sm, std::shared_ptr<SourceBuffer> buff,
@@ -220,6 +220,7 @@ public:
   void visit(BinaryOpEXP &node) override;
   void visit(ElementRefEXP &node) override;
   void visit(AssignmentWrapperEXP &node) override;
+  void visit(NilLiteralEXP &node) override;
   // #####========================================#####
 
   // #####========== DECLARATIONS ==========#####
@@ -232,8 +233,6 @@ public:
   void visit(ConstrDecl &node) override;
   void visit(FuncDecl &node) override;
   void visit(ClassDecl &node) override;
-  void visit(ArrayDecl &node) override; // probably should be deleted
-  void visit(ListDecl &node) override; // same
   // #####========================================#####
 
   // #####========== STATEMENTS ==========#####
@@ -258,6 +257,12 @@ public:
 
   void handleBuiltinMethodCall(MethodCallEXP &node,
                                      std::string methodName);
+
+  void handleIntegerMethods(const std::string &methodName, llvm::Value* L, llvm::Value *R);
+
+  void handleRealMethods(const std::string &methodName, llvm::Value* L, llvm::Value *R);
+
+  void handleBooleanMethods(const std::string &methodName, llvm::Value* L, llvm::Value *R);
 
   void dumpIR() const { module->print(llvm::outs(), nullptr); }
 

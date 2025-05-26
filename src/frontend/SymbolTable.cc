@@ -40,6 +40,23 @@ void SymbolTable::initBuiltinFunctions(
   methods.push_back(intPlusDecl);
   method_types.push_back(intPlusType);
 
+  // - Size
+  auto sizeReturnType = typeTable->getType("", "Integer");
+  // auto intUMinusTypeParamType = typeTable->getType("", "Integer");
+  // paramTypes = {intMinusTypeParamType};
+  auto sizeType =
+      std::make_shared<TypeFunc>(sizeReturnType);
+  // auto intUMinusParamDecl =
+  //     std::make_shared<ParameterDecl>("x", intMinusTypeParamType);
+  params = {};
+  auto sizeDecl =
+      std::make_shared<MethodDecl>("Size", sizeType, params, true);
+  sizeDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Size", sizeDecl);
+  methods.push_back(sizeDecl);
+  method_types.push_back(sizeType);
+
   // - Minus
   auto intMinusTypeReturnType = typeTable->getType("", "Integer");
   auto intMinusTypeParamType = typeTable->getType("", "Integer");
@@ -212,6 +229,23 @@ void SymbolTable::initBuiltinFunctions(
   methods.push_back(realPlusDecl);
   method_types.push_back(realPlusType);
 
+  // - Size
+  sizeReturnType = typeTable->getType("", "Integer");
+  // auto intUMinusTypeParamType = typeTable->getType("", "Integer");
+  // paramTypes = {intMinusTypeParamType};
+  sizeType =
+      std::make_shared<TypeFunc>(sizeReturnType);
+  // auto intUMinusParamDecl =
+  //     std::make_shared<ParameterDecl>("x", intMinusTypeParamType);
+  params = {};
+  sizeDecl =
+      std::make_shared<MethodDecl>("Size", sizeType, params, true);
+  sizeDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Size", sizeDecl);
+  methods.push_back(sizeDecl);
+  method_types.push_back(sizeType);
+
   // - Minus
   auto realMinusTypeReturnType = typeTable->getType("", "Real");
   auto realMinusTypeParamType = typeTable->getType("", "Real");
@@ -354,5 +388,85 @@ void SymbolTable::initBuiltinFunctions(
 
   exitScope();
   //========================================
+  //========== BOOLEAN BUILTIN METHODS ==========
+  enterScope(SCOPE_MODULE_BUILTIN, "Boolean");
+  std::vector<std::shared_ptr<Decl>> booleanMethods;
+  std::vector<std::shared_ptr<TypeFunc>> booleanMethodTypes;
+  enterScope(SCOPE_CLASS_BUILTIN, "Boolean");
+
+  // - And
+  auto boolAndTypeReturnType = typeTable->getType("", "Boolean");
+  auto boolAndTypeParamType = typeTable->getType("", "Boolean");
+  paramTypes = {boolAndTypeParamType};
+  auto boolAndType = std::make_shared<TypeFunc>(boolAndTypeReturnType, paramTypes);
+  auto boolAndParamDecl = std::make_shared<ParameterDecl>("x", boolAndTypeParamType);
+  params = {boolAndParamDecl};
+  auto boolAndDecl = std::make_shared<MethodDecl>("And", boolAndType, params, true);
+  boolAndDecl->isBuiltin = true;
+  current_scope->addSymbol("And", boolAndDecl);
+  booleanMethods.push_back(boolAndDecl);
+  booleanMethodTypes.push_back(boolAndType);
+
+  // - Size
+  sizeReturnType = typeTable->getType("", "Integer");
+  // auto intUMinusTypeParamType = typeTable->getType("", "Integer");
+  // paramTypes = {intMinusTypeParamType};
+  sizeType =
+      std::make_shared<TypeFunc>(sizeReturnType);
+  // auto intUMinusParamDecl =
+  //     std::make_shared<ParameterDecl>("x", intMinusTypeParamType);
+  params = {};
+  sizeDecl =
+      std::make_shared<MethodDecl>("Size", sizeType, params, true);
+  sizeDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Size", sizeDecl);
+  methods.push_back(sizeDecl);
+  method_types.push_back(sizeType);
+
+  // - Or
+  auto boolOrTypeReturnType = typeTable->getType("", "Boolean");
+  auto boolOrTypeParamType = typeTable->getType("", "Boolean");
+  paramTypes = {boolOrTypeParamType};
+  auto boolOrType = std::make_shared<TypeFunc>(boolOrTypeReturnType, paramTypes);
+  auto boolOrParamDecl = std::make_shared<ParameterDecl>("x", boolOrTypeParamType);
+  params = {boolOrParamDecl};
+  auto boolOrDecl = std::make_shared<MethodDecl>("Or", boolOrType, params, true);
+  boolOrDecl->isBuiltin = true;
+  current_scope->addSymbol("Or", boolOrDecl);
+  booleanMethods.push_back(boolOrDecl);
+  booleanMethodTypes.push_back(boolOrType);
+
+  // - Not (Unary)
+  auto boolNotTypeReturnType = typeTable->getType("", "Boolean");
+  auto boolNotType = std::make_shared<TypeFunc>(boolNotTypeReturnType);
+  params = {};
+  auto boolNotDecl = std::make_shared<MethodDecl>("Not", boolNotType, params, true);
+  boolNotDecl->isBuiltin = true;
+  current_scope->addSymbol("Not", boolNotDecl);
+  booleanMethods.push_back(boolNotDecl);
+  booleanMethodTypes.push_back(boolNotType);
+
+  // - Equal
+  auto boolEqualTypeReturnType = typeTable->getType("", "Boolean");
+  auto boolEqualTypeParamType = typeTable->getType("", "Boolean");
+  paramTypes = {boolEqualTypeParamType};
+  auto boolEqualType = std::make_shared<TypeFunc>(boolEqualTypeReturnType, paramTypes);
+  auto boolEqualParamDecl = std::make_shared<ParameterDecl>("x", boolEqualTypeParamType);
+  params = {boolEqualParamDecl};
+  auto boolEqualDecl = std::make_shared<MethodDecl>("Equal", boolEqualType, params, true);
+  boolEqualDecl->isBuiltin = true;
+  current_scope->addSymbol("Equal", boolEqualDecl);
+  booleanMethods.push_back(boolEqualDecl);
+  booleanMethodTypes.push_back(boolEqualType);
+
+  exitScope();
+
+  // - Boolean class declaration
+  auto booleanClassType = std::make_shared<TypeClass>("Boolean", std::vector<std::shared_ptr<Type>>(), booleanMethodTypes);
+  auto booleanDecl = std::make_shared<ClassDecl>("Boolean", booleanClassType, std::vector<std::shared_ptr<FieldDecl>>(), booleanMethods);
+  current_scope->addSymbol("Boolean", booleanDecl);
+  exitScope();
+  //============================================
   // ... other built-in functions ...
 }

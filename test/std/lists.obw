@@ -1,0 +1,29 @@
+module std.lists
+
+class List[T] is 
+  var lbegin : access T
+  var lend : access T 
+  var size : Integer 
+  var capacity : Integer 
+
+  this(var s : Integer) is 
+    lbegin = malloc(s * T.size) as access T 
+  end
+
+  method length() : Integer is 
+    return this.size 
+  end 
+
+  method get(var i : Integer) : T is 
+    return lbegin.Plus(i).ref
+  end 
+
+  method set(var index : Integer, var el : T) is 
+    lbegin.Plus(index).ref := el 
+  end
+  
+  method append(el : T) is 
+    
+  end 
+
+end

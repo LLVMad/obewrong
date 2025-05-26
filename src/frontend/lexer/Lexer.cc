@@ -7,59 +7,47 @@
 
 #include "frontend/lexer/Lexer.h"
 
-#define TOTAL_KEYWORDS 31
+#define TOTAL_KEYWORDS 34
 #define MIN_WORD_LENGTH 2
 #define MAX_WORD_LENGTH 8
-#define MIN_HASH_VALUE 2
-#define MAX_HASH_VALUE 46
-/* maximum key range = 87, duplicates = 0 */
+#define MIN_HASH_VALUE 4
+#define MAX_HASH_VALUE 58
+/* maximum key range = 55, duplicates = 0 */
 
 /*
  * Hash function for fast check if an input word is a keyword
  */
 inline unsigned int Lexer::hash(const char *str, size_t len) {
   static unsigned char asso_values[] =
-      {
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47,  5, 47, 28,
-    47,  0,  3, 47, 15,  0, 47, 47, 10, 10,
-    10, 20, 15, 47,  0,  0, 20,  0, 10,  5,
-    15,  3, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47, 47, 47, 47, 47,
-    47, 47, 47, 47, 47, 47
+    {
+    59, 59, 59, 59, 59, 59, 59, 59, 59, 59,
+    59, 59, 59, 59, 59, 59, 59, 59, 59, 59,
+    59, 59, 59, 59, 59, 59, 59, 59, 59, 59,
+    59, 59, 59, 59, 59, 59, 59, 59, 59, 59,
+    59, 59, 59, 59, 59, 59, 59, 59, 59, 59,
+    59, 59, 59, 59, 59, 59, 59, 59, 59, 59,
+    59, 59, 59, 59, 59, 59, 59, 59, 59, 59,
+    59, 59, 59, 59, 59, 59, 59, 59, 59,  0,
+    59, 59, 59, 59, 59, 59, 59, 59, 59, 59,
+    59, 59, 59, 59, 59, 59, 59, 40, 40,  5,
+     5,  0, 15, 59, 10, 10, 59, 59, 35, 25,
+    20,  5,  0, 59, 15,  5, 10, 59,  0,  0,
+    59, 59, 59, 59, 59, 59, 59, 59, 59, 59,
+    59, 59, 59, 59, 59, 59, 59, 59, 59, 59,
+    59, 59, 59, 59, 59, 59, 59, 59, 59, 59,
+    59, 59, 59, 59, 59, 59, 59, 59, 59, 59,
+    59, 59, 59, 59, 59, 59, 59, 59, 59, 59,
+    59, 59, 59, 59, 59, 59, 59, 59, 59, 59,
+    59, 59, 59, 59, 59, 59, 59, 59, 59, 59,
+    59, 59, 59, 59, 59, 59, 59, 59, 59, 59,
+    59, 59, 59, 59, 59, 59, 59, 59, 59, 59,
+    59, 59, 59, 59, 59, 59, 59, 59, 59, 59,
+    59, 59, 59, 59, 59, 59, 59, 59, 59, 59,
+    59, 59, 59, 59, 59, 59, 59, 59, 59, 59,
+    59, 59, 59, 59, 59, 59, 59, 59, 59, 59,
+    59, 59, 59, 59, 59, 59
   };
-  unsigned int hval = len;
-
-  switch (hval)
-  {
-  default:
-    hval += asso_values[(unsigned char)str[3]];
-    /*FALLTHROUGH*/
-  case 3:
-  case 2:
-    hval += asso_values[(unsigned char)str[1]];
-    break;
-  }
-  return hval;
+  return len + asso_values[(unsigned char)str[len - 1]] + asso_values[(unsigned char)str[0]];
 }
 
 /*
@@ -68,98 +56,117 @@ inline unsigned int Lexer::hash(const char *str, size_t len) {
 std::pair<const char *, TokenKind> Lexer::in_word_set(const char *str,
                                                       size_t len) {
   static const char * wordlist[] =
-  {
-    "", "",
-    "is",
-    "new",
-    "true",
-    "if",
-    "return",
-    "byte",
-    "var",
-    "case",
-    "false",
-    "",
-    "default",
-    "end",
+    {
+    "", "", "", "",
     "else",
-    "class",
-    "public",
+    "while",
+    "Opaque",
     "private",
-    "override",
-    "this",
+    "end",
+    "case",
     "",
-    "method",
+    "public",
     "extends",
-    "for",
+    "override",
+    "true",
+    "class",
+    "static",
+    "is",
+    "var",
+    "this",
+    "false",
+    "switch",
+    "default",
+    "new",
+    "func",
+    "",
+    "import",
+    "if",
+    "",
     "enum",
     "",
     "module",
-    "virtual",
     "",
+    "for",
     "then",
-    "while",
-    "switch",
-    "func",
     "",
-    "access",
-    "",
-    "import",
+    "method",
     "", "",
     "loop",
+    "",
+    "return",
+    "virtual",
+    "",
+    "byte",
+    "", "",
+    "as",
+    "", "", "",
+    "access",
     "", "", "", "", "", "",
-    "static"
+    "nil"
   };
 
   static const TokenKind keytokenlist[] = {
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_ELSE,          // "else"
+    TOKEN_WHILE,         // "while"
+    TOKEN_OPAQUE,        // "Opaque"
+    TOKEN_PRIVATE,       // "private"
+    TOKEN_BEND,          // "end"
+    TOKEN_CASE,          // "case"
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_PUBLIC,        // "public"
+    TOKEN_EXTENDS,       // "extends"
+    TOKEN_OVERRIDE,      // "override"
+    TOKEN_BOOL_TRUE,     // "true"
+    TOKEN_CLASS,         // "class"
+    TOKEN_STATIC,        // "static"
+    TOKEN_BBEGIN,        // "is"
+    TOKEN_VAR_DECL,      // "var"
+    TOKEN_SELFREF,       // "this"
+    TOKEN_BOOL_FALSE,    // "false"
+    TOKEN_SWITCH,        // "switch"
+    TOKEN_DEFAULT,       // "default"
+    TOKEN_NEW,           // "new"
+    TOKEN_FUNC,          // "func"
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_MODULE_IMP,    // "import"
+    TOKEN_IF,            // "if"
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_ENUM,          // "enum"
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_MODULE_DECL,   // "module"
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_FOR,           // "for"
+    TOKEN_THEN,          // "then"
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_METHOD,        // "method"
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_LOOP,          // "loop"
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_RETURN,        // "return"
+    TOKEN_VIRTUAL,       // "virtual"
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_TYPE_BYTE,     // "byte"
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_AS,            // "as"
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_ACCESS,        // "access"
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_UNKNOWN,       // ""
+    TOKEN_UNKNOWN,       // ""
     TOKEN_UNKNOWN,
-    TOKEN_UNKNOWN,
-    TOKEN_BBEGIN,
-    TOKEN_NEW,
-    TOKEN_BOOL_TRUE,
-    TOKEN_IF,
-    TOKEN_RETURN,
-    TOKEN_TYPE_BYTE,
-    TOKEN_VAR_DECL,
-    TOKEN_CASE,
-    TOKEN_BOOL_FALSE,
-    TOKEN_UNKNOWN,
-    TOKEN_DEFAULT,
-    TOKEN_BEND,
-    TOKEN_ELSE,
-    TOKEN_CLASS,
-    TOKEN_PUBLIC,
-    TOKEN_PRIVATE,
-    TOKEN_OVERRIDE,
-    TOKEN_SELFREF,
-    TOKEN_UNKNOWN,
-    TOKEN_METHOD,
-    TOKEN_EXTENDS,
-    TOKEN_FOR,
-    TOKEN_ENUM,
-    TOKEN_UNKNOWN,
-    TOKEN_MODULE_DECL,
-    TOKEN_VIRTUAL,
-    TOKEN_UNKNOWN,
-    TOKEN_THEN,
-    TOKEN_WHILE,
-    TOKEN_SWITCH,
-    TOKEN_FUNC,
-    TOKEN_UNKNOWN,
-    TOKEN_ACCESS,
-    TOKEN_UNKNOWN,
-    TOKEN_MODULE_IMP,
-    TOKEN_UNKNOWN,
-    TOKEN_UNKNOWN,
-    TOKEN_LOOP,
-    TOKEN_UNKNOWN,
-    TOKEN_UNKNOWN,
-    TOKEN_UNKNOWN,
-    TOKEN_UNKNOWN,
-    TOKEN_UNKNOWN,
-    TOKEN_UNKNOWN,
-    TOKEN_STATIC
-};
+    TOKEN_NIL            // "nil"
+  };
 
   if (len <= MAX_WORD_LENGTH && len >= MIN_WORD_LENGTH) {
     unsigned int key = hash(str, len);
@@ -545,103 +552,109 @@ std::vector<std::unique_ptr<Token>> Lexer::lex() {
 }
 
 const char *Lexer::getTokenTypeName(TokenKind type) {
-  static const char *tokenNames[] = {"TOKEN_EOF",
-                                     "TOKEN_IDENTIFIER",
-                                     "TOKEN_CLASS",
-                                     "TOKEN_EXTENDS",
-                                     "TOKEN_VAR_DECL",
-                                     "TOKEN_SELFREF",
-                                     "TOKEN_RETURN",
-                                     "TOKEN_MODULE_DECL",
-                                     "TOKEN_MODULE_IMP",
-                                     "TOKEN_IF",
-                                     "TOKEN_ELSE",
-                                     "TOKEN_THEN",
-                                     "TOKEN_SWITCH",
-                                     "TOKEN_CASE",
-                                     "TOKEN_DEFAULT",
-                                     "TOKEN_WHILE",
-                                     "TOKEN_LOOP",
-                                     "TOKEN_METHOD",
-                                     "TOKEN_FUNC",
-                                     "TOKEN_FOR",
-                                     "TOKEN_STATIC",
-                                     "TOKEN_BBEGIN",
-                                     "TOKEN_BEND",
-                                     "TOKEN_INT_NUMBER",
-                                    "TOKEN_INT8_NUMBER",
-                                    "TOKEN_UINT8_NUMBER",
-                                    "TOKEN_INT16_NUMBER",
-                                    "TOKEN_UINT16_NUMBER",
-                                    "TOKEN_INT32_NUMBER",
-                                    "TOKEN_UINT32_NUMBER",
-                                    "TOKEN_INT64_NUMBER",
-                                    "TOKEN_UINT64_NUMBER",
-                                     "TOKEN_REAL_NUMBER",
-                                      "TOKEN_REAL16_NUMBER",
-                                      "TOKEN_REAL32_NUMBER",
-                                      "TOKEN_REAL64_NUMBER",
-                                     "TOKEN_COMMENT",
-                                     "TOKEN_STRING",
-                                     "TOKEN_BOOL_TRUE",
-                                     "TOKEN_BOOL_FALSE",
-                                     "TOKEN_RBRACKET",
-                                     "TOKEN_LBRACKET",
-                                     "TOKEN_RSBRACKET",
-                                     "TOKEN_LSBRACKET",
-                                     "TOKEN_ASSIGNMENT",
-                                     "TOKEN_COLON",
-                                     "TOKEN_DOUBLE_COLON",
-                                     "TOKEN_DOT",
-                                     "TOKEN_COMMA",
-                                     "TOKEN_ARROW",
-                                     "TOKEN_EQUAL",
-                                     "TOKEN_NOT_EQUAL",
-                                     "TOKEN_WRONG_ASSIGN",
-                                     "TOKEN_MORE",
-                                     "TOKEN_LESS",
-                                     "TOKEN_MORE_EQUAL",
-                                     "TOKEN_LESS_EQUAL",
-                                     "TOKEN_BIT_AND",
-                                     "TOKEN_BIT_OR",
-                                     "TOKEN_BIT_XOR",
-                                     "TOKEN_BIT_INV",
-                                     "TOKEN_LOGIC_NOT",
-                                     "TOKEN_LOGIC_AND",
-                                     "TOKEN_LOGIC_OR",
-                                     "TOKEN_BIT_SHIFT_LEFT",
-                                     "TOKEN_BIT_SHIFT_RIGHT",
-                                     "TOKEN_PLUS",
-                                     "TOKEN_INCREMENT"
-                                     "TOKEN_MINUS",
-                                     "TOKEN_DECREMENT",
-                                     "TOKEN_STAR",
-                                     "TOKEN_SLASH",
-                                     "TOKEN_PERCENT",
-                                     "TOKEN_PRINT",
-                                     "TOKEN_TYPE_STRING",
-                                     "TOKEN_TYPE_INT32",
-                                     "TOKEN_TYPE_INT64",
-                                     "TOKEN_TYPE_INT16",
-                                     "TOKEN_TYPE_U32",
-                                     "TOKEN_TYPE_U16",
-                                     "TOKEN_TYPE_U64",
-                                     "TOKEN_TYPE_REAL",
-                                     "TOKEN_TYPE_F64",
-                                     "TOKEN_TYPE_BOOL",
-                                     "TOKEN_TYPE_LIST",
-                                     "TOKEN_TYPE_ARRAY",
-                                     "TOKEN_TYPE_ANYVAL",
-                                     "TOKEN_TYPE_ANYREF",
-                                     "TOKEN_TYPE_TYPE",
-                                     "TOKEN_NEW",
-                                     "TOKEN_OVERRIDE",
-                                     "TOKEN_VIRTUAL",
-                                     "TOKEN_ENUM",
-                                    "TOKEN_PUBLIC",
-                                    "TOKEN_PRIVATE",
-                                    "TOKEN_ACCESS",
-                                    "TOKEN_TYPE_BYTE"
-                                     "TOKEN_UNKNOWN"};
+  static const char *tokenNames[] = {
+    "TOKEN_EOF",
+    "TOKEN_IDENTIFIER",
+    "TOKEN_CLASS",
+    "TOKEN_EXTENDS",
+    "TOKEN_VAR_DECL",
+    "TOKEN_SELFREF",
+    "TOKEN_RETURN",
+    "TOKEN_MODULE_DECL",
+    "TOKEN_MODULE_IMP",
+    "TOKEN_IF",
+    "TOKEN_ELSE",
+    "TOKEN_THEN",
+    "TOKEN_SWITCH",
+    "TOKEN_CASE",
+    "TOKEN_DEFAULT",
+    "TOKEN_WHILE",
+    "TOKEN_LOOP",
+    "TOKEN_METHOD",
+    "TOKEN_FUNC",
+    "TOKEN_FOR",
+    "TOKEN_STATIC",
+    "TOKEN_BBEGIN",
+    "TOKEN_BEND",
+    "TOKEN_INT_NUMBER",
+    "TOKEN_INT8_NUMBER",
+    "TOKEN_UINT8_NUMBER",
+    "TOKEN_INT16_NUMBER",
+    "TOKEN_UINT16_NUMBER",
+    "TOKEN_INT32_NUMBER",
+    "TOKEN_UINT32_NUMBER",
+    "TOKEN_INT64_NUMBER",
+    "TOKEN_UINT64_NUMBER",
+    "TOKEN_REAL_NUMBER",
+    "TOKEN_REAL16_NUMBER",
+    "TOKEN_REAL32_NUMBER",
+    "TOKEN_REAL64_NUMBER",
+    "TOKEN_COMMENT",
+    "TOKEN_STRING",
+    "TOKEN_BOOL_TRUE",
+    "TOKEN_BOOL_FALSE",
+    "TOKEN_RBRACKET",
+    "TOKEN_LBRACKET",
+    "TOKEN_RSBRACKET",
+    "TOKEN_LSBRACKET",
+    "TOKEN_ASSIGNMENT",
+    "TOKEN_COLON",
+    "TOKEN_DOUBLE_COLON",
+    "TOKEN_DOT",
+    "TOKEN_COMMA",
+    "TOKEN_ARROW",
+    "TOKEN_EQUAL",
+    "TOKEN_NOT_EQUAL",
+    "TOKEN_WRONG_ASSIGN",
+    "TOKEN_MORE",
+    "TOKEN_LESS",
+    "TOKEN_MORE_EQUAL",
+    "TOKEN_LESS_EQUAL",
+    "TOKEN_BIT_AND",
+    "TOKEN_BIT_OR",
+    "TOKEN_BIT_XOR",
+    "TOKEN_BIT_INV",
+    "TOKEN_LOGIC_NOT",
+    "TOKEN_LOGIC_AND",
+    "TOKEN_LOGIC_OR",
+    "TOKEN_BIT_SHIFT_LEFT",
+    "TOKEN_BIT_SHIFT_RIGHT",
+    "TOKEN_PLUS",
+    "TOKEN_INCREMENT",
+    "TOKEN_MINUS",
+    "TOKEN_DECREMENT",
+    "TOKEN_STAR",
+    "TOKEN_SLASH",
+    "TOKEN_PERCENT",
+    "TOKEN_PRINT",
+    "TOKEN_TYPE_STRING",
+    "TOKEN_TYPE_INT32",
+    "TOKEN_TYPE_INT64",
+    "TOKEN_TYPE_INT16",
+    "TOKEN_TYPE_U32",
+    "TOKEN_TYPE_U16",
+    "TOKEN_TYPE_U64",
+    "TOKEN_TYPE_REAL",
+    "TOKEN_TYPE_F64",
+    "TOKEN_TYPE_BOOL",
+    "TOKEN_TYPE_LIST",
+    "TOKEN_TYPE_ARRAY",
+    "TOKEN_TYPE_ANYVAL",
+    "TOKEN_TYPE_ANYREF",
+    "TOKEN_TYPE_TYPE",
+    "TOKEN_NEW",
+    "TOKEN_OVERRIDE",
+    "TOKEN_VIRTUAL",
+    "TOKEN_ENUM",
+    "TOKEN_PUBLIC",
+    "TOKEN_PRIVATE",
+    "TOKEN_ACCESS",
+    "TOKEN_TYPE_BYTE",
+    "TOKEN_UNKNOWN",
+    "TOKEN_OPAQUE",
+    "TOKEN_AS",
+    "TOKEN_NIL"
+  };
+
   return tokenNames[type];
 }

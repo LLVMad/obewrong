@@ -26,6 +26,7 @@ public:
 
   // copyying from module to module
   // => globalScope based
+  // @FIXME check if already present
   void copySymbolFromModulesToCurrent(const std::string &from,
                                       const std::string &to) {
 
@@ -59,11 +60,13 @@ public:
 
   // copying from scopd to scope
   // sc -> scope in which exists FROM and TO scopes
+  // used for inheritence
   void copySymbolsAndChildren(std::shared_ptr<Scope<Entity>> &sc,
-                              const std::string &from, const std::string &to) {
+                              const std::string &from, const std::string &to,
+                              bool doesInherit = false) {
     std::unordered_map<std::string, SymbolInfo<Entity>> symbolsToCopy;
     std::vector<std::shared_ptr<Scope<Entity>>> scopeToCopy;
-    for (auto &scope : sc->getChildren()) {
+    for (auto scope : sc->getChildren()) {
       if (scope->getName() == from) {
         symbolsToCopy = scope->getSymbols();
         scopeToCopy = scope->getChildren();
@@ -74,11 +77,17 @@ public:
     for (auto &scope : sc->getChildren()) {
       if (scope->getName() == to) {
         for (auto &decl : symbolsToCopy) {
-          scope->addSymbol(decl.first, decl.second.decl);
+          if (decl.second.decl->getKind() != E_Constructor_Decl)
+            scope->addSymbol(
+              decl.first,
+              decl.second.decl);
         }
         for (auto &scopeCopy : scopeToCopy) {
-          // scopeCopy->external = true;
-          scope->addChild(scopeCopy);
+          if (scopeCopy->getKind() == SCOPE_METHOD /*@FIXME we can do better than that */ ) {
+            auto _scopeCopy = std::make_shared<Scope<Entity>>(*scopeCopy);
+            _scopeCopy->external = true; // @FIXME marks original as external too
+            scope->addChild(_scopeCopy);
+          }
         }
 
         return;
@@ -113,6 +122,11 @@ public:
   std::shared_ptr<Scope<Entity>> getCurrentScope() const {
     return current_scope;
   }
+
+  std::shared_ptr<Scope<Entity>>& getCurrentScopeCopy() {
+    return current_scope;
+  }
+
   std::shared_ptr<Scope<Entity>> getGlobalScope() const { return global_scope; }
 
 private:

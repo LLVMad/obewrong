@@ -69,26 +69,6 @@ bool ClassDecl::validate() {
   return true;
 }
 
-std::shared_ptr<Type> ArrayDecl::resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) {
-  (void)typeTable;
-  return type;
-}
-
-bool ArrayDecl::validate() {
-  // @TODO
-  return true;
-}
-
-std::shared_ptr<Type> ListDecl::resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) {
-  (void)typeTable;
-  return type;
-}
-
-bool ListDecl::validate() {
-  // @TODO
-  return true;
-}
-
 std::shared_ptr<Type> ConstrDecl::resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) {
   (void)typeTable;
   return signature;

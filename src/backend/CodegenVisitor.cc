@@ -64,11 +64,24 @@ void CodeGenVisitor::visit(ConversionEXP &node) {
 
   auto itof = fromType->kind == TYPE_INT;
 
-  lastValue = builder->CreateCast(
-    itof ? llvm::CastInst::CastOps::SIToFP : llvm::CastInst::CastOps::FPToSI,
-    fromVal,
-    toType->toLLVMType(*context)
-  );
+  if (fromType->kind == TYPE_INT && toType->kind == TYPE_REAL) {
+    lastValue = builder->CreateCast(
+      llvm::CastInst::CastOps::SIToFP,
+      fromVal,
+      toType->toLLVMType(*context)
+    );
+  }
+  else if (fromType->kind == TYPE_REAL && toType->kind == TYPE_INT) {
+    lastValue = builder->CreateCast(
+      llvm::CastInst::CastOps::FPToSI,
+      fromVal,
+      toType->toLLVMType(*context)
+    );
+  }
+  else if (fromType->kind == TYPE_BYTE && toType->kind == TYPE_INT) {
+    lastValue = builder->CreateSExt(fromVal, llvm::Type::getInt32Ty(*context));
+  }
+
 }
 
 void CodeGenVisitor::visit(ElementRefEXP &node) {
@@ -172,7 +185,7 @@ void CodeGenVisitor::visit(FieldRefEXP &node) {
     if (isInherited) {
       // GEP to class copy
       lastValue = builder->CreateStructGEP(
-        classTypeLLVM->getContainedType(0),
+        classTypeLLVM,
         alloca == nullptr ? lastValue : alloca,
         0,
         node.getName()
@@ -310,6 +323,8 @@ void CodeGenVisitor::visit(ConstructorCallEXP &node) {
   auto constrName = node.left->getName() + "_Create" + typeNames;
 
   llvm::Function *CalleeF = getFunction(constrName);
+  if (!CalleeF)
+    return;
 
   if (CalleeF->getReturnType()->isVoidTy()) {
     builder->CreateCall(CalleeF, ArgsV);
@@ -333,7 +348,7 @@ void CodeGenVisitor::visit(StringLiteralEXP &node) {
         case '"': processed += '"'; break;
         default: processed += node.value[i + 1]; break;
       }
-      i++; // skip next
+      i++;
     } else {
       processed += node.value[i];
     }
@@ -371,6 +386,11 @@ void CodeGenVisitor::visit(IntLiteralEXP &node) {
 
 void CodeGenVisitor::visit(RealLiteralEXP &node) {
   lastValue = llvm::ConstantFP::get(*context, llvm::APFloat(node.getValue()));
+}
+
+// NULL LITERAL
+void CodeGenVisitor::visit(NilLiteralEXP &node) {
+  lastValue = llvm::Constant::getNullValue(lastValue->getType());
 }
 
 void CodeGenVisitor::visit(ArrayLiteralExpr &node) {
@@ -557,7 +577,7 @@ void CodeGenVisitor::visit(MethodDecl &node) {
   // CREATE PROTOTYPE OF A FUNCTION
   std::vector<llvm::Type*> argTypes;
 
-  // Add all parameters including 'this' which was added by the parser
+  // 'this' which was added by the parser
   for (auto &arg : node.args) {
     argTypes.push_back(arg->type->toLLVMType(*this->context));
   }
@@ -834,11 +854,12 @@ void CodeGenVisitor::visit(IfSTMT &node) {
 
   // gen Else
   llvm::Value *elsB;
-  if (node.ifFalse->getKind() == E_Block) {
-    auto blockFalse = std::static_pointer_cast<Block>(node.ifFalse);
-    for (auto &part : blockFalse->parts) {
-      part->accept(*this);
-    }
+  if (node.ifFalse) {
+    node.ifFalse->accept(*this);
+    // auto blockFalse = std::static_pointer_cast<Block>(node.ifFalse);
+    // for (auto &part : blockFalse->parts) {
+      // part->accept(*this);
+    // }
   }
 
   builder->CreateBr(MergeBB);
@@ -848,6 +869,8 @@ void CodeGenVisitor::visit(IfSTMT &node) {
   // Emit merge block.
   TheFunction->insert(TheFunction->end(), MergeBB);
   builder->SetInsertPoint(MergeBB);
+
+  currentScope = currentScope->prevScope();
 }
 
 void CodeGenVisitor::visit(ForSTMT &node) {
@@ -1120,70 +1143,98 @@ void CodeGenVisitor::handleBuiltinMethodCall(
   auto className = leftType->name;
 
   // handle different methods
+  if (methodName == "Size") {
+    llvm::Type* type = L->getType();
+    llvm::Value* nullValue = llvm::ConstantPointerNull::get(llvm::PointerType::get(type, 0));
+    llvm::Value* offset = builder->CreateGEP(type, nullValue, llvm::ConstantInt::get(*context, llvm::APInt(16, 1)));
+    lastValue = builder->CreatePtrToInt(offset, llvm::Type::getInt64Ty(*context), "typeSize");
+    return;
+  }
+  if (className == "Integer") {
+    handleIntegerMethods(methodName, L, R);
+  }
+  else if (className == "Real") {
+    handleRealMethods(methodName, L, R);
+  }
+  else if (className == "Boolean") {
+    handleBooleanMethods(methodName, L, R);
+  }
+}
+
+void CodeGenVisitor::handleIntegerMethods(const std::string &methodName, llvm::Value* L, llvm::Value *R) {
   if (methodName == "Plus") {
-    if (className == "Integer") {
-      lastValue = builder->CreateAdd(L, R, "addtmp");
-    } else if (className == "Real") {
-      lastValue = builder->CreateFAdd(L, R, "faddtmp");
-    }
+    lastValue = builder->CreateAdd(L, R, "addtmp");
   }
   else if (methodName == "Minus") {
-    if (className == "Integer") {
       lastValue = builder->CreateSub(L, R, "subtmp");
-    } else if (className == "Real") {
-      lastValue = builder->CreateFSub(L, R, "fsubtmp");
-    }
   }
   else if (methodName == "Mult") {
-    if (className == "Integer") {
-      lastValue = builder->CreateMul(L, R, "multmp");
-    } else if (className == "Real") {
-      lastValue = builder->CreateFMul(L, R, "fmultmp");
-    }
+    lastValue = builder->CreateMul(L, R, "multmp");
   }
   else if (methodName == "Div") {
-    if (className == "Integer") {
-      lastValue = builder->CreateSDiv(L, R, "divtmp");
-    } else if (className == "Real") {
-      lastValue = builder->CreateFDiv(L, R, "fdivtmp");
-    }
+    lastValue = builder->CreateSDiv(L, R, "divtmp");
   }
   else if (methodName == "Rem") {
-    if (className == "Integer") {
-      lastValue = builder->CreateSRem(L, R, "remtmp");
-    } else if (className == "Real") {
-      lastValue = builder->CreateFRem(L, R, "fremtmp");
-    }
+    lastValue = builder->CreateSRem(L, R, "remtmp");
   }
   else if (methodName == "Less") {
-    if (className == "Integer") {
-      lastValue = builder->CreateICmpSLT(L, R, "cmptmp");
-    } else if (className == "Real") {
-      lastValue = builder->CreateFCmpOLT(L, R, "fcmptmp");
-    }
+    lastValue = builder->CreateICmpSLT(L, R, "cmptmp");
   }
   else if (methodName == "Greater") {
-    if (className == "Integer") {
-      lastValue = builder->CreateICmpSGT(L, R, "cmptmp");
-    } else if (className == "Real") {
-      lastValue = builder->CreateFCmpOGT(L, R, "fcmptmp");
-    }
+    lastValue = builder->CreateICmpSGT(L, R, "cmptmp");
   }
   else if (methodName == "Equal") {
-    if (className == "Integer") {
-      lastValue = builder->CreateICmpEQ(L, R, "cmptmp");
-    } else if (className == "Real") {
-      lastValue = builder->CreateFCmpOEQ(L, R, "fcmptmp");
-    }
+    lastValue = builder->CreateICmpEQ(L, R, "cmptmp");
   }
   else if (methodName == "UnaryMinus") {
-    if (className == "Integer") {
-      auto one = llvm::ConstantInt::getSigned((llvm::Type::getInt32Ty(*context)), -1);
-      lastValue = builder->CreateMul(L, one, "uminus");
-    } else if (className == "Real") {
-      auto negOne = llvm::ConstantFP::get(llvm::Type::getFloatTy(*context), -1.0);
-      lastValue = builder->CreateFMul(L, negOne, "fuminus");
-    }
+    auto one = llvm::ConstantInt::getSigned((llvm::Type::getInt32Ty(*context)), -1);
+    lastValue = builder->CreateMul(L, one, "uminus");
+  }
+}
+
+void CodeGenVisitor::handleRealMethods(const std::string &methodName, llvm::Value* L, llvm::Value *R) {
+  if (methodName == "Plus") {
+    lastValue = builder->CreateFAdd(L, R, "faddtmp");
+  }
+  else if (methodName == "Minus") {
+    lastValue = builder->CreateFSub(L, R, "fsubtmp");
+  }
+  else if (methodName == "Mult") {
+    lastValue = builder->CreateFMul(L, R, "fmultmp");
+  }
+  else if (methodName == "Div") {
+    lastValue = builder->CreateFDiv(L, R, "fdivtmp");
+  }
+  else if (methodName == "Rem") {
+    lastValue = builder->CreateFRem(L, R, "fremtmp");
+  }
+  else if (methodName == "Less") {
+    lastValue = builder->CreateFCmpOLT(L, R, "fcmptmp");
+  }
+  else if (methodName == "Greater") {
+    lastValue = builder->CreateFCmpOGT(L, R, "fcmptmp");
+  }
+  else if (methodName == "Equal") {
+    lastValue = builder->CreateFCmpOEQ(L, R, "fcmptmp");
+  }
+  else if (methodName == "UnaryMinus") {
+    auto negOne = llvm::ConstantFP::get(llvm::Type::getFloatTy(*context), -1.0);
+    lastValue = builder->CreateFMul(L, negOne, "fuminus");
+  }
+}
+
+void CodeGenVisitor::handleBooleanMethods(const std::string &methodName, llvm::Value* L, llvm::Value *R) {
+  if (moduleName == "And") {
+    lastValue = builder->CreateAnd(L, R, "andtmp");
+  }
+  else if (methodName == "Or") {
+    lastValue = builder->CreateOr(L, R, "ortmp");
+  }
+  else if (methodName == "Not") {
+    lastValue = builder->CreateNot(L, "nottemp");
+  }
+  else if (methodName == "Equal") {
+    lastValue = builder->CreateICmpEQ(L, R, "cmptmp");
   }
 }
 
@@ -1208,6 +1259,7 @@ void CodeGenVisitor::visit(MethodCallEXP &node) {
       auto classBTScope = child->getChildren()[0]; // ? single module - single class : Integer - Integer
       decl =
         classBTScope->lookup<MethodDecl>(node.getName());
+      if (decl) break;
     }
   }
 
@@ -1231,7 +1283,16 @@ void CodeGenVisitor::visit(MethodCallEXP &node) {
       return;
   }
 
-  llvm::Function *CalleeF = getFunction(node.getName());
+  llvm::Function *CalleeF = getFunction(className + "_" + node.getName());
+
+  if (node.getName() == "Size") {
+    llvm::Type* type = alloc->getAllocatedType();
+    llvm::Value* nullValue = llvm::ConstantPointerNull::get(llvm::PointerType::get(type, 0));
+    llvm::Value* offset = builder->CreateGEP(type, nullValue, llvm::ConstantInt::get(*context, llvm::APInt(16, 1)));
+    lastValue = builder->CreatePtrToInt(offset, llvm::Type::getInt64Ty(*context), "typeSize");
+    return;
+  }
+
   if (!CalleeF)
     return;
 
@@ -1368,14 +1429,6 @@ void CodeGenVisitor::visit(ThisEXP &node) {
 }
 
 void CodeGenVisitor::visit(ParameterDecl &node) {
-  lastValue = nullptr;
-}
-
-void CodeGenVisitor::visit(ArrayDecl &node) {
-  lastValue = nullptr;
-}
-
-void CodeGenVisitor::visit(ListDecl &node) {
   lastValue = nullptr;
 }
 

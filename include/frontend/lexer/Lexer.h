@@ -114,6 +114,9 @@ enum TokenKind {
   TOKEN_ACCESS,
   TOKEN_TYPE_BYTE,
   TOKEN_UNKNOWN,
+  TOKEN_OPAQUE, // Opaque
+  TOKEN_AS, // as
+  TOKEN_NIL, // nil
 };
 
 /*

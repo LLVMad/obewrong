@@ -289,60 +289,6 @@ public:
   DEFINE_VISITABLE()
 };
 
-// @TODO maybe get rid of Array and List decls
-// -> VarDecl can be an array decl, so...
-class ArrayDecl : public Decl {
-public:
-  ArrayDecl(const std::string &name, std::shared_ptr<TypeArray> type,
-            std::shared_ptr<ArrayLiteralExpr> initz)
-      : Decl(E_Array_Decl, name), type(std::move(type)),
-        initializer(std::move(initz)) {}
-
-  std::shared_ptr<TypeArray> type;
-
-  // optional initializer if present
-  // if a part of declaration
-  //
-  // var a : Array[Integer] := [1, 2, 3]
-  //                           ^^^^^^^^^
-  std::shared_ptr<ArrayLiteralExpr> initializer;
-
-  size_t size;
-
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
-
-  bool validate() override;
-
-  ~ArrayDecl() override = default;
-
-  DEFINE_VISITABLE()
-};
-
-class ListDecl : public Decl {
-public:
-  ListDecl(const std::string &name, std::shared_ptr<TypeList> type,
-           std::shared_ptr<ArrayLiteralExpr> initz)
-      : Decl(E_List_Decl, name), type(std::move(type)),
-        initializer(std::move(initz)) {}
-
-  std::shared_ptr<TypeList> type;
-
-  // optional initializer if present
-  // if a part of declaration
-  //
-  // var a : List[Integer] := [1, 2, 3]
-  //                          ^^^^^^^^^
-  std::shared_ptr<ArrayLiteralExpr> initializer;
-
-  std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) override;
-
-  bool validate() override;
-
-  ~ListDecl() override = default;
-
-  DEFINE_VISITABLE()
-};
-
 class ModuleDecl : public Decl {
 public:
   ModuleDecl(const std::string &moduleNmae) : Decl(E_Module_Decl, moduleNmae) {}

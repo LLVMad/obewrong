@@ -6,6 +6,8 @@
 #include "frontend/parser/Statement.h"
 #include "frontend/parser/Wrappers.h"
 
+#include <ranges>
+
 #define SYNCED_TOKEN(kind)                                                     \
   ((kind == TOKEN_CLASS) || (kind == TOKEN_FUNC) || (kind == TOKEN_METHOD) ||  \
    (kind == TOKEN_ENUM))
@@ -31,6 +33,7 @@ bool isTypeName(TokenKind kind) {
   case TOKEN_TYPE_ANYREF:
   case TOKEN_TYPE_TYPE:
   case TOKEN_TYPE_BYTE:
+  case TOKEN_OPAQUE:
     return true;
   default:
     return false;
@@ -330,7 +333,9 @@ std::shared_ptr<MethodDecl> Parser::parseMethodDecl() {
   if (token == nullptr || token->kind != TOKEN_IDENTIFIER)
     return nullptr;
   token = next();
-  auto method_name = std::get<std::string>(token->value);
+
+  auto className = globalSymbolTable->getCurrentScope()->getName();
+  auto method_name = className + "_" + std::get<std::string>(token->value);
 
   // new our scope is this method
   // lastDeclaredScopeParent.emplace(method_name);
@@ -397,6 +402,8 @@ std::shared_ptr<MethodDecl> Parser::parseMethodDecl() {
   // lastDeclaredScopeParent.pop();
   globalSymbolTable->exitScope();
 
+  // overriden @FIXME
+  // if (!globalSymbolTable->getCurrentScope()->getSymbol<MethodDecl>(method->getName()))
   globalSymbolTable->getCurrentScope()->addSymbol<MethodDecl>(method->getName(), method);
 
   return method;
@@ -719,7 +726,7 @@ std::shared_ptr<AssignmentSTMT> Parser::parseAssignment() {
   return ass;
 }
 
-std::shared_ptr<Block> Parser::parseBlock(BlockKind blockKind) {
+std::shared_ptr<Block> Parser::parseBlock(BlockKind blockKind, size_t fieldIndex) {
   std::unique_ptr<Token> token = peek();
   if (token == nullptr ||
       (token->kind != TOKEN_BBEGIN && token->kind != TOKEN_THEN &&
@@ -729,7 +736,7 @@ std::shared_ptr<Block> Parser::parseBlock(BlockKind blockKind) {
   // if (token->kind == TOKEN_ELSE) token = peek(); // costil
   std::vector<std::shared_ptr<Entity>> block_body;
 
-  size_t fieldIndex = 0;  // track field index 4 class bl
+  // size_t fieldIndex = 0; track field index 4 class bl
 
   while (token->kind !=
          TOKEN_BEND /*&& token->kind != TOKEN_ELSE -> questionable but kek*/) {
@@ -897,21 +904,22 @@ std::shared_ptr<ClassDecl> Parser::parseClassDecl() {
   globalSymbolTable->enterScope(SCOPE_CLASS, class_name);
 
   // see if there is extends
-  std::shared_ptr<Entity> base_class = nullptr;
+  std::shared_ptr<ClassDecl> base_class = nullptr;
+  std::shared_ptr<Scope<Entity>> current_scope;
   if (peek()->kind == TOKEN_EXTENDS) {
     token = next();
 
     token = next();
-    auto current_scope = globalSymbolTable->getCurrentScope();
+    current_scope = globalSymbolTable->getCurrentScope();
     auto module_scope = globalSymbolTable->getModuleScope(current_scope);
-    base_class = module_scope->lookup(std::get<std::string>(token->value));
+    base_class = module_scope->lookup<ClassDecl>(std::get<std::string>(token->value));
 
     // copy declarations of base class to child class
 
     // copy symbol table of base class to child class
+    // @FIXME
     globalSymbolTable->copySymbolsAndChildren(module_scope, base_class->getName(),
-                                              class_name);
-
+                                              class_name, true);
 
     // auto base_class_scope =
     // globalSymbolTable->getModuleScope(current_scope)->
@@ -921,7 +929,7 @@ std::shared_ptr<ClassDecl> Parser::parseClassDecl() {
   }
 
   // read body of class
-  auto body_block = parseBlock(BLOCK_IN_CLASS);
+  auto body_block = parseBlock(BLOCK_IN_CLASS, base_class ? 1 : 0);
 
   std::vector<std::shared_ptr<Type>> fieldTypes;
   std::vector<std::shared_ptr<TypeFunc>> methodTypes;
@@ -1018,6 +1026,70 @@ std::shared_ptr<ClassDecl> Parser::parseClassDecl() {
 
     auto baseClassAsField = std::make_shared<FieldDecl>(base_class->getName(), base_class_type);
     class_stmt->fields.emplace(class_stmt->fields.begin(), baseClassAsField);
+
+    // @FIXME we can delete field_index assignment in block parse
+    // or not.. look at parsePrimary
+    // and just do it here -> index = i
+    for (int i = 0; i < class_stmt->fields.size(); i++) {
+      class_stmt->fields[i]->index = i;
+    }
+
+    // rename inherited methods?
+    //
+    // - get fields of base class
+    auto baseField = base_class->fields;
+    // - add them into child
+    class_stmt->fields.insert(class_stmt->fields.end(), baseField.begin(), baseField.end());
+    std::ranges::for_each(baseField, [&](auto &field) { current_scope->addSymbol(field->getName(), field); });
+    // - get methods of base class
+    auto baseMethods =
+      base_class->methods | std::views::filter([](auto m){ return m->getKind() == E_Method_Decl; }); // base_class->methods;
+    // - rename the mangled name (*ClassName*_*MethodName*)
+    for (auto &meth : baseMethods) {
+      auto underscoreLoc = meth->getName().find("_");
+      auto methodRealName = meth->getName().substr(underscoreLoc + 1);
+      // change decl.first name if inherit
+      // change decl.second name (Entity) if inherit
+
+      std::string newName = (class_name + "_" + methodRealName);
+
+      // if overriden -> break
+      if (std::ranges::any_of(
+        class_stmt->methods,
+        [&](auto m) { return m->getName() == newName; })) {
+        break;
+        }
+
+      auto m = *std::dynamic_pointer_cast<MethodDecl>(meth);
+      m.setName(newName);
+      auto newDecl = std::make_shared<MethodDecl>(m);
+      class_stmt->methods.emplace(class_stmt->methods.begin(), newDecl);
+
+      // @note when we copySimbols from base class scope
+      // they still have old scope data like Name etc.
+      // so we need to replace them with new Decls
+      // being aware of shared_ptr in SymbolInfo changing
+
+      // update scope
+      current_scope->addSymbol(newName, newDecl);
+
+      // emplace scope of inherited method
+      // into a Scope of a child class
+      // - get original scope from base class scope
+      // - copy it, change name
+
+      auto &children = current_scope->getChildren();
+      for (auto &child : children) {
+        if (child->getKind() == SCOPE_METHOD && child->external && child->getName() == meth->getName()) {
+          auto _child = std::make_shared<Scope<Entity>>(*child);
+          _child->setName(newName);
+          _child->external = false;
+          _child->setParent(current_scope);
+          child = std::move(_child);
+        }
+      }
+    }
+    // - add them into child
   }
 
   globalSymbolTable->getCurrentScope()->addSymbol<ClassDecl>(class_name, class_stmt);
@@ -1229,6 +1301,7 @@ std::shared_ptr<ReturnSTMT> Parser::parseReturnStatement() {
   token = peek();
   // @TODO that is super bad
   if (token->kind != TOKEN_IDENTIFIER && token->kind != TOKEN_INT_NUMBER &&
+    token->kind != TOKEN_INT32_NUMBER &&
       token->kind != TOKEN_REAL_NUMBER && token->kind != TOKEN_STRING &&
       token->kind != TOKEN_BOOL_TRUE && token->kind != TOKEN_BOOL_FALSE &&
       token->kind != TOKEN_LSBRACKET && token->kind != TOKEN_LBRACKET &&
@@ -1486,7 +1559,7 @@ std::shared_ptr<Expression> Parser::parseExpression() {
     }
 
     // conversion
-    if (peek()->kind == TOKEN_ARROW) {
+    if (peek()->kind == TOKEN_AS) {
       return parseConversionOperator(node);
     }
 
@@ -1615,7 +1688,7 @@ std::shared_ptr<Expression> Parser::parseMemberAccess(std::shared_ptr<Expression
             if (obj_ref->getKind() == E_This) {
                 typeName = currScope->prevScope()->getName();
             } else {
-                auto var_ref = std::static_pointer_cast<VarRefEXP>(obj_ref);
+                // auto var_ref = std::static_pointer_cast<VarRefEXP>(obj_ref);
                 auto obj_decl = std::static_pointer_cast<VarDecl>(
                     globalSymbolTable->getCurrentScope()->lookup(var_ref->getName()));
                 typeName = obj_decl->type->name;
@@ -2137,7 +2210,18 @@ std::shared_ptr<Expression> Parser::parsePrimary() {
     break;
   }
   case TOKEN_REAL_NUMBER: {
-    expr = std::make_shared<RealLiteralEXP>(std::get<double>(token->value));
+    double val = std::get<double>(token->value);
+    std::string valAsStr = std::to_string(val);
+    expr = std::make_shared<RealLiteralEXP>(val);
+
+    // OOP in action
+    // everything is an object lol
+    // add number to symbol table, becouse
+    // technically its an instance of Integer object !?
+    auto type = globalTypeTable->getType(moduleName, "Real");
+    auto numAsVarDecl = std::make_shared<VarDecl>(valAsStr, type);
+    globalSymbolTable->getCurrentScope()->addSymbol<VarDecl>(valAsStr, numAsVarDecl);
+
     break;
   }
   case TOKEN_BOOL_TRUE: {
@@ -2150,6 +2234,10 @@ std::shared_ptr<Expression> Parser::parsePrimary() {
   }
   case TOKEN_STRING: {
     expr = std::make_shared<StringLiteralEXP>(std::get<std::string>(token->value));
+    break;
+  }
+  case TOKEN_NIL: {
+    expr = std::make_shared<NilLiteralEXP>();
     break;
   }
   case TOKEN_SELFREF: {
@@ -2352,6 +2440,10 @@ Parser::parsePrimary(const std::string &classNameToSearchIn) {
   }
   case TOKEN_STRING: {
     expr = std::make_shared<StringLiteralEXP>(std::get<std::string>(token->value));
+    break;
+  }
+  case TOKEN_NIL: {
+    expr = std::make_shared<NilLiteralEXP>();
     break;
   }
   case TOKEN_SELFREF: {

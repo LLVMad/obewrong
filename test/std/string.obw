@@ -1,0 +1,9 @@
+module std.string 
+
+class String is 
+  var data : access byte // i8*
+  var length : Integer 
+
+  
+  
+end
