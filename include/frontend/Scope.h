@@ -47,8 +47,6 @@ public:
   template<typename U>
   bool addSymbol(const std::string &name, std::shared_ptr<U> decl) {
     static_assert(std::derived_from<U, T>, "Must be derived from Entity");
-    // if (symbols.contains(name))
-    //   return false;
     symbols[name].decl = decl;
     return true;
   }

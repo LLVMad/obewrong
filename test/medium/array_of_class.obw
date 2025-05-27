@@ -26,5 +26,13 @@ class Main is
     var el : Point := arr[0]
 
     printf("\n new el: %d %d | arr[0] = %d %d\n", el.x, el.y, arr[0].x, arr[0].y)
+
+    i := 0
+    for i, i.Less(5), i := i.Plus(1) is
+      printf("%d %d | ", arr[i].x, arr[i].y)
+    end
+
+    printf("\n\t WOW! \n")
+
   end
 end

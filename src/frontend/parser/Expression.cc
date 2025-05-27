@@ -40,11 +40,20 @@ bool ArrayLiteralExpr::validate() {
 }
 
 std::shared_ptr<Type> FieldRefEXP::resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) {
-  auto objType = obj->resolveType(typeTable, currentScope);
-  std::string objTypeName = objType->name;
+  std::string objTypeName;
 
-  if (obj->getKind() == E_This) {
-    objTypeName = currentScope->prevScope()->getName();
+  if (el) {
+    auto arrType = el->arr->resolveType(typeTable, currentScope);
+    auto elType = std::dynamic_pointer_cast<TypeArray>(arrType)->el_type;
+    objTypeName = elType->name;
+  }
+  else {
+    auto objType = obj->resolveType(typeTable, currentScope);
+    objTypeName = objType->name;
+
+    if (obj->getKind() == E_This) {
+      objTypeName = currentScope->prevScope()->getName();
+    }
   }
 
   auto [decl, alloca, isInited] = *currentScope->getSymbol(objTypeName);

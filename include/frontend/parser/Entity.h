@@ -95,7 +95,8 @@ public:
   virtual ~Entity() = default;
   explicit Entity(Ekind kind) : kind(kind), name(), location() {}
 
-  explicit Entity(Ekind kind, std::string name) : kind(kind), name(std::move(name)), location() {}
+  explicit Entity(Ekind kind, std::string name)
+  : kind(kind), name(std::move(name)), location() {}
 
   Ekind getKind() const { return kind; };
   Loc getLoc() const { return location; };
@@ -103,7 +104,10 @@ public:
   void appendToName(const std::string &name) { this->name += name; };
   void setName(std::string name) { this->name = name; };
 
-  virtual std::shared_ptr<Type> resolveType(const TypeTable &typeTable, const std::shared_ptr<Scope<Entity>> &currentScope) = 0;
+  virtual std::shared_ptr<Type> resolveType(
+    const TypeTable &typeTable,
+    const std::shared_ptr<Scope<Entity>> &currentScope) = 0;
+
   virtual bool validate() = 0;
 
   // STRUCTURAL LINK

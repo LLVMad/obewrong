@@ -766,10 +766,9 @@ void CodeGenVisitor::visit(VarDecl &node) {
       builder->CreateStore(initValUnwrap, alloca);
     } else {
       // For constructor calls, we already have the allocation
-      alloca = dyn_cast<llvm::AllocaInst>(initVal); // @TODO look into ALLOCAJUMP
+      alloca = dyn_cast<llvm::AllocaInst>(initVal);
     }
   }
-  // @TODO: if no initialzer, check if thats allowed
   else {
     alloca = builder->CreateAlloca(varType, nullptr, var_name);
   }
@@ -1345,9 +1344,15 @@ void CodeGenVisitor::visit(MethodCallEXP &node) {
 
 llvm::Value* CodeGenVisitor::getSizeOfValue(llvm::Value* value) {
   llvm::Type* type = value->getType();
-  llvm::Value* nullValue = llvm::ConstantPointerNull::get(llvm::PointerType::get(type, 0));
-  llvm::Value* offset = builder->CreateGEP(type, nullValue, llvm::ConstantInt::get(*context, llvm::APInt(16, 1)));
-  // lastValue = builder->CreatePtrToInt(offset, llvm::Type::getInt64Ty(*context), "typeSize");
+  llvm::Value* nullValue =
+    llvm::ConstantPointerNull::get(
+      llvm::PointerType::get(type, 0));
+  llvm::Value* offset = builder->CreateGEP(
+    type,
+    nullValue,
+    llvm::ConstantInt::get(
+      *context,
+      llvm::APInt(16, 1)));
   return builder->CreatePtrToInt(offset, llvm::Type::getInt64Ty(*context), "typeSize");;
 }
 
@@ -1356,7 +1361,7 @@ CodeGenVisitor::unwrapPointerReference(Expression *node, llvm::Value *val) {
   if (!val->getType()->isPointerTy()) return val;
 
   // @FIXME
-  if (node->getKind() != E_Function_Call)
+  if (node->getKind() != E_Function_Call && node->getKind() != E_Element_Reference)
     if (node->resolveType(typeTable->types[moduleName], currentScope)->kind == TYPE_ACCESS) return val;
 
   switch (node->getKind()) {

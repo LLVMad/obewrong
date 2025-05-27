@@ -12,8 +12,8 @@
   ((kind == TOKEN_CLASS) || (kind == TOKEN_FUNC) || (kind == TOKEN_METHOD) ||  \
    (kind == TOKEN_ENUM))
 
-#define PARSE_ERR(path, msg)                                                   \
-  ERR("%s:%d:%d %s\n", path, peek(0)->line + 1, peek(0)->column + 1, msg)
+// #define PARSER_ERR(path, msg)                                                   \
+//   ERR("%s:%d:%d %s\n", path, peek(0)->line + 1, peek(0)->column + 1, msg)
 
 bool isTypeName(TokenKind kind) {
   switch (kind) {
@@ -109,13 +109,13 @@ std::unique_ptr<Token> Parser::expect(TokenKind expectedToken,
   std::unique_ptr<Token> token = peek();
   int pos = tokenPos;
 
-  // if (token->kind != expectedToken) PARSE_ERR(msg);
+  // if (token->kind != expectedToken) // PARSER_ERR(msg);
 
   while (token->kind != expectedToken || !SYNCED_TOKEN(token->kind)) {
     // now we in panic mode
     // search for sync token or expected token
     if (tokens[pos + 1]->kind == TOKEN_EOF) {
-      PARSE_ERR(sm.getLastFilePath().c_str(), "Your program is gibberish\n");
+      // PARSER_ERR(sm.getLastFilePath().c_str(), "Your program is gibberish\n");
       exit(0);
     }
     token = std::make_unique<Token>(*tokens[++pos]);
@@ -511,9 +511,9 @@ std::shared_ptr<IfSTMT> Parser::parseIfStatement() {
 
 std::shared_ptr<VarDecl> Parser::parseVarDecl() {
   std::unique_ptr<Token> token = peek();
-  if (token == nullptr || token->kind != TOKEN_VAR_DECL)
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected `var` keyword for a var declaration\n");
+  if (token == nullptr || token->kind != TOKEN_VAR_DECL) {}
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected `var` keyword for a var declaration\n");
   else
     token = next();
 
@@ -521,7 +521,7 @@ std::shared_ptr<VarDecl> Parser::parseVarDecl() {
   std::string var_name;
   token = peek();
   if (token->kind != TOKEN_IDENTIFIER) {
-    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected var name\n");
+    // PARSER_ERR(sm.getLastFilePath().c_str(), // "Expected var name\n");
     var_name = "unknown";
   } else {
     var_name = std::get<std::string>(next()->value);
@@ -529,9 +529,9 @@ std::shared_ptr<VarDecl> Parser::parseVarDecl() {
   }
 
   // check if type specifier is present
-  if (peek()->kind != TOKEN_COLON)
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected type qualifier for a variable\n");
+  if (peek()->kind != TOKEN_COLON) {}
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected type qualifier for a variable\n");
   else
     token = next();
 
@@ -569,8 +569,8 @@ std::shared_ptr<VarDecl> Parser::parseVarDecl() {
 
   std::string type_name = "byte";
   if (!isTypeName(token->kind) && token->kind != TOKEN_IDENTIFIER) {
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected type qualifier for a variable\n");
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected type qualifier for a variable\n");
     var_type = globalTypeTable->types[moduleName].getType("byte");
   } else {
     if (isPointer) {
@@ -1105,7 +1105,7 @@ std::shared_ptr<EnumDecl> Parser::parseEnumDecl() {
 
   token = peek();
   if (token->kind != TOKEN_IDENTIFIER) {
-    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected a name for enum type");
+    // PARSER_ERR(sm.getLastFilePath().c_str(), // "Expected a name for enum type");
     while (token->kind != TOKEN_BEND) {
       token = next();
     }
@@ -1138,9 +1138,9 @@ std::shared_ptr<EnumDecl> Parser::parseEnumDecl() {
 
 std::shared_ptr<FieldDecl> Parser::parseFieldDecl(size_t index) {
   std::unique_ptr<Token> token = peek();
-  if (token == nullptr || token->kind != TOKEN_VAR_DECL)
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected `var` keyword for field declaration\n");
+  if (token == nullptr || token->kind != TOKEN_VAR_DECL) {}
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected `var` keyword for field declaration\n");
   else
     token = next();
 
@@ -1149,7 +1149,7 @@ std::shared_ptr<FieldDecl> Parser::parseFieldDecl(size_t index) {
 
   std::string var_name;
   if (token->kind != TOKEN_IDENTIFIER) {
-    PARSE_ERR(sm.getLastFilePath().c_str(), "Expected field name\n");
+    // PARSER_ERR(sm.getLastFilePath().c_str(), // "Expected field name\n");
     var_name = "unknown";
   } else {
     var_name = std::get<std::string>(next()->value);
@@ -1157,9 +1157,9 @@ std::shared_ptr<FieldDecl> Parser::parseFieldDecl(size_t index) {
   }
 
   // eat ':'
-  if (peek()->kind != TOKEN_COLON)
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected type qualifier for a field\n");
+  if (peek()->kind != TOKEN_COLON) {}
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected type qualifier for a field\n");
   else
     token = next();
 
@@ -1175,8 +1175,8 @@ std::shared_ptr<FieldDecl> Parser::parseFieldDecl(size_t index) {
   std::string type_name = "byte";
   std::shared_ptr<Type> var_type;
   if (!isTypeName(token->kind) && token->kind != TOKEN_IDENTIFIER) {
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected type qualifier for a field\n");
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected type qualifier for a field\n");
     var_type = nullptr; /* globalTypeTable->types[moduleName].getType("byte"); */
   } else {
     // token = next();
@@ -1281,8 +1281,8 @@ std::shared_ptr<WhileSTMT> Parser::parseWhileStatement() {
       token->kind != TOKEN_REAL_NUMBER && token->kind != TOKEN_STRING &&
       token->kind != TOKEN_BOOL_TRUE && token->kind != TOKEN_BOOL_FALSE &&
       token->kind != TOKEN_LSBRACKET && token->kind != TOKEN_LBRACKET) {
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected condition for a while statement\n");
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected condition for a while statement\n");
     condition = std::make_shared<DummyExpression>("unknown_condition");
   } else
     condition = parseExpression();
@@ -1290,8 +1290,8 @@ std::shared_ptr<WhileSTMT> Parser::parseWhileStatement() {
   token = peek();
   std::shared_ptr<Block> block_body;
   if (token->kind != TOKEN_LOOP) {
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected 'loop' keyword at the start of a while body\n");
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected 'loop' keyword at the start of a while body\n");
     block_body = nullptr;
   } else
     block_body = parseBlock(BLOCK_IN_WHILE);
@@ -1308,8 +1308,8 @@ std::shared_ptr<ForSTMT> Parser::parseForStatement() {
   // assignment => no, it should be a whole vardecl
   token = peek();
   if (token->kind != TOKEN_IDENTIFIER) {
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected an identifier in a for loop\n");
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected an identifier in a for loop\n");
     while (token->kind != TOKEN_BEND) {
       token = next();
     }
@@ -1323,9 +1323,9 @@ std::shared_ptr<ForSTMT> Parser::parseForStatement() {
 
   // eat ','
   token = peek();
-  if (token->kind != TOKEN_COMMA)
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected comma after an assignment in a for loop\n");
+  if (token->kind != TOKEN_COMMA) {}
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected comma after an assignment in a for loop\n");
   else
     token = next();
 
@@ -1338,9 +1338,9 @@ std::shared_ptr<ForSTMT> Parser::parseForStatement() {
   // eat ','
   token = peek();
 
-  if (token->kind != TOKEN_COMMA)
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected comma after an expression in a for loop\n");
+  if (token->kind != TOKEN_COMMA) {}
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected comma after an expression in a for loop\n");
   else
     token = next();
 
@@ -1372,8 +1372,8 @@ std::shared_ptr<ReturnSTMT> Parser::parseReturnStatement() {
       token->kind != TOKEN_BOOL_TRUE && token->kind != TOKEN_BOOL_FALSE &&
       token->kind != TOKEN_LSBRACKET && token->kind != TOKEN_LBRACKET &&
       token->kind != TOKEN_SELFREF) {
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected expression after `return`\n");
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected expression after `return`\n");
     // token = next();
     return std::make_shared<ReturnSTMT>();
   }
@@ -1543,9 +1543,9 @@ Parser::parseBinaryOp(std::shared_ptr<Expression> firstOperand) {
 
       // Look ahead for closing bracket
       if (!peek() || peek()->kind != TOKEN_RBRACKET) {
-        PARSE_ERR(sm.getLastFilePath().c_str(),
-                  "Expected ')' in a binary expression");
-        // throw std::runtime_error("Expected closing bracket");
+        // PARSER_ERR(sm.getLastFilePath().c_str(),
+                  // "Expected ')' in a binary expression");
+        // throw std::runtime_error(// "Expected closing bracket");
       } else
         next(); // eat ')'
 
@@ -1657,7 +1657,7 @@ std::shared_ptr<Expression> Parser::parseStaticAccess(std::shared_ptr<Expression
 
     auto token = peek();
     if (token->kind != TOKEN_IDENTIFIER) {
-        PARSE_ERR(sm.getLastFilePath().c_str(), "Expected an identifier after '::'\n");
+        // PARSER_ERR(sm.getLastFilePath().c_str(), // "Expected an identifier after '::'\n");
         return std::make_shared<DummyExpression>("unknown");
     }
     token = next();
@@ -1702,7 +1702,7 @@ std::shared_ptr<Expression> Parser::parseCallExpression(std::shared_ptr<Expressi
     }
 
     if (peek()->kind != TOKEN_RBRACKET) {
-        PARSE_ERR(sm.getLastFilePath().c_str(), "Expected `)` after function call\n");
+        // PARSER_ERR(sm.getLastFilePath().c_str(), // "Expected `)` after function call\n");
     } else {
         next(); // eat ')'
     }
@@ -1737,7 +1737,7 @@ std::shared_ptr<Expression> Parser::parseMemberAccess(std::shared_ptr<Expression
             comp->addExpression(method_call);
 
             if (peek()->kind != TOKEN_RBRACKET) {
-                PARSE_ERR(sm.getLastFilePath().c_str(), "Expected `)` after method call\n");
+                // PARSER_ERR(sm.getLastFilePath().c_str(), // "Expected `)` after method call\n");
             } else {
                 next(); // eat ')'
             }
@@ -1797,15 +1797,15 @@ std::shared_ptr<ParameterDecl> Parser::parseParameterDecl() {
   token = peek();
 
   if (token->kind == TOKEN_VAR_DECL) {
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Unnecessary 'var' keyword in parameter declaration\n");
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Unnecessary 'var' keyword in parameter declaration\n");
     token = next();
     token = peek();
   }
 
   if (token->kind != TOKEN_IDENTIFIER) {
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected an identifier in a parameter declaration\n");
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected an identifier in a parameter declaration\n");
     return nullptr; // @TODO
   }
   token = next();
@@ -1814,9 +1814,9 @@ std::shared_ptr<ParameterDecl> Parser::parseParameterDecl() {
   // read ':'
   token = peek();
   if (token->kind != TOKEN_COLON) {
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected a type qualifier for a variable, ignoring other "
-              "parameters\n");
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // // "Expected a type qualifier for a variable, ignoring other "
+              // "parameters\n");
     auto paramDummy = std::make_shared<ParameterDecl>(
         param_name, globalTypeTable->types[moduleName].getType("byte"));
 
@@ -1919,8 +1919,8 @@ std::shared_ptr<ParameterDecl> Parser::parseParameterDecl() {
     token = next();
   } else {
     if (!isTypeName(token->kind) && token->kind != TOKEN_IDENTIFIER) {
-      PARSE_ERR(sm.getLastFilePath().c_str(),
-                "Expected type qualifier for a field\n");
+      // PARSER_ERR(sm.getLastFilePath().c_str(),
+                // "Expected type qualifier for a field\n");
       param_type = globalTypeTable->types[moduleName].getType("byte");
     } else {
       // token = next();
@@ -1950,8 +1950,8 @@ std::shared_ptr<ParameterDecl> Parser::parseParameterDecl() {
 void Parser::parseParameters(const std::shared_ptr<FuncDecl> &funcDecl) {
   std::unique_ptr<Token> token = peek();
   if (token == nullptr || token->kind != TOKEN_LBRACKET) {
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected '(' following a function declaration\n");
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected '(' following a function declaration\n");
 
     while (token->kind != TOKEN_BBEGIN) {
       token = next();
@@ -1974,8 +1974,8 @@ void Parser::parseParameters(const std::shared_ptr<FuncDecl> &funcDecl) {
   token = peek();
 
   if (token->kind == TOKEN_IDENTIFIER) {
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected a comma between parameters declarations\n");
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected a comma between parameters declarations\n");
     tokenPos--;
     token =
         std::make_unique<Token>(TOKEN_COMMA, peek(0)->line, peek(0)->column);
@@ -1993,9 +1993,9 @@ void Parser::parseParameters(const std::shared_ptr<FuncDecl> &funcDecl) {
   }
 
   token = peek();
-  if (token == nullptr || token->kind != TOKEN_RBRACKET)
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected ')' following a function declaration\n");
+  if (token == nullptr || token->kind != TOKEN_RBRACKET) {}
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected ')' following a function declaration\n");
   else
     token = next();
 
@@ -2008,8 +2008,8 @@ void Parser::parseParameters(const std::shared_ptr<FuncDecl> &funcDecl) {
 void Parser::parseParameters(const std::shared_ptr<MethodDecl> &funcDecl) {
   std::unique_ptr<Token> token = peek();
   if (token == nullptr || token->kind != TOKEN_LBRACKET) {
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected '(' following a method declaration\n");
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected '(' following a method declaration\n");
 
     while (token->kind != TOKEN_BBEGIN) {
       token = next();
@@ -2032,8 +2032,8 @@ void Parser::parseParameters(const std::shared_ptr<MethodDecl> &funcDecl) {
   token = peek();
 
   if (token->kind == TOKEN_IDENTIFIER) {
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected a comma between parameters declarations\n");
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected a comma between parameters declarations\n");
     tokenPos--;
     token =
         std::make_unique<Token>(TOKEN_COMMA, peek(0)->line, peek(0)->column);
@@ -2051,9 +2051,9 @@ void Parser::parseParameters(const std::shared_ptr<MethodDecl> &funcDecl) {
   }
 
   token = peek();
-  if (token == nullptr || token->kind != TOKEN_RBRACKET)
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected ')' following a method declaration\n");
+  if (token == nullptr || token->kind != TOKEN_RBRACKET) {}
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected ')' following a method declaration\n");
   else
     token = next();
 
@@ -2066,8 +2066,8 @@ void Parser::parseParameters(const std::shared_ptr<MethodDecl> &funcDecl) {
 void Parser::parseParameters(const std::shared_ptr<ConstrDecl> &constrDecl) {
   std::unique_ptr<Token> token = peek();
   if (token == nullptr || token->kind != TOKEN_LBRACKET) {
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected '(' following a constructor declaration\n");
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected '(' following a constructor declaration\n");
 
     while (token->kind != TOKEN_BBEGIN) {
       token = next();
@@ -2106,8 +2106,8 @@ void Parser::parseParameters(const std::shared_ptr<ConstrDecl> &constrDecl) {
   token = peek();
 
   if (token->kind == TOKEN_IDENTIFIER) {
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected a comma between parameters declarations\n");
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected a comma between parameters declarations\n");
     tokenPos--;
     token =
         std::make_unique<Token>(TOKEN_COMMA, peek(0)->line, peek(0)->column);
@@ -2125,9 +2125,9 @@ void Parser::parseParameters(const std::shared_ptr<ConstrDecl> &constrDecl) {
   }
 
   token = peek();
-  if (token == nullptr || token->kind != TOKEN_RBRACKET)
-    PARSE_ERR(sm.getLastFilePath().c_str(),
-              "Expected ')' following a constructor declaration\n");
+  if (token == nullptr || token->kind != TOKEN_RBRACKET) {}
+    // PARSER_ERR(sm.getLastFilePath().c_str(),
+              // "Expected ')' following a constructor declaration\n");
   else
     token = next();
 
@@ -2335,7 +2335,7 @@ std::shared_ptr<Expression> Parser::parsePrimary() {
     auto var = globalSymbolTable->getCurrentScope()->lookup(
         std::get<std::string>(token->value));
     if (!var) {
-      PARSE_ERR(sm.getLastFilePath().c_str(), "Variable not found in scope\n");
+      // PARSER_ERR(sm.getLastFilePath().c_str(), "Variable not found in scope\n");
       expr = std::make_shared<DummyExpression>(std::get<std::string>(token->value));
       break;
     }
@@ -2400,7 +2400,7 @@ std::shared_ptr<Expression> Parser::parsePrimary() {
         next(); // eat '('
         parseArguments(methodCall);
         // if (peek()->kind != TOKEN_RBRACKET) {
-        //   PARSE_ERR(sm.getLastFilePath().c_str(), "Expected `)` after method call\n");
+        //   // PARSER_ERR(sm.getLastFilePath().c_str(), // "Expected `)` after method call\n");
         // } else {
         //   next(); // eat ')'
         // }
@@ -2542,7 +2542,7 @@ Parser::parsePrimary(const std::string &classNameToSearchIn) {
     auto var = globalSymbolTable->getModuleScope(currScope)->lookupInClass(
         var_name, classNameToSearchIn);
     if (!var) {
-      PARSE_ERR(sm.getLastFilePath().c_str(), "Variable not found in scope\n");
+      // PARSER_ERR(sm.getLastFilePath().c_str(), "Variable not found in scope\n");
       expr = std::make_shared<DummyExpression>(std::get<std::string>(token->value));
       break;
     }
@@ -2601,7 +2601,7 @@ Parser::parsePrimary(const std::string &classNameToSearchIn) {
         next(); // eat '('
         parseArguments(methodCall);
         if (peek()->kind != TOKEN_RBRACKET) {
-          PARSE_ERR(sm.getLastFilePath().c_str(), "Expected `)` after method call\n");
+          // PARSER_ERR(sm.getLastFilePath().c_str(), // "Expected `)` after method call\n");
         } else {
           next(); // eat ')'
         }
