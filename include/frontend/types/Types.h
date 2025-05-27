@@ -143,7 +143,7 @@ public:
   int64_t max = std::numeric_limits<int64_t>::max();
   int64_t min = std::numeric_limits<int64_t>::min();
 
-  TypeInt64() : TypeBuiltin(TYPE_I64, "Int64", 64) {}
+  TypeInt64() : TypeBuiltin(TYPE_I64, "i64", 64) {}
 
   llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
     return llvm::Type::getInt64Ty(lc);
@@ -364,8 +364,8 @@ public:
   TypeList() : Type(TYPE_LIST, "List"), el_type(nullptr) {}
 
   llvm::Type *toLLVMType(llvm::LLVMContext &lc) override {
-    (void)lc;
-    return nullptr;
+    return llvm::ArrayType::get(el_type->toLLVMType(lc), 0);
+    // return el_type->toLLVMType(lc);
   }
 
   ~TypeList() override = default;

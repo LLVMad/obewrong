@@ -155,14 +155,6 @@ enum StateType {
 
 class Token {
 public:
-  /*
-  union Value {
-    int intValue;            // for Integer numbers
-    double realValue;        // for Real numbers
-    const char* stringValue; // for String literals
-    const char* identName;   // for Identifiers
-  }; */
-
   TokenKind kind;
   std::variant<std::monostate, int, double, std::string> value;
   size_t line;

@@ -130,6 +130,23 @@ public:
     );
     llvm::getOrInsertLibFunc(module.get(), *ext_std_lib_info, llvm::LibFunc_free, freeType);
 
+    // - strlen
+    auto strlenType = llvm::FunctionType::get(
+      llvm::Type::getInt64Ty(*context),
+      {llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)},
+      false
+    );
+    llvm::getOrInsertLibFunc(module.get(), *ext_std_lib_info, llvm::LibFunc_strlen, strlenType);
+
+    // - strcpy
+    auto strcpyType = llvm::FunctionType::get(
+      llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
+      {llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
+      llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)},
+      false
+    );
+    llvm::getOrInsertLibFunc(module.get(), *ext_std_lib_info, llvm::LibFunc_strcpy, strcpyType);
+
     // LINK MODULES
     auto included = sm.getIncluded(*buff);
     // sm.linkWithIncludedModules(*buff, );
@@ -211,6 +228,7 @@ public:
   void visit(VarRefEXP &node) override;
   void visit(FieldRefEXP &node) override;
   void visit(MethodCallEXP &node) override;
+  llvm::Value *getSizeOfValue(llvm::Value *value);
   void visit(FuncCallEXP &node) override;
   void visit(ClassNameEXP &node) override;
   void visit(ConversionEXP &node) override;

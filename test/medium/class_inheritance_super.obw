@@ -7,6 +7,10 @@ class Vehicle is
     this.brand := 1
   end 
 
+  method nuut() is 
+    printf("Nuut!\n")
+  end
+
   method honk() is 
     printf("Tuut, tuut!\n")
   end
@@ -32,6 +36,7 @@ class Main is
 
     v.honk()
     c.honk()
+    c.nuut()
 
     printf("v brand = %d, c branhd = %d, c model = %d\n", v.brand, c.brand, c.model)
   end

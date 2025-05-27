@@ -11,8 +11,12 @@ void SymbolTable::initBuiltinFunctions(
   bool isVoid = true;
   // @TODO body??? args??? AnyRef ???
   auto printDecl = std::make_shared<FuncDecl>("printf");
+  // auto mallocDecl = std::make_shared<FuncDecl>("malloc");
+  // auto freeDecl = std::make_shared<FuncDecl>("free");
+  auto strcpyDecl = std::make_shared<FuncDecl>("strcpy");
 
   global_scope->addSymbol("printf", printDecl);
+  global_scope->addSymbol("strcpy", strcpyDecl);
 
   //========================================
 
@@ -201,6 +205,188 @@ void SymbolTable::initBuiltinFunctions(
   auto integerDecl = std::make_shared<ClassDecl>("Integer", integerClassType, std::vector<std::shared_ptr<FieldDecl>>(), methods);
 
   current_scope->addSymbol("Integer", integerDecl);
+
+  exitScope();
+  //========================================
+
+  //========== i64 BUILTIN METHODS ==========
+  enterScope(SCOPE_MODULE_BUILTIN, "i64");
+
+  std::vector<std::shared_ptr<Decl>> i64_methods;
+  std::vector<std::shared_ptr<TypeFunc>> i64_method_types;
+
+  enterScope(SCOPE_CLASS_BUILTIN, "i64");
+
+  // - Plus
+  auto i64Type = typeTable->getType("", "i64");
+  auto i64PlusTypeReturnType = i64Type;
+  auto i64PlusTypeParamType = i64Type;
+  std::vector paramTypes_i64_Plus = {i64PlusTypeParamType};
+  auto i64PlusType =
+      std::make_shared<TypeFunc>(i64PlusTypeReturnType, paramTypes_i64_Plus);
+  auto i64PlusParamDecl =
+      std::make_shared<ParameterDecl>("x", i64PlusTypeParamType);
+  std::vector<std::shared_ptr<ParameterDecl>> params_i64_Plus = {i64PlusParamDecl};
+  auto i64PlusDecl =
+      std::make_shared<MethodDecl>("Plus", i64PlusType, params_i64_Plus, true);
+  i64PlusDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Plus", i64PlusDecl);
+  i64_methods.push_back(i64PlusDecl);
+  i64_method_types.push_back(i64PlusType);
+
+  // - Size
+  auto i64SizeReturnType = i64Type;
+  auto i64SizeType =
+      std::make_shared<TypeFunc>(i64SizeReturnType);
+  std::vector<std::shared_ptr<ParameterDecl>> params_i64_Size = {};
+  auto i64SizeDecl =
+      std::make_shared<MethodDecl>("Size", i64SizeType, params_i64_Size, true);
+  i64SizeDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Size", i64SizeDecl);
+  i64_methods.push_back(i64SizeDecl);
+  i64_method_types.push_back(i64SizeType);
+
+  // - Minus
+  auto i64MinusTypeReturnType = i64Type;
+  auto i64MinusTypeParamType = i64Type;
+  std::vector paramTypes_i64_Minus = {i64MinusTypeParamType};
+  auto i64MinusType =
+      std::make_shared<TypeFunc>(i64MinusTypeReturnType, paramTypes_i64_Minus);
+  auto i64MinusParamDecl =
+      std::make_shared<ParameterDecl>("x", i64MinusTypeParamType);
+  std::vector<std::shared_ptr<ParameterDecl>> params_i64_Minus = {i64MinusParamDecl};
+  auto i64MinusDecl =
+      std::make_shared<MethodDecl>("Minus", i64MinusType, params_i64_Minus, true);
+  i64MinusDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Minus", i64MinusDecl);
+  i64_methods.push_back(i64MinusDecl);
+  i64_method_types.push_back(i64MinusType);
+
+  // - UnaryMinus
+  auto i64UMinusTypeReturnType = i64Type;
+  auto i64UMinusType =
+      std::make_shared<TypeFunc>(i64UMinusTypeReturnType);
+  std::vector<std::shared_ptr<ParameterDecl>> params_i64_UMinus = {};
+  auto i64UMinusDecl =
+      std::make_shared<MethodDecl>("UnaryMinus", i64UMinusType, params_i64_UMinus, true);
+  i64UMinusDecl->isBuiltin = true;
+
+  current_scope->addSymbol("UnaryMinus", i64UMinusDecl);
+  i64_methods.push_back(i64UMinusDecl);
+  i64_method_types.push_back(i64UMinusType);
+
+  // - Mult
+  auto i64MultTypeReturnType = i64Type;
+  auto i64MultTypeParamType = i64Type;
+  std::vector paramTypes_i64_Mult = {i64MultTypeParamType};
+  auto i64MultType =
+      std::make_shared<TypeFunc>(i64MultTypeReturnType, paramTypes_i64_Mult);
+  auto i64MultParamDecl =
+      std::make_shared<ParameterDecl>("x", i64MultTypeParamType);
+  std::vector<std::shared_ptr<ParameterDecl>> params_i64_Mult = {i64MultParamDecl};
+  auto i64MultDecl =
+      std::make_shared<MethodDecl>("Mult", i64MultType, params_i64_Mult, true);
+  i64MultDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Mult", i64MultDecl);
+  i64_methods.push_back(i64MultDecl);
+  i64_method_types.push_back(i64MultType);
+
+  // - Div
+  auto i64DivTypeReturnType = i64Type;
+  auto i64DivTypeParamType = i64Type;
+  std::vector paramTypes_i64_Div = {i64DivTypeParamType};
+  auto i64DivType =
+      std::make_shared<TypeFunc>(i64DivTypeReturnType, paramTypes_i64_Div);
+  auto i64DivParamDecl =
+      std::make_shared<ParameterDecl>("x", i64DivTypeParamType);
+  std::vector<std::shared_ptr<ParameterDecl>> params_i64_Div = {i64DivParamDecl};
+  auto i64DivDecl =
+      std::make_shared<MethodDecl>("Div", i64DivType, params_i64_Div, true);
+  i64DivDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Div", i64DivDecl);
+  i64_methods.push_back(i64DivDecl);
+  i64_method_types.push_back(i64DivType);
+
+  // - Rem
+  auto i64RemTypeReturnType = i64Type;
+  auto i64RemTypeParamType = i64Type;
+  std::vector paramTypes_i64_Rem = {i64RemTypeParamType};
+  auto i64RemType =
+      std::make_shared<TypeFunc>(i64RemTypeReturnType, paramTypes_i64_Rem);
+  auto i64RemParamDecl =
+      std::make_shared<ParameterDecl>("x", i64RemTypeParamType);
+  std::vector<std::shared_ptr<ParameterDecl>> params_i64_Rem = {i64RemParamDecl};
+  auto i64RemDecl =
+      std::make_shared<MethodDecl>("Rem", i64RemType, params_i64_Rem, true);
+  i64RemDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Rem", i64RemDecl);
+  i64_methods.push_back(i64RemDecl);
+  i64_method_types.push_back(i64RemType);
+
+  // - Less
+  auto i64LessTypeReturnType = typeTable->getType("", "Boolean");
+  auto i64LessTypeParamType = i64Type;
+  std::vector paramTypes_i64_Less = {i64LessTypeParamType};
+  auto i64LessType =
+      std::make_shared<TypeFunc>(i64LessTypeReturnType, paramTypes_i64_Less);
+  auto i64LessParamDecl =
+      std::make_shared<ParameterDecl>("x", i64LessTypeParamType);
+  std::vector<std::shared_ptr<ParameterDecl>> params_i64_Less = {i64LessParamDecl};
+  auto i64LessDecl =
+      std::make_shared<MethodDecl>("Less", i64LessType, params_i64_Less, true);
+  i64LessDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Less", i64LessDecl);
+  i64_methods.push_back(i64LessDecl);
+  i64_method_types.push_back(i64LessType);
+
+  // - Greater
+  auto i64GreaterTypeReturnType = typeTable->getType("", "Boolean");
+  auto i64GreaterTypeParamType = i64Type;
+  std::vector paramTypes_i64_Greater = {i64GreaterTypeParamType};
+  auto i64GreaterType =
+      std::make_shared<TypeFunc>(i64GreaterTypeReturnType, paramTypes_i64_Greater);
+  auto i64GreaterParamDecl =
+      std::make_shared<ParameterDecl>("x", i64GreaterTypeParamType);
+  std::vector<std::shared_ptr<ParameterDecl>> params_i64_Greater = {i64GreaterParamDecl};
+  auto i64GreaterDecl =
+      std::make_shared<MethodDecl>("Greater", i64GreaterType, params_i64_Greater, true);
+  i64GreaterDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Greater", i64GreaterDecl);
+  i64_methods.push_back(i64GreaterDecl);
+  i64_method_types.push_back(i64GreaterType);
+
+  // - Equal
+  auto i64EqualTypeReturnType = typeTable->getType("", "Boolean");
+  auto i64EqualTypeParamType = i64Type;
+  std::vector paramTypes_i64_Equal = {i64EqualTypeParamType};
+  auto i64EqualType =
+      std::make_shared<TypeFunc>(i64EqualTypeReturnType, paramTypes_i64_Equal);
+  auto i64EqualParamDecl =
+      std::make_shared<ParameterDecl>("x", i64EqualTypeParamType);
+  std::vector<std::shared_ptr<ParameterDecl>> params_i64_Equal = {i64EqualParamDecl};
+  auto i64EqualDecl =
+      std::make_shared<MethodDecl>("Equal", i64EqualType, params_i64_Equal, true);
+  i64EqualDecl->isBuiltin = true;
+
+  current_scope->addSymbol("Equal", i64EqualDecl);
+  i64_methods.push_back(i64EqualDecl);
+  i64_method_types.push_back(i64EqualType);
+
+  exitScope();
+
+  // - i64 class decl
+  auto i64ClassType = std::make_shared<TypeClass>("i64", std::vector<std::shared_ptr<Type>>(), i64_method_types);
+  auto i64Decl = std::make_shared<ClassDecl>("i64", i64ClassType, std::vector<std::shared_ptr<FieldDecl>>(), i64_methods);
+
+  current_scope->addSymbol("i64", i64Decl);
 
   exitScope();
   //========================================

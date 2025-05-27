@@ -321,6 +321,15 @@ std::unique_ptr<Token> Lexer::next() {
         curr_state = STATE_START;
         advance();
         return std::make_unique<Token>(TOKEN_LSBRACKET, curr_line, curr_column);
+      } else if (c == '\'') {
+        curr_state = STATE_START;
+        advance();
+        char ch = peek();
+        advance();
+        advance();
+        return std::make_unique<Token>(TOKEN_INT8_NUMBER, (int)ch,
+                               curr_line,
+                               curr_column /* - token.length() + 1 */);
       } else if (c == ']') {
         curr_state = STATE_START;
         advance();
